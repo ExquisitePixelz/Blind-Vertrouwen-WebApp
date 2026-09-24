@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { useParams } from 'react-router'
 import { CharactersSection } from '../components/CharactersSection'
 import { InvitesSection } from '../components/InvitesSection'
-import { rememberCampaign } from '../lib/lastCampaign'
+import { TopBar } from '../components/TopBar'
+import { useRememberCampaign } from '../lib/campaigns'
 import { useMe } from '../lib/me'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
@@ -12,6 +13,7 @@ type Member = { user_id: string; name: string }
 export function CampaignPage() {
   const { campaignId = '' } = useParams()
   const me = useMe()
+  const remember = useRememberCampaign()
 
   const campaign = useLoad(async () => {
     const found = must(
@@ -39,14 +41,24 @@ export function CampaignPage() {
 
   const found = !!campaign.data
   useEffect(() => {
-    if (found) rememberCampaign(campaignId)
-  }, [found, campaignId])
+    if (found) void remember(campaignId)
+  }, [found, campaignId, remember])
 
-  if (campaign.error) return <main className="page error">{campaign.error}</main>
-  if (campaign.loading && !campaign.data) return <main className="page" />
+  if (campaign.error) return (
+      <main className="page">
+        <TopBar back="/" />
+        <p className="error">{campaign.error}</p>
+      </main>
+    )
+  if (campaign.loading && !campaign.data) return (
+      <main className="page">
+        <TopBar back="/" />
+      </main>
+    )
   if (!campaign.data) {
     return (
       <main className="page">
+        <TopBar back="/" />
         <p className="muted">This campaign does not exist, or you are not in it.</p>
       </main>
     )
@@ -54,7 +66,7 @@ export function CampaignPage() {
 
   return (
     <main className="page">
-      <h1>{campaign.data.name}</h1>
+      <TopBar title={campaign.data.name} back="/" />
 
       <CharactersSection campaignId={campaignId} />
 

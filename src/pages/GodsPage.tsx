@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { PromptDialog } from '../components/Dialog'
+import { TopBar } from '../components/TopBar'
 import { loadGods, slugify } from '../lib/gods'
 import { useMe } from '../lib/me'
 import { NEUTRAL, standing } from '../lib/standing'
@@ -16,14 +17,13 @@ export function GodsPage() {
 
   return (
     <main className="page">
-      <div className="title-row">
-        <h1>Gods</h1>
+      <TopBar title="Gods" back="/">
         {me.isDm && (
           <button className="icon" aria-label="New god" onClick={() => setCreating(true)}>
             +
           </button>
         )}
-      </div>
+      </TopBar>
 
       {gods.error && <p className="error">{gods.error}</p>}
       {gods.data?.length === 0 && <p className="muted">The gods appear once you have joined a campaign.</p>}

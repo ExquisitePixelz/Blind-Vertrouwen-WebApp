@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 import { ConfirmDialog, Dialog, NumberDialog, PickDialog } from '../components/Dialog'
+import { TopBar } from '../components/TopBar'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { byName, loadGods, type God } from '../lib/gods'
 import { useMe } from '../lib/me'
@@ -54,8 +55,17 @@ export function PietyPage() {
     }
   }, [campaignId])
 
-  if (data.error) return <main className="page error">{data.error}</main>
-  if (!data.data) return <main className="page" />
+  if (data.error) return (
+      <main className="page">
+        <TopBar back={`/c/${campaignId}`} />
+        <p className="error">{data.error}</p>
+      </main>
+    )
+  if (!data.data) return (
+      <main className="page">
+        <TopBar back={`/c/${campaignId}`} />
+      </main>
+    )
   const { characters, tracks, gods } = data.data
   const godName = new Map(gods.map((g) => [g.id, g.name]))
 
@@ -73,10 +83,7 @@ export function PietyPage() {
 
   return (
     <main className="page">
-      <Link to={`/c/${campaignId}`} className="back">
-        ← Campaign
-      </Link>
-      <h1>Piety</h1>
+      <TopBar title="Piety Scores" back={`/c/${campaignId}`} />
       {characters.length === 0 && <p className="muted">No characters yet.</p>}
       {error && <p className="error">{error}</p>}
 

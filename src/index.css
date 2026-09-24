@@ -7,7 +7,15 @@
   --gold: #d4af37;
   --danger: #d2574c;
 
+  /* Mobile first (ARCHITECTURE.md 1.5): text grows gently from 16 px on a
+     320 px phone to 18 px on a laptop. Everything sized in rem follows. */
+  font-size: clamp(1rem, 0.93rem + 0.35vw, 1.125rem);
+  --tap: 2.75rem; /* at least 44 px */
+  --gutter: 1rem;
+
   color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   color: var(--text);
@@ -23,6 +31,8 @@ body {
   margin: 0;
   min-height: 100dvh;
   background: var(--bg);
+  overflow-wrap: anywhere;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button {
@@ -32,13 +42,18 @@ button {
   border: 0;
   border-radius: 8px;
   padding: 0.6rem 1rem;
+  min-height: var(--tap);
   cursor: pointer;
+  touch-action: manipulation;
 }
 
+/* One centred column: full width on a phone, never stretched on a laptop.
+   The side and bottom padding keep clear of notches and home bars. */
 .page {
   max-width: 40rem;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 0 max(var(--gutter), env(safe-area-inset-right)) calc(2rem + env(safe-area-inset-bottom))
+    max(var(--gutter), env(safe-area-inset-left));
 }
 
 .muted {
@@ -65,7 +80,7 @@ button {
 /* ---------- Layout ---------- */
 
 h1 {
-  font-size: 1.6rem;
+  font-size: clamp(1.4rem, 1.2rem + 1vw, 1.75rem);
   margin: 0 0 1rem;
 }
 
@@ -76,34 +91,164 @@ h2 {
 
 .page.center {
   text-align: center;
-  padding-top: 20vh;
+  padding-top: calc(20vh + env(safe-area-inset-top));
 }
 
-.header {
+/* ---------- Top bar (1.5) ---------- */
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
+  gap: 0.25rem;
+  min-height: calc(3.5rem + env(safe-area-inset-top));
+  margin: 0 calc(-1 * max(var(--gutter), env(safe-area-inset-left))) 0.75rem;
+  padding: env(safe-area-inset-top) max(var(--gutter), env(safe-area-inset-right)) 0
+    max(calc(var(--gutter) - 0.5rem), env(safe-area-inset-left));
+  background: var(--bg);
   border-bottom: 1px solid var(--surface);
 }
 
-.brand {
-  color: var(--gold);
-  font-weight: 700;
-  text-decoration: none;
-  letter-spacing: 0.05em;
+.top-back {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--tap);
+  height: var(--tap);
+  color: var(--text);
+  border-radius: 50%;
 }
 
-.header-user {
+.top-back:active {
+  background: var(--surface);
+}
+
+.top-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 0 0.25rem;
+  font-size: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+
+.top-actions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--muted);
-  font-size: 0.9rem;
-  min-width: 0;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.page-status {
+  margin: -0.5rem 0 0.5rem;
+  text-align: right;
+  line-height: 1;
+}
+
+/* ---------- Account button and menu (1.5) ---------- */
+
+.account {
+  position: relative;
+}
+
+button.account-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 11rem;
+  padding: 0 0.75rem 0 0.25rem;
+  color: var(--text);
+  background: var(--surface);
+  border-radius: 999px;
+}
+
+.account-initial {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.1rem;
+  height: 2.1rem;
+  color: var(--bg);
+  background: var(--gold);
+  border-radius: 50%;
+  font-weight: 700;
+}
+
+.account-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
+
+/* Narrow screens: the initial only. */
+@media (max-width: 480px) {
+  button.account-button {
+    width: var(--tap);
+    padding: 0;
+    justify-content: center;
+    background: none;
+  }
+  .account-name {
+    display: none;
+  }
+}
+
+.popover-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+.popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  width: min(16rem, calc(100vw - 2rem));
+  padding: 0.25rem 0;
+  background: var(--surface);
+  border: 1px solid #2c2c32;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+}
+
+.popover-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6rem 1rem 0.7rem;
+  border-bottom: 1px solid #2a2a30;
+}
+
+.popover-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.popover-item,
+button.popover-item {
+  display: flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 1rem;
+  color: var(--text);
+  background: none;
+  border-radius: 0;
+  text-align: left;
+  text-decoration: none;
+}
+
+.popover-item:active {
+  background: #25252b;
 }
 
 .title-row {
@@ -210,8 +355,8 @@ button.link {
 }
 
 button.icon {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--tap);
+  height: var(--tap);
   padding: 0;
   font-size: 1.5rem;
   line-height: 1;
@@ -257,23 +402,6 @@ button.icon {
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1rem;
-}
-
-/* ---------- Navigation ---------- */
-
-.nav {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.nav a:not(.brand) {
-  color: var(--muted);
-  text-decoration: none;
-}
-
-.nav a.active {
-  color: var(--text);
 }
 
 /* ---------- Cards and fact rows ---------- */
@@ -332,10 +460,22 @@ button.fact-row:active {
 
 .standing-step {
   height: 1.6rem;
+  min-height: 0;
   padding: 0;
   background: var(--surface);
   border: 1px solid transparent;
   border-radius: 4px;
+}
+
+/* Taller invisible tap area around each step (at least 44 px). */
+button.standing-step {
+  position: relative;
+}
+
+button.standing-step::after {
+  content: '';
+  position: absolute;
+  inset: -0.6rem 0;
 }
 
 .standing-step.neutral {
@@ -391,12 +531,6 @@ button.fact-row:active {
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
-}
-
-.title-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
 }
 
 .field {
@@ -539,16 +673,12 @@ button.pick-option.danger-text {
   color: var(--danger);
 }
 
-select.text-input {
-  appearance: auto;
+button.pick-option.gold {
+  color: var(--gold);
 }
 
-.back {
-  display: inline-block;
-  margin-bottom: 0.5rem;
-  color: var(--muted);
-  text-decoration: none;
-  font-size: 0.9rem;
+select.text-input {
+  appearance: auto;
 }
 
 /* ---------- Piety ---------- */
@@ -590,8 +720,8 @@ select.text-input {
 }
 
 .track-head .small-icon {
-  width: 2rem;
-  height: 2rem;
+  width: var(--tap);
+  height: var(--tap);
   font-size: 1rem;
   margin-left: auto;
 }
@@ -685,12 +815,6 @@ button.round {
 }
 
 button.small-button {
-  padding: 0.35rem 0.7rem;
+  padding: 0.35rem 0.9rem;
   font-size: 0.85rem;
-}
-
-@media (max-width: 420px) {
-  .header-name {
-    display: none;
-  }
 }

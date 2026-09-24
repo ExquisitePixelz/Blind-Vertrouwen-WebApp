@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 import { PromptDialog } from '../components/Dialog'
+import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { StandingBar } from '../components/StandingBar'
@@ -36,11 +37,21 @@ export function GodPage() {
   )
   const god = saver.view
 
-  if (gods.error) return <main className="page error">{gods.error}</main>
-  if (!gods.data) return <main className="page" />
+  if (gods.error) return (
+      <main className="page">
+        <TopBar back="/gods" />
+        <p className="error">{gods.error}</p>
+      </main>
+    )
+  if (!gods.data) return (
+      <main className="page">
+        <TopBar back="/gods" />
+      </main>
+    )
   if (!god) {
     return (
       <main className="page">
+        <TopBar back="/gods" />
         <p className="muted">This god does not exist, or you cannot see it.</p>
       </main>
     )
@@ -76,13 +87,12 @@ export function GodPage() {
 
   return (
     <main className="page">
-      <Link to="/gods" className="back">
-        ← Gods
-      </Link>
-      <div className="title-row">
-        <h1>{god.name}</h1>
-        {canEdit && <SaveIndicator status={saver.status} />}
-      </div>
+      <TopBar title={god.name} back="/gods" />
+      {canEdit && (
+        <p className="page-status">
+          <SaveIndicator status={saver.status} />
+        </p>
+      )}
 
       {saver.status === 'conflict' && (
         <ConflictBanner onKeepMine={saver.keepMine} onUseTheirs={() => saver.discardMine(gods.reload)} />

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
+import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import {
@@ -79,11 +80,21 @@ export function CharacterPage() {
   )
   const c = saver.view
 
-  if (character.error) return <main className="page error">{character.error}</main>
-  if (character.loading && !character.data) return <main className="page" />
+  if (character.error) return (
+      <main className="page">
+        <TopBar back={`/c/${campaignId}`} />
+        <p className="error">{character.error}</p>
+      </main>
+    )
+  if (character.loading && !character.data) return (
+      <main className="page">
+        <TopBar back={`/c/${campaignId}`} />
+      </main>
+    )
   if (!c) {
     return (
       <main className="page">
+        <TopBar back={`/c/${campaignId}`} />
         <p className="muted">This character does not exist, or you cannot see it.</p>
       </main>
     )
@@ -96,20 +107,18 @@ export function CharacterPage() {
 
   return (
     <main className="page">
-      <Link to={`/c/${campaignId}`} className="back">
-        ← Campaign
-      </Link>
-      <div className="title-row">
-        <h1>{c.name}</h1>
+      <TopBar title={c.name} back={`/c/${campaignId}`}>
         {canEdit && (
-          <span className="title-actions">
-            <SaveIndicator status={saver.status} />
-            <button className="icon secondary" aria-label="More" onClick={() => setOpen({ kind: 'menu' })}>
-              …
-            </button>
-          </span>
+          <button className="icon secondary" aria-label="More" onClick={() => setOpen({ kind: 'menu' })}>
+            …
+          </button>
         )}
-      </div>
+      </TopBar>
+      {canEdit && (
+        <p className="page-status">
+          <SaveIndicator status={saver.status} />
+        </p>
+      )}
 
       {saver.status === 'conflict' && (
         <ConflictBanner onKeepMine={saver.keepMine} onUseTheirs={() => saver.discardMine(character.reload)} />

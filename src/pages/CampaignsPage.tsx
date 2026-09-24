@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { PromptDialog } from '../components/Dialog'
+import { TopBar } from '../components/TopBar'
 import { useMe } from '../lib/me'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
@@ -19,14 +20,13 @@ export function CampaignsPage() {
 
   return (
     <main className="page">
-      <div className="title-row">
-        <h1>Campaigns</h1>
+      <TopBar title="Campaigns">
         {me.isDm && (
           <button className="icon" aria-label="New campaign" onClick={() => setCreating(true)}>
             +
           </button>
         )}
-      </div>
+      </TopBar>
 
       {campaigns.error && <p className="error">{campaigns.error}</p>}
       {campaigns.data?.length === 0 && (
