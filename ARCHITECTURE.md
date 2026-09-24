@@ -714,6 +714,25 @@ A pure function calculates the sheet from base values, effects and overrides. Te
 5. **Spells.** Spell list, known and prepared spells, and slots per level.
 6. **Theros.** Supernatural gifts, and piety boons that apply at milestones (links to the milestone bar in 1.1).
 
+### 6.2 Quest Journal *(owner idea, 2026-09-24; roadmap)*
+
+The DM offers the party several quests; the players vote on what they want to do. **Only the DM creates, edits, reveals and crosses off quests.** Campaign content.
+
+**Decisions (owner, 2026-09-24):**
+- **Statuses:** Offered (to pick from), Active (being pursued), Completed (crossed off), Failed/abandoned. Only the DM changes status.
+- **Voting:** each player can vote for any number of **Offered** quests, one vote per player per quest, and take it back. Everyone in the campaign sees the tally and who voted. The DM decides and sets a quest to Active. Voting closes when a quest leaves Offered.
+- **Draft quests:** the DM can write quests ahead. A draft has audience `dm` and becomes `members` when the DM reveals it.
+- **A quest card shows:** title, description, quest giver and location (free text; links to lore entries later), reward, an **objectives checklist** the DM ticks off, and session links ("given in #53", "completed in #57").
+
+**Data sketch:**
+- `quests`: `campaign_id`, `title`, `description`, `giver`, `location`, `reward`, `status`, `given_session_number`, `completed_session_number`, the standard columns, audience `dm` (draft) or `members` (revealed). DM writes; members read revealed quests.
+- `quest_objectives`: `quest_id`, `text`, `done`, `sort_order`. DM writes; readable when the quest is readable.
+- `quest_votes`: `quest_id`, `user_id`, unique per pair. A player inserts and deletes **only their own** vote, and only while the quest is Offered (enforced by the database). Members read all votes.
+- **Session numbers are stored as numbers, not links to `sessions` rows.** Sessions are DM-only (1.4), so players could not follow a link to one.
+- Permission tests: players cannot create, edit or change the status of quests; drafts are invisible to players; a player cannot vote for someone else or on a quest that is not Offered.
+
+**Later:** secret DM notes per quest (the separate-secret-row pattern in 3.3), links to lore entries (6, NPC / lore notes), and rewards that become inventory items.
+
 ---
 
 ## 7. Costs
