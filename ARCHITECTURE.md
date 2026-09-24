@@ -639,11 +639,36 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
 | **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
-| **Player features: character notes and inventory** *(owner's pick for the next phase after Phase 5, 2026-09-24)*: a free-text notes field on a player's own sheet (backstory, goals), and an inventory private to the player and the DM | `characters` (owner and DM write); the `owner` audience |
+| **Player features: character notes and inventory** *(owner's pick for the next phase after Phase 5, 2026-09-24)*: a free-text notes field on a player's own sheet (backstory, goals), and an inventory private to the player and the DM | `characters` (owner and DM write); the `owner` audience Items should be able to carry effects later (6.1, part 2). |
 | **Session notes: character/god links** *(owner interest, 2026-09-24)*: mention a character or god in the notes as a tappable link | The `sessions` table and markdown (1.4). Links can be stored as text markers, so no new table is needed. |
 | **Initiative tracker** *(owner interest)*: turn order for combat that players see live on their phones | Needs Supabase Realtime, so this is the same project as Live combat |
 | **NPC / lore notes** *(owner interest)*: NPCs, places and factions, each entry either DM only or shared with players, with secret parts in their own `dm` row | The world level, the `dm` / `members` audiences, and the separate-secret-row pattern in 3.3 |
 | **Session quiz** *(owner idea, very future)*: a Kahoot-style quiz where players answer questions about the previous session, maybe with AI-generated questions | Needs Realtime for a live quiz. AI questions would read the DM-only notes, so the DM must approve every question before players see it (priority 2), and an AI API has a running cost (priority 3). |
+
+### 6.1 Character builder and rules engine *(owner idea, 2026-09-24; roadmap, built in parts)*
+
+Build characters from 5e races, classes, subclasses, feats, spells and items, with automatic proficiency, expertise and modifiers (for example Bracers of Defense: AC +2; Belt of Giant Strength: STR 21). This is large, so it is split into parts that are each useful on their own. **Nothing here is in scope until the owner says to start a part.**
+
+**Decisions (owner, 2026-09-24):**
+- **Ruleset: 2014 (5e classic)**, matching *Mythic Odysseys of Theros*. The free content base is **SRD 5.1**.
+- **Content: the app ships only the SRD** (CC-BY-4.0, with the required attribution). Everything else (other subclasses, Xanathar's, Tasha's, Theros races, subclasses and supernatural gifts) is copyrighted and **must never be in the public repository**. The DM enters it through an in-app editor. It is stored in the database as world content (audience `members`, or `dm` while hidden).
+- **Automatic, with overrides.** Every total is calculated and shows its sources (for example `AC 17 = 10 + DEX 3 + Bracers 2 + Shield 2`). The owner of the character and the DM can override any total by hand. Existing hand-entered characters keep working.
+- **Players build and level their own characters** and add custom modifiers to them. The DM can edit everything.
+
+**Core design: base values plus effects.** A character stores base values and choices. Race, class features, feats, items and custom modifiers each carry **effects** stored as data, for example:
+- `{target: "ac", op: "add", value: 2, when: "no armor, no shield"}`
+- `{target: "str", op: "set_min", value: 21}`
+- `{target: "skill.stealth", op: "expertise"}`
+
+A pure function calculates the sheet from base values, effects and overrides. Test it well with unit tests: it is the part most likely to be subtly wrong.
+
+**Parts, in suggested order:**
+1. **Automatic sheet.** Proficiency bonus from level, saving throws, the 18 skills with proficiency and expertise, and hand-entered custom modifiers. No content library needed.
+2. **Items with effects.** Builds on the inventory (next after Phase 5). Equip and attune; effects then apply. **Design the inventory table with this in mind.**
+3. **Content library.** The SRD 5.1 imported (for example from the 5e-srd-api or Open5e data), plus the DM's editor for races, classes, subclasses, feats, items and spells.
+4. **Character builder.** Race, class and subclass choices level by level, including multiclassing. This replaces the free-text `classLevel` with structured class levels.
+5. **Spells.** Spell list, known and prepared spells, and slots per level.
+6. **Theros.** Supernatural gifts, and piety boons that apply at milestones (links to the milestone bar in 1.1).
 
 ---
 
