@@ -562,7 +562,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 ## 8. Open items
 
 **Still to check:**
-1. Check that the Supabase keep-alive approach is allowed under current terms.
+1. Supabase keep-alive. *Checked 2026-09-24:* the [Terms of Service](https://supabase.com/terms) say nothing about free-plan pausing or keep-alive requests, and the [pausing docs](https://supabase.com/docs/guides/platform/free-project-pausing) say only that a project is paused without "sufficient user database activity over the past week" ("a few user requests to the database each day" is typically enough). A scheduled ping is not forbidden, but not explicitly allowed either, and Supabase could change how it counts activity. Plan: build the ping in Phase 2 as a real, tiny read query (not just a health check), run it daily, and keep the manual restore in the dashboard as the fallback. Re-check before Phase 2.
 
 **Resolved:**
 - **`player` field on characters:** kept as free text, a display label only (section 1.3, B1).

@@ -1,0 +1,29 @@
+# Dependencies and build output
+node_modules/
+dist/
+dev-dist/
+
+# Secrets: never commit these (ARCHITECTURE.md 3.2, 3.8)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+
+# Data exports and backups belong in the private backup repo only
+*.dump
+*.sql.gz
+backups/
+exports/
+
+# Editor and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.log
