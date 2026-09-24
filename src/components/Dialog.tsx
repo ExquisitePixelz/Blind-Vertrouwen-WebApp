@@ -136,3 +136,99 @@ export function ConfirmDialog({
     </Dialog>
   )
 }
+
+type NumberAction = { label: string; className?: string; onApply: (value: number) => void }
+
+/**
+ * A1: edit a number. Typing replaces the value shown (it is selected on
+ * focus), at most 4 digits, and an empty entry counts as 0. No field on a
+ * character allows negatives.
+ */
+export function NumberDialog({
+  title,
+  initial,
+  actions,
+  onClose,
+}: {
+  title: string
+  initial: number
+  actions: NumberAction[]
+  onClose: () => void
+}) {
+  const [text, setText] = useState(String(initial))
+  const value = Number(text || '0')
+
+  function apply(action: NumberAction) {
+    action.onApply(value)
+    onClose()
+  }
+
+  return (
+    <Dialog title={title} onClose={onClose}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (actions.length === 1) apply(actions[0])
+        }}
+      >
+        <input
+          className="text-input number-input"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={text}
+          onChange={(e) => setText(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          onFocus={(e) => e.target.select()}
+          autoFocus
+        />
+        <div className="dialog-actions">
+          <button type="button" className="secondary" onClick={onClose}>
+            Cancel
+          </button>
+          {actions.map((action) => (
+            <button key={action.label} type="button" className={action.className} onClick={() => apply(action)}>
+              {action.label}
+            </button>
+          ))}
+        </div>
+      </form>
+    </Dialog>
+  )
+}
+
+/** A4: a list of options; tapping one closes the dialog and applies it. */
+export function PickDialog<T>({
+  title,
+  options,
+  onPick,
+  onClose,
+}: {
+  title: string
+  options: { value: T; label: string; className?: string }[]
+  onPick: (value: T) => void
+  onClose: () => void
+}) {
+  return (
+    <Dialog title={title} onClose={onClose}>
+      <div className="pick-list">
+        {options.map((option) => (
+          <button
+            key={option.label}
+            type="button"
+            className={`pick-option ${option.className ?? ''}`}
+            onClick={() => {
+              onPick(option.value)
+              onClose()
+            }}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+      <div className="dialog-actions">
+        <button type="button" className="secondary" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    </Dialog>
+  )
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { PromptDialog } from '../components/Dialog'
+import { FactRow } from '../components/FactRow'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { StandingBar } from '../components/StandingBar'
 import { byName, loadGods, loadRelationships, type God, type Relationship } from '../lib/gods'
@@ -75,6 +76,9 @@ export function GodPage() {
 
   return (
     <main className="page">
+      <Link to="/gods" className="back">
+        ← Gods
+      </Link>
       <div className="title-row">
         <h1>{god.name}</h1>
         {canEdit && <SaveIndicator status={saver.status} />}
@@ -160,21 +164,5 @@ export function GodPage() {
         />
       )}
     </main>
-  )
-}
-
-function FactRow({ label, value, onClick }: { label: string; value: string; onClick?: () => void }) {
-  const content = (
-    <>
-      <span className="muted">{label}</span>
-      <span>{value || '—'}</span>
-    </>
-  )
-  return onClick ? (
-    <button type="button" className="fact-row" onClick={onClick}>
-      {content}
-    </button>
-  ) : (
-    <div className="fact-row">{content}</div>
   )
 }

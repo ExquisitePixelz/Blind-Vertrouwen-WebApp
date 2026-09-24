@@ -491,6 +491,7 @@ Detailed columns for characters and gods come from the specification in section 
 - **Gods:** have a fixed `slug` (e.g. `phenax`) next to the `id`.
 - **`god_relationships`:** readable when both gods are readable. Value 4 (Neutral) is never stored.
 - **`piety_tracks.owner_id`:** set by the database to the character's owner.
+- **Character sheet:** the "Devoted to" row is read-only and lists the character's tracks. The DM changes gods and custom sources on the Piety page (Phase 3, step 4).
 - **Seed data:** Theros and the 15 gods are in a migration. `worlds.dm_user_id` is set by hand once (see Phase 2 notes in the README).
 
 ---

@@ -1,4 +1,5 @@
 import { useParams } from 'react-router'
+import { CharactersSection } from '../components/CharactersSection'
 import { InvitesSection } from '../components/InvitesSection'
 import { useMe } from '../lib/me'
 import { must, supabase } from '../lib/supabase'
@@ -47,6 +48,8 @@ export function CampaignPage() {
   return (
     <main className="page">
       <h1>{campaign.data.name}</h1>
+
+      <CharactersSection campaignId={campaignId} />
 
       <section>
         <h2>Players</h2>

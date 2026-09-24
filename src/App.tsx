@@ -7,6 +7,7 @@ import { flushAllPending, setPendingOwner } from './lib/saver'
 import { must, supabase } from './lib/supabase'
 import { useSession } from './lib/useSession'
 import { CampaignPage } from './pages/CampaignPage'
+import { CharacterPage } from './pages/CharacterPage'
 import { CampaignsPage } from './pages/CampaignsPage'
 import { GodPage } from './pages/GodPage'
 import { GodsPage } from './pages/GodsPage'
@@ -78,6 +79,7 @@ function Screens() {
       <Routes>
         <Route path="/" element={<CampaignsPage />} />
         <Route path="/c/:campaignId" element={<CampaignPage />} />
+        <Route path="/c/:campaignId/characters/:characterId" element={<CharacterPage />} />
         <Route path="/gods" element={<GodsPage />} />
         <Route path="/gods/:slug" element={<GodPage />} />
         <Route path="/invite/:code" element={<InvitePage />} />
