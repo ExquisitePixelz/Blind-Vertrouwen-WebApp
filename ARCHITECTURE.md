@@ -4,13 +4,13 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8).*
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). **Section 5, "Where we are", shows the current order of work.***
 
 ---
 
 ## 1. Scope
 
-### 1.1 Version 1 (the only thing being built now)
+### 1.1 Version 1 (built in Phases 0–3)
 
 A small website at `https://dnd.yannickmul.nl` for a friend group playing in **Theros**. It is the web version of the owner's existing Unity app, the Theros DM Companion. Users log in with Google, join a campaign via an invite link shared in WhatsApp, and use it.
 
@@ -315,7 +315,7 @@ All relationships start at Neutral, and all party attitudes start at 4.
 
 A **Sessions** tab where the DM takes notes per session. It is based on the Unity note taker (1.3 D1), with the differences below.
 
-**DM only.** Sessions have audience `dm`. Players cannot read or write them, and the **Sessions** link in the header is not shown to players. This is the first real use of the `dm` audience.
+**DM only.** Sessions have audience `dm`. Players cannot read or write them, and the **Create Session** and **Sessions** dashboard buttons (1.5) are not shown to players. This is the first real use of the `dm` audience.
 
 **Per campaign.** Sessions are campaign content. Each campaign has its own numbering. The page is `/c/:campaignId/sessions`.
 
@@ -583,6 +583,22 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 ## 5. Build plan
 
 Work in small steps. Commit to Git after each working step so anything can be rolled back. Keep `ARCHITECTURE.md` in the repo up to date. This document seeds it.
+
+### Where we are *(updated 2026-09-24)*
+
+| Step | Status |
+|---|---|
+| Phases 0–3: version 1 (login, database and security, campaigns, gods, characters, piety) | **Done** |
+| Phase 4: stress test and share | **Skipped for now** (owner decision). Its saving tests still apply once the group tries the app together. |
+| **Phase 4.5: look and navigation** (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Next.** Start at step 1. |
+| Phase 5: session notes (1.4): DM-only notes numbered from a chosen start, markdown, attendance | After 4.5 |
+| Then, from the roadmap (section 6), in the owner's current order: | |
+| 1. Player features: character notes and inventory (items designed to carry effects later) | Planned next after Phase 5 |
+| 2. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
+| 3. Quest Journal (6.2) | Owner decides when |
+| Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
+
+A roadmap item becomes buildable only when the owner says to start it. At that point, write it up as its own scope section (like 1.4 and 1.5) and phase, and add its build steps below.
 
 ### Phase 0: Accounts and tools
 1. GitHub account, plus a **public** repository for the website and a **private** repository for backups.
