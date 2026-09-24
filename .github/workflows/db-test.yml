@@ -1,0 +1,34 @@
+# Permission test (ARCHITECTURE.md Phase 2, step 2).
+# Starts a throwaway Supabase, builds it from supabase/migrations, runs
+# tests/permissions.test.ts against it, and throws it away. Never touches the
+# real project; the keys used here are generated fresh on each run.
+name: Database tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  permissions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Start throwaway Supabase
+        run: npx supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Check SQL functions
+        run: npx supabase db lint --level error --fail-on error
+      - name: Run permission test
+        run: |
+          eval "$(npx supabase status -o env)"
+          export API_URL ANON_KEY SERVICE_ROLE_KEY PUBLISHABLE_KEY SECRET_KEY
+          npm run test:db

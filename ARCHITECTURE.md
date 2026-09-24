@@ -513,6 +513,8 @@ Work in small steps. Commit to Git after each working step so anything can be ro
    - A row with audience `owner` is invisible to other players.
 
    These pass using test rows even though v1 has no `owner`/`dm` content yet. **Run this script after every database change.** Most security bugs come from later changes, not the first version.
+
+   *Decided 2026-09-24:* the test runs **in GitHub Actions only**, on every push, against a throwaway local Supabase that the workflow starts, fills from the migration files, and throws away. The real project only allows Google login, so test users cannot exist there without the secret key. The throwaway copy's keys are generated fresh on each run and are never stored. No Docker is needed on the owner's PC.
 3. Scheduled GitHub Actions: keep-alive ping, and the weekly backup into the private repository.
 
 ### Phase 3: Version 1 features
