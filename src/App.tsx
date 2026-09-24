@@ -3,10 +3,13 @@ import { Navigate, Route, Routes, useMatch } from 'react-router'
 import { Header } from './components/Header'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { MeContext, type Me } from './lib/me'
+import { flushAllPending, setPendingOwner } from './lib/saver'
 import { must, supabase } from './lib/supabase'
 import { useSession } from './lib/useSession'
 import { CampaignPage } from './pages/CampaignPage'
 import { CampaignsPage } from './pages/CampaignsPage'
+import { GodPage } from './pages/GodPage'
+import { GodsPage } from './pages/GodsPage'
 import { InvitePage } from './pages/InvitePage'
 import { LoginPage } from './pages/LoginPage'
 
@@ -39,6 +42,10 @@ function Screens() {
         id: string
         dm_user_id: string | null
       }[]
+      // Send changes left over from an earlier visit before any screen loads,
+      // so a screen never races its own leftover save (ARCHITECTURE.md 3.4).
+      setPendingOwner(user.id)
+      await flushAllPending()
       if (cancelled) return
       setMe({
         userId: user.id,
@@ -71,6 +78,8 @@ function Screens() {
       <Routes>
         <Route path="/" element={<CampaignsPage />} />
         <Route path="/c/:campaignId" element={<CampaignPage />} />
+        <Route path="/gods" element={<GodsPage />} />
+        <Route path="/gods/:slug" element={<GodPage />} />
         <Route path="/invite/:code" element={<InvitePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

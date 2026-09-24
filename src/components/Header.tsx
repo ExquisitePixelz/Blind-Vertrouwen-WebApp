@@ -1,4 +1,4 @@
-import { Link } from 'react-router'
+import { Link, NavLink } from 'react-router'
 import { useMe } from '../lib/me'
 import { supabase } from '../lib/supabase'
 
@@ -6,9 +6,12 @@ export function Header() {
   const me = useMe()
   return (
     <header className="header">
-      <Link to="/" className="brand">
-        Theros
-      </Link>
+      <nav className="nav">
+        <Link to="/" className="brand">
+          Theros
+        </Link>
+        <NavLink to="/gods">Gods</NavLink>
+      </nav>
       <span className="header-user">
         {me.name}
         {me.isDm && <span className="chip gold">DM</span>}

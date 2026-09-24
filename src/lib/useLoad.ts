@@ -35,5 +35,11 @@ export function useLoad<T>(load: () => Promise<T>, deps: readonly unknown[]) {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [run])
 
-  return { ...state, reload: run }
+  /** Change the loaded data locally, e.g. after a save returned the new row. */
+  const mutate = useCallback((update: (data: T | undefined) => T | undefined) => {
+    latest.current++ // an older load still on its way must not overwrite this
+    setState((s) => ({ ...s, data: update(s.data) }))
+  }, [])
+
+  return { ...state, reload: run, mutate }
 }

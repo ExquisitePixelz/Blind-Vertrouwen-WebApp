@@ -10,6 +10,9 @@ if (!url || !key) {
 // Publishable key only: safe in the browser because RLS guards every table.
 export const supabase = createClient(url, key, {
   auth: { flowType: 'pkce' },
+  // keepalive lets a save started while the tab is closing still reach the
+  // server (ARCHITECTURE.md 3.4). Only small bodies are allowed; ours are.
+  global: { fetch: (input, init) => fetch(input, { ...init, keepalive: true }) },
 })
 
 /** Unwrap a Supabase result: return the data, or throw its error message. */
