@@ -363,13 +363,27 @@ The site must feel like a phone app, based on the Unity main menu (owner's refer
 - **Animations on/off:** per device (browser storage), and off by default when the phone asks for reduced motion.
 - **Campaign name and subtitle** (DM only): `campaigns.name` and a new `campaigns.subtitle`.
 
-**Mobile first:** designed for a ~375 px wide phone first; tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6).
+**Mobile first, scales to every screen:** designed for a ~375 px wide phone first, and responsive from 320 px phones up to tablets and laptops:
+- fluid widths
+- font sizes that scale between a minimum and a maximum (`clamp()`)
+- full-width buttons
+- safe-area insets for notches and home bars
+- on wide screens, a centred column instead of stretching
+
+Tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6).
+
+**Friendlier Google sign-in (owner request, 2026-09-24).** Google's sign-in window currently says "continue to olzfzwlaprjqobasxekn.supabase.co", which looks like phishing.
+- **Fix (free):** use **Google's own sign-in button** (Google Identity Services) and hand the resulting ID token to Supabase with `signInWithIdToken` (with a nonce). The Google window then opens from `dnd.yannickmul.nl`, and no supabase.co redirect is involved.
+- Add **brand verification** in the Google Auth Platform (app name "Theros DM Companion", logo, homepage, privacy policy link, `yannickmul.nl` verified in Google Search Console via DNS at Strato), so the window shows the app name and logo. Google takes a few business days.
+- The app gets a short **privacy policy page** (Google requires one).
+- **Rejected:** a Supabase custom domain (`auth.yannickmul.nl`). It needs the Pro plan plus the add-on (about $35/month, checked 2026-09-24), against priority 3.
+- Still Google-only login (3.5). Redo the WhatsApp test (3.5) on Android and iPhone after the switch.
 
 **Lottie animations** (the owner makes the files, e.g. After Effects + Bodymovin):
 - **Splash screen** on a cold start only. It covers loading and fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**.
 - **Animated icons / buttons** on the dashboard.
 - Uses the light SVG build of `lottie-web`, loaded lazily so it does not slow the first load. Animations pause when off screen and are skipped when Animations is off.
-- Until the owner delivers the files, the dashboard uses static buttons and there is no splash.
+- Until the owner delivers the files, the dashboard uses static buttons and there is no splash. The files will come later (owner, 2026-09-24): leave a clear place for them in the code.
 
 ---
 
@@ -648,7 +662,8 @@ Done as one group session with several people and devices at once.
 2. App shell: top bar with back arrow and title, the account popover (Switch campaign, Settings, Log out), and a mobile-first CSS pass.
 3. Dashboard on `/` with the last campaign and its buttons. Characters move to `/c/:campaignId/characters`, players and invites to `/c/:campaignId/players`.
 4. Settings: display name, animations on/off, campaign name and subtitle.
-5. Lottie: splash and animated dashboard icons, once the owner has delivered the files.
+5. Google sign-in button with `signInWithIdToken`, the privacy policy page, and step-by-step instructions for the owner (allowed origins, Search Console, brand verification). Redo the WhatsApp login test.
+6. Lottie: splash and animated dashboard icons, once the owner has delivered the files.
 
 ### Phase 5: Session notes (section 1.4)
 1. Migration: the `sessions` table with RLS (DM only), the unique-number rule, and new cases in the permission test.
@@ -720,6 +735,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 
 **Resolved:**
 - **Session notes (Phase 5):** DM only, numbered per campaign from a starting number the DM picks, with an editable played-on date, and empty sessions deleted automatically (owner decisions, 2026-09-24). See section 1.4.
+- **Google sign-in screen showing supabase.co:** fixed for free with Google's own sign-in button plus brand verification, not with the paid Supabase custom domain (owner request, 2026-09-24). See section 1.5.
 - **Look and navigation (Phase 4.5):** dashboard in the Unity style, last campaign remembered per account, Players button on the DM's dashboard, account popover with Switch campaign and Settings (display name, animations, campaign name), and a Lottie splash that never delays the app (owner decisions, 2026-09-24). See section 1.5.
 - **Phase 5 extras:** markdown formatting and session attendance are in Phase 5; character/god links stay on the roadmap. Next after Phase 5: character notes and inventory (owner decisions, 2026-09-24).
 - **Phase 4:** skipped for now (owner decision, 2026-09-24).
