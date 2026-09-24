@@ -86,7 +86,8 @@ A **Sessions** tab where the DM takes notes per session. It is based on the Unit
 **Note taker.** Full screen:
 - an optional title (tap to edit, text prompt, may be empty)
 - a **played-on date**, defaulting to the day the session was created, editable by the DM (notes are often written up a day later). Shown as `d MMM yyyy`.
-- one large plain-text notes area
+- one large notes area with **formatting** (markdown: headings, lists, bold, italic). The DM types markdown and toggles between **Edit** and **Preview**; the sessions list shows the first line as plain text. Rendered with `react-markdown`, with raw HTML switched off.
+- **Attendance**: a checkbox per character in the campaign (sorted by name), ticked for those present
 - saving follows section 3.4 (the shared save hook, 1 s after typing stops, on hide and close, local backup, conflict guard, Saved indicator)
 - the **…** menu has **Rename**, **Change number** and **Delete** (confirm dialog; soft delete)
 
@@ -94,7 +95,7 @@ A **Sessions** tab where the DM takes notes per session. It is based on the Unit
 
 **Also in Phase 5:** the campaign page shows "Last session: #n" to the DM (1.3 D5).
 
-**Not in Phase 5 (roadmap):** formatting (markdown), search across sessions, linking characters or gods from notes, player-visible recaps, exporting notes.
+**Not in Phase 5 (roadmap):** search across sessions, linking characters or gods from notes, player-visible recaps, exporting notes.
 
 ### 1.3 Feature details needed from the Unity app
 
@@ -519,7 +520,9 @@ Detailed columns for characters and gods come from the specification in section 
 - `notes` (long text, may be empty)
 - `played_on` (date, defaults to the creation day)
 
-Only the DM can read or write sessions. Add these cases to the permission test: players and non-members cannot read or write sessions, and duplicate live numbers in one campaign are refused.
+**`session_attendance` (Phase 5):** `session_id`, `character_id`, one row per character present, unique per pair. It is a checkbox, not content: unticking removes the row (no soft delete, no `version`). DM only, like `sessions`.
+
+Only the DM can read or write sessions and attendance. Add these cases to the permission test: players and non-members cannot read or write sessions, and duplicate live numbers in one campaign are refused.
 
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
 
@@ -613,7 +616,9 @@ Done as one group session with several people and devices at once.
 1. Migration: the `sessions` table with RLS (DM only), the unique-number rule, and new cases in the permission test.
 2. Sessions list and **New session** (starting number for the first session, highest + 1 after that), plus the **Sessions** link in the header for the DM only.
 3. Note taker: title, played-on date, notes, autosave via the shared save hook, the **…** menu (Rename, Change number, Delete), and auto-delete of empty sessions on leave.
-4. "Last session: #n" on the campaign page.
+4. Formatting: Edit / Preview toggle with markdown.
+5. Attendance checkboxes (with its migration and permission tests).
+6. "Last session: #n" on the campaign page.
 
 One step per commit. **Do not add anything that is not in section 1.4.**
 
@@ -634,11 +639,10 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
 | **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
-| **Session notes: links and formatting** *(owner interest, 2026-09-24)*: mention a character or god in the notes as a tappable link; headings, lists and bold (markdown) | The `sessions` table (1.4). Links can be stored as text markers, so no new table is needed. |
-| **Session attendance** *(owner interest)*: tick which characters were present in each session | `sessions` and `characters`; a small join table `session_attendance` |
-| **Initiative tracker** *(owner interest)*: turn order for combat, DM only at first | Realtime only if players must see it live (see Live combat) |
-| **NPC / lore notes** *(owner interest)*: the DM's notes on NPCs, places and factions, DM only or shared per entry | The world level and the `dm` / `members` audiences |
-| **Character notes** *(owner interest)*: a free-text notes field on a player's own sheet (backstory, goals) | `characters` (owner and DM write) |
+| **Player features: character notes and inventory** *(owner's pick for the next phase after Phase 5, 2026-09-24)*: a free-text notes field on a player's own sheet (backstory, goals), and an inventory private to the player and the DM | `characters` (owner and DM write); the `owner` audience |
+| **Session notes: character/god links** *(owner interest, 2026-09-24)*: mention a character or god in the notes as a tappable link | The `sessions` table and markdown (1.4). Links can be stored as text markers, so no new table is needed. |
+| **Initiative tracker** *(owner interest)*: turn order for combat that players see live on their phones | Needs Supabase Realtime, so this is the same project as Live combat |
+| **NPC / lore notes** *(owner interest)*: NPCs, places and factions, each entry either DM only or shared with players, with secret parts in their own `dm` row | The world level, the `dm` / `members` audiences, and the separate-secret-row pattern in 3.3 |
 | **Session quiz** *(owner idea, very future)*: a Kahoot-style quiz where players answer questions about the previous session, maybe with AI-generated questions | Needs Realtime for a live quiz. AI questions would read the DM-only notes, so the DM must approve every question before players see it (priority 2), and an AI API has a running cost (priority 3). |
 
 ---
@@ -653,6 +657,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 
 **Resolved:**
 - **Session notes (Phase 5):** DM only, numbered per campaign from a starting number the DM picks, with an editable played-on date, and empty sessions deleted automatically (owner decisions, 2026-09-24). See section 1.4.
+- **Phase 5 extras:** markdown formatting and session attendance are in Phase 5; character/god links stay on the roadmap. Next after Phase 5: character notes and inventory (owner decisions, 2026-09-24).
 - **Phase 4:** skipped for now (owner decision, 2026-09-24).
 - **Login from WhatsApp:** tested 2026-09-24 on desktop, Android (WhatsApp opened the link in Chrome) and iPhone. It works everywhere, so the built-in-browser detection from section 3.5 is not needed.
 - **`player` field on characters:** kept as free text, a display label only (section 1.3, B1).
