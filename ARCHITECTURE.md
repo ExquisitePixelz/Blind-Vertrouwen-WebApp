@@ -67,66 +67,6 @@ Everything below goes on a **roadmap the owner will write** (see section 6). Do 
 
 Version 1 is designed so that these can be added later **without redesigning the database** (see section 3.3). Designing for them is allowed; building them is not.
 
-### 1.5 Phase 4.5: Look and navigation *(put in scope by the owner, 2026-09-24; built before Phase 5)*
-
-The site must feel like a phone app, based on the Unity main menu (owner's reference screenshot): a dashboard of large full-width buttons, not a text menu in a header.
-
-**Dashboard** (the home page, `/`):
-- Opens on the user's **last selected campaign**, remembered **per account** (`profiles.last_campaign_id`), so phone and laptop agree. If none is remembered: with exactly one campaign, open it; otherwise show the campaign picker.
-- Top: the campaign name large in gold, and its subtitle muted below (default "A Theros campaign").
-- Full-width buttons, in order: **Piety Scores**, **Characters**, **Gods**, and for the DM only **Players** (the player list and invite links, moved off the old campaign page). Phase 5 adds **Create Session** (gold, first) and **Sessions** above them, for the DM only.
-- Below the buttons, muted: "Last session: #n" or "No sessions yet" (DM only; added in Phase 5).
-
-**Top bar on other screens:** a back arrow and the screen title on the left, the account button on the right. No text menu.
-
-**Account button:** shows the user's name (or initial on narrow screens). Tapping opens a small popover with:
-- the current campaign, and **Switch campaign** (a pick list of the user's campaigns; the DM also gets **New campaign** there)
-- **Settings**
-- **Log out**
-
-**Settings:**
-- **Display name:** stored in `profiles.display_name` and shown everywhere in place of the Google name.
-- **Animations on/off:** per device (browser storage), and off by default when the phone asks for reduced motion.
-- **Campaign name and subtitle** (DM only): `campaigns.name` and a new `campaigns.subtitle`.
-
-**Mobile first:** designed for a ~375 px wide phone first; tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6).
-
-**Lottie animations** (the owner makes the files, e.g. After Effects + Bodymovin):
-- **Splash screen** on a cold start only. It covers loading and fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**.
-- **Animated icons / buttons** on the dashboard.
-- Uses the light SVG build of `lottie-web`, loaded lazily so it does not slow the first load. Animations pause when off screen and are skipped when Animations is off.
-- Until the owner delivers the files, the dashboard uses static buttons and there is no splash.
-
-### 1.4 Phase 5: Session notes *(put in scope by the owner, 2026-09-24)*
-
-A **Sessions** tab where the DM takes notes per session. It is based on the Unity note taker (1.3 D1), with the differences below.
-
-**DM only.** Sessions have audience `dm`. Players cannot read or write them, and the **Sessions** link in the header is not shown to players. This is the first real use of the `dm` audience.
-
-**Per campaign.** Sessions are campaign content. Each campaign has its own numbering. The page is `/c/:campaignId/sessions`.
-
-**Numbering.**
-- The first **New session** in a campaign asks for the starting number, pre-filled with 1. Campaigns that are already running (e.g. at session 53) start from there.
-- After that, **New session** uses the highest existing number + 1 (not count + 1).
-- The number can be changed later from the **…** menu.
-- Two live sessions in one campaign cannot share a number (enforced by the database). A deleted session does not block its number.
-
-**Sessions list.** Newest first (highest number first). Each row shows `#n`, the title (or "Untitled"), the played-on date, and the first line of the notes up to 80 characters. With no sessions: "No sessions yet. Tap + to start one."
-
-**Note taker.** Full screen:
-- an optional title (tap to edit, text prompt, may be empty)
-- a **played-on date**, defaulting to the day the session was created, editable by the DM (notes are often written up a day later). Shown as `d MMM yyyy`.
-- one large notes area with **formatting** (markdown: headings, lists, bold, italic). The DM types markdown and toggles between **Edit** and **Preview**; the sessions list shows the first line as plain text. Rendered with `react-markdown`, with raw HTML switched off.
-- **Attendance**: a checkbox per character in the campaign (sorted by name), ticked for those present
-- saving follows section 3.4 (the shared save hook, 1 s after typing stops, on hide and close, local backup, conflict guard, Saved indicator)
-- the **…** menu has **Rename**, **Change number** and **Delete** (confirm dialog; soft delete)
-
-**Empty sessions.** A session left with an empty title and empty notes is deleted (soft delete) automatically when the DM leaves it, as in Unity.
-
-**Also in Phase 5:** the dashboard shows "Last session: #n" to the DM (1.3 D5, 1.5).
-
-**Not in Phase 5 (roadmap):** search across sessions, linking characters or gods from notes, player-visible recaps, exporting notes.
-
 ### 1.3 Feature details needed from the Unity app
 
 The Character and Gods screens must **work the way they do in the Unity app**. The agent needs their exact contents.
@@ -370,6 +310,66 @@ All relationships start at Neutral, and all party attitudes start at 4.
 - Reproduce behaviour and data, not Unity code.
 - If the specification describes other features, they are **not** version 1 scope. List them for the owner's roadmap instead of building them.
 - There is no existing data to migrate (confirmed by the owner).
+
+### 1.4 Phase 5: Session notes *(put in scope by the owner, 2026-09-24)*
+
+A **Sessions** tab where the DM takes notes per session. It is based on the Unity note taker (1.3 D1), with the differences below.
+
+**DM only.** Sessions have audience `dm`. Players cannot read or write them, and the **Sessions** link in the header is not shown to players. This is the first real use of the `dm` audience.
+
+**Per campaign.** Sessions are campaign content. Each campaign has its own numbering. The page is `/c/:campaignId/sessions`.
+
+**Numbering.**
+- The first **New session** in a campaign asks for the starting number, pre-filled with 1. Campaigns that are already running (e.g. at session 53) start from there.
+- After that, **New session** uses the highest existing number + 1 (not count + 1).
+- The number can be changed later from the **…** menu.
+- Two live sessions in one campaign cannot share a number (enforced by the database). A deleted session does not block its number.
+
+**Sessions list.** Newest first (highest number first). Each row shows `#n`, the title (or "Untitled"), the played-on date, and the first line of the notes up to 80 characters. With no sessions: "No sessions yet. Tap + to start one."
+
+**Note taker.** Full screen:
+- an optional title (tap to edit, text prompt, may be empty)
+- a **played-on date**, defaulting to the day the session was created, editable by the DM (notes are often written up a day later). Shown as `d MMM yyyy`.
+- one large notes area with **formatting** (markdown: headings, lists, bold, italic). The DM types markdown and toggles between **Edit** and **Preview**; the sessions list shows the first line as plain text. Rendered with `react-markdown`, with raw HTML switched off.
+- **Attendance**: a checkbox per character in the campaign (sorted by name), ticked for those present
+- saving follows section 3.4 (the shared save hook, 1 s after typing stops, on hide and close, local backup, conflict guard, Saved indicator)
+- the **…** menu has **Rename**, **Change number** and **Delete** (confirm dialog; soft delete)
+
+**Empty sessions.** A session left with an empty title and empty notes is deleted (soft delete) automatically when the DM leaves it, as in Unity.
+
+**Also in Phase 5:** the dashboard shows "Last session: #n" to the DM (1.3 D5, 1.5).
+
+**Not in Phase 5 (roadmap):** search across sessions, linking characters or gods from notes, player-visible recaps, exporting notes.
+
+### 1.5 Phase 4.5: Look and navigation *(put in scope by the owner, 2026-09-24; built before Phase 5)*
+
+The site must feel like a phone app, based on the Unity main menu (owner's reference screenshot): a dashboard of large full-width buttons, not a text menu in a header.
+
+**Dashboard** (the home page, `/`):
+- Opens on the user's **last selected campaign**, remembered **per account** (`profiles.last_campaign_id`), so phone and laptop agree. If none is remembered: with exactly one campaign, open it; otherwise show the campaign picker.
+- Top: the campaign name large in gold, and its subtitle muted below (default "A Theros campaign").
+- Full-width buttons, in order: **Piety Scores**, **Characters**, **Gods**, and for the DM only **Players** (the player list and invite links, moved off the old campaign page). Phase 5 adds **Create Session** (gold, first) and **Sessions** above them, for the DM only.
+- Below the buttons, muted: "Last session: #n" or "No sessions yet" (DM only; added in Phase 5).
+
+**Top bar on other screens:** a back arrow and the screen title on the left, the account button on the right. No text menu.
+
+**Account button:** shows the user's name (or initial on narrow screens). Tapping opens a small popover with:
+- the current campaign, and **Switch campaign** (a pick list of the user's campaigns; the DM also gets **New campaign** there)
+- **Settings**
+- **Log out**
+
+**Settings:**
+- **Display name:** stored in `profiles.display_name` and shown everywhere in place of the Google name.
+- **Animations on/off:** per device (browser storage), and off by default when the phone asks for reduced motion.
+- **Campaign name and subtitle** (DM only): `campaigns.name` and a new `campaigns.subtitle`.
+
+**Mobile first:** designed for a ~375 px wide phone first; tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6).
+
+**Lottie animations** (the owner makes the files, e.g. After Effects + Bodymovin):
+- **Splash screen** on a cold start only. It covers loading and fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**.
+- **Animated icons / buttons** on the dashboard.
+- Uses the light SVG build of `lottie-web`, loaded lazily so it does not slow the first load. Animations pause when off screen and are skipped when Animations is off.
+- Until the owner delivers the files, the dashboard uses static buttons and there is no splash.
 
 ---
 
