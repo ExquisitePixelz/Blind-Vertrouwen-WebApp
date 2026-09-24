@@ -330,7 +330,8 @@ In order:
 ### 3.2 Backend: Supabase, free plan. *Decided*
 Hosted Postgres database with login, row-level security (RLS) and file storage, with no server to run.
 - **Why Postgres:** the future lore database is made of linked things (gods, places, people, items referring to each other). That fits a relational database well.
-- **The public "anon" key** and project URL are safe in the website's code **only because RLS is enforced on every table**. The secret **service-role key must never be in the repository or the website**.
+- **The public "publishable" key** (`sb_publishable_…`, Supabase's replacement for the legacy "anon" key, which is retired by end 2026) and project URL are safe in the website's code **only because RLS is enforced on every table**. The **secret key** (`sb_secret_…`, formerly "service-role") **must never be in the repository or the website**.
+- **Project:** `https://olzfzwlaprjqobasxekn.supabase.co` (project ref `olzfzwlaprjqobasxekn`). Locally the URL and publishable key live in `.env.local` (ignored by Git; see `.env.example`). In the deploy they are set as GitHub Actions variables.
 
 **Known free-plan drawbacks and how we handle them:**
 
@@ -486,7 +487,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 
 ### Phase 0: Accounts and tools
 1. GitHub account, plus a **public** repository for the website and a **private** repository for backups.
-2. Supabase project on the free plan. Record the project URL and anon key. Never commit the service-role key or database password.
+2. Supabase project on the free plan. Record the project URL and publishable key. Never commit the secret key or database password. Enable only the Google login provider; switch Email off.
 3. A Google Cloud project with an OAuth client for Google login. It is free. The agent gives step-by-step instructions.
 4. Install Node.js, Git and Claude Code.
 
