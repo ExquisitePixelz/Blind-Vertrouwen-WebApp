@@ -57,13 +57,13 @@ export function PietyPage() {
 
   if (data.error) return (
       <main className="page">
-        <TopBar back={`/c/${campaignId}`} />
+        <TopBar back="/" />
         <p className="error">{data.error}</p>
       </main>
     )
   if (!data.data) return (
       <main className="page">
-        <TopBar back={`/c/${campaignId}`} />
+        <TopBar back="/" />
       </main>
     )
   const { characters, tracks, gods } = data.data
@@ -83,7 +83,7 @@ export function PietyPage() {
 
   return (
     <main className="page">
-      <TopBar title="Piety Scores" back={`/c/${campaignId}`} />
+      <TopBar title="Piety Scores" back="/" />
       {characters.length === 0 && <p className="muted">No characters yet.</p>}
       {error && <p className="error">{error}</p>}
 

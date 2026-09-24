@@ -82,19 +82,19 @@ export function CharacterPage() {
 
   if (character.error) return (
       <main className="page">
-        <TopBar back={`/c/${campaignId}`} />
+        <TopBar back={`/c/${campaignId}/characters`} />
         <p className="error">{character.error}</p>
       </main>
     )
   if (character.loading && !character.data) return (
       <main className="page">
-        <TopBar back={`/c/${campaignId}`} />
+        <TopBar back={`/c/${campaignId}/characters`} />
       </main>
     )
   if (!c) {
     return (
       <main className="page">
-        <TopBar back={`/c/${campaignId}`} />
+        <TopBar back={`/c/${campaignId}/characters`} />
         <p className="muted">This character does not exist, or you cannot see it.</p>
       </main>
     )
@@ -107,7 +107,7 @@ export function CharacterPage() {
 
   return (
     <main className="page">
-      <TopBar title={c.name} back={`/c/${campaignId}`}>
+      <TopBar title={c.name} back={`/c/${campaignId}/characters`}>
         {canEdit && (
           <button className="icon secondary" aria-label="More" onClick={() => setOpen({ kind: 'menu' })}>
             …
@@ -266,7 +266,7 @@ export function CharacterPage() {
           onClose={close}
           onConfirm={async () => {
             must(await supabase.rpc('delete_character', { p_character_id: c.id }))
-            navigate(`/c/${campaignId}`, { replace: true })
+            navigate(`/c/${campaignId}/characters`, { replace: true })
           }}
         />
       )}

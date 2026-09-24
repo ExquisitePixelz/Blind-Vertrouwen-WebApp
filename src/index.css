@@ -818,3 +818,62 @@ button.small-button {
   padding: 0.35rem 0.9rem;
   font-size: 0.85rem;
 }
+
+/* ---------- Dashboard (1.5) ---------- */
+
+.dashboard {
+  max-width: 32rem;
+}
+
+.dash-head {
+  margin: clamp(1.5rem, 6vh, 3.5rem) 0 clamp(1.5rem, 5vh, 2.5rem);
+  text-align: center;
+}
+
+.dash-title {
+  margin: 0;
+  color: var(--gold);
+  font-size: clamp(2rem, 1.5rem + 3vw, 2.75rem);
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+}
+
+.dash-head p {
+  margin: 0.35rem 0 0;
+}
+
+.dash-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dash-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.75rem;
+  padding: 0.5rem 1rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid #2c2c32;
+  border-radius: 12px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dash-button:active {
+  background: #25252b;
+}
+
+.dash-button.primary {
+  color: var(--bg);
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+button.row-button {
+  width: 100%;
+  text-align: left;
+}

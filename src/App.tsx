@@ -5,14 +5,16 @@ import { MeContext, type Me } from './lib/me'
 import { flushAllPending, setPendingOwner } from './lib/saver'
 import { must, supabase } from './lib/supabase'
 import { useSession } from './lib/useSession'
-import { CampaignPage } from './pages/CampaignPage'
 import { CharacterPage } from './pages/CharacterPage'
-import { CampaignsPage } from './pages/CampaignsPage'
+import { CharactersPage } from './pages/CharactersPage'
+import { DashboardPage, OpenCampaign } from './pages/DashboardPage'
 import { GodPage } from './pages/GodPage'
 import { GodsPage } from './pages/GodsPage'
 import { InvitePage } from './pages/InvitePage'
 import { LoginPage } from './pages/LoginPage'
 import { PietyPage } from './pages/PietyPage'
+import { PlayersPage } from './pages/PlayersPage'
+import { useRememberCampaign } from './lib/campaigns'
 
 export default function App() {
   return (
@@ -85,11 +87,14 @@ function Screens() {
 
   return (
     <MeContext.Provider value={{ me, update: (patch) => setMe((m) => m && { ...m, ...patch }) }}>
+      <RememberOpenCampaign />
       <Routes>
-        <Route path="/" element={<CampaignsPage />} />
-        <Route path="/c/:campaignId" element={<CampaignPage />} />
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/c/:campaignId" element={<OpenCampaign />} />
+        <Route path="/c/:campaignId/characters" element={<CharactersPage />} />
         <Route path="/c/:campaignId/characters/:characterId" element={<CharacterPage />} />
         <Route path="/c/:campaignId/piety" element={<PietyPage />} />
+        <Route path="/c/:campaignId/players" element={<PlayersPage />} />
         <Route path="/gods" element={<GodsPage />} />
         <Route path="/gods/:slug" element={<GodPage />} />
         <Route path="/invite/:code" element={<InvitePage />} />
@@ -97,4 +102,17 @@ function Screens() {
       </Routes>
     </MeContext.Provider>
   )
+}
+
+/**
+ * A screen inside a campaign (e.g. a shared link to a character) makes that
+ * campaign the current one, so Back and the dashboard stay in it.
+ */
+function RememberOpenCampaign() {
+  const campaignId = useMatch('/c/:campaignId/:screen/*')?.params.campaignId
+  const remember = useRememberCampaign()
+  useEffect(() => {
+    if (campaignId) void remember(campaignId)
+  }, [campaignId, remember])
+  return null
 }

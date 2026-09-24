@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { Dialog } from './Dialog'
+import { Link, useNavigate, useParams } from 'react-router'
+import { Dialog } from '../components/Dialog'
+import { TopBar } from '../components/TopBar'
 import { byName, loadGods } from '../lib/gods'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
@@ -15,8 +16,9 @@ type ListRow = {
   ac: number
 }
 
-/** Character list (1.3 B3), shown on the campaign page. */
-export function CharactersSection({ campaignId }: { campaignId: string }) {
+/** Character list (1.3 B3). */
+export function CharactersPage() {
+  const { campaignId = '' } = useParams()
   const [creating, setCreating] = useState(false)
   const characters = useLoad(async () => {
     const rows = must(
@@ -30,13 +32,12 @@ export function CharactersSection({ campaignId }: { campaignId: string }) {
   }, [campaignId])
 
   return (
-    <section>
-      <div className="title-row">
-        <h2>Characters</h2>
+    <main className="page">
+      <TopBar title="Characters" back="/">
         <button className="icon" aria-label="New character" onClick={() => setCreating(true)}>
           +
         </button>
-      </div>
+      </TopBar>
       {characters.error && <p className="error">{characters.error}</p>}
       {characters.data?.length === 0 && <p className="muted">No characters yet. Tap + to add one.</p>}
       <ul className="list">
@@ -58,7 +59,7 @@ export function CharactersSection({ campaignId }: { campaignId: string }) {
         })}
       </ul>
       {creating && <NewCharacterDialog campaignId={campaignId} onClose={() => setCreating(false)} />}
-    </section>
+    </main>
   )
 }
 
