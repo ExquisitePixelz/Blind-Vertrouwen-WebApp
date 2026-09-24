@@ -14,6 +14,7 @@ import { InvitePage } from './pages/InvitePage'
 import { LoginPage } from './pages/LoginPage'
 import { PietyPage } from './pages/PietyPage'
 import { PlayersPage } from './pages/PlayersPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { useRememberCampaign } from './lib/campaigns'
 
 export default function App() {
@@ -95,6 +96,7 @@ function Screens() {
         <Route path="/c/:campaignId/characters/:characterId" element={<CharacterPage />} />
         <Route path="/c/:campaignId/piety" element={<PietyPage />} />
         <Route path="/c/:campaignId/players" element={<PlayersPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/gods" element={<GodsPage />} />
         <Route path="/gods/:slug" element={<GodPage />} />
         <Route path="/invite/:code" element={<InvitePage />} />
