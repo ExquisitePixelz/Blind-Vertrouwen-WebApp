@@ -545,17 +545,26 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 2. Gods page: players read, the DM edits.
 3. Characters: create (including picking a god, or *"No god / other"*), view, edit, delete, following the specification.
 4. Piety page: players in the campaign read. The DM changes scores and gods, and adds custom sources.
-5. Saving behaviour from section 3.4 on every edit screen.
+5. Saving behaviour from section 3.4 on every edit screen. *Built into steps 2–4* (god page, character sheet, piety page all use one save hook, `src/lib/saver.ts`). *Testing it moved into the Phase 4 stress test* (owner decision, 2026-09-24): it needs several people and devices at once.
 
 One screen or feature per step. **Do not add anything that is not in section 1.1.**
 
-### Phase 4: Test and share
+### Phase 4: Stress test and share
+Done as one group session with several people and devices at once.
+
 1. Try to break it:
    - Close the tab mid-edit.
    - Lose the connection mid-edit.
    - DM and player editing the same character.
    - A player trying to edit someone else's character.
    - The site on an iPhone and an Android phone.
+   - **Saving (section 3.4, moved here from Phase 3 step 5):**
+     - Type in a field and close the tab within a second, then reopen it. The change must be there.
+     - Turn on flight mode, make changes, and check the indicator shows "Not saved yet". Turn flight mode off: the changes are sent.
+     - Make a change offline, close the app, go back online and reopen it. The change is sent on that visit.
+     - DM and player edit the same character at the same time. The second save shows the conflict warning; both "Keep mine" and "Use their version" work.
+     - Tap − / + and Damage quickly, many times. The final value is right after a refresh.
+     - On a shared phone, log out and log in as someone else. The first person's unsent changes do not appear.
 2. Check performance with Lighthouse (mobile).
 3. Share the link with the group, ask them to add it to their home screen, and gather feedback.
 
