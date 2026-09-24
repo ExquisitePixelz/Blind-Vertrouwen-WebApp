@@ -550,3 +550,81 @@ select.text-input {
   text-decoration: none;
   font-size: 0.9rem;
 }
+
+/* ---------- Piety ---------- */
+
+.button-link {
+  padding: 0.5rem 1rem;
+  color: var(--bg);
+  background: var(--gold);
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.gold {
+  color: var(--gold);
+}
+
+.piety-card {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.piety-card .title-row {
+  margin-bottom: 0.25rem;
+}
+
+button.small-button {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.track {
+  padding: 0.6rem 0;
+  border-top: 1px solid #2a2a30;
+}
+
+.track-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.track-source {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rules {
+  white-space: pre-wrap;
+}
+
+.track-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.score {
+  font-size: 1.5rem;
+  font-weight: 700;
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+button.tappable-score {
+  padding: 0.1rem 0.3rem;
+  color: var(--text);
+  background: none;
+}
+
+button.step {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  font-size: 1.3rem;
+}

@@ -13,6 +13,7 @@ import { GodPage } from './pages/GodPage'
 import { GodsPage } from './pages/GodsPage'
 import { InvitePage } from './pages/InvitePage'
 import { LoginPage } from './pages/LoginPage'
+import { PietyPage } from './pages/PietyPage'
 
 export default function App() {
   return (
@@ -80,6 +81,7 @@ function Screens() {
         <Route path="/" element={<CampaignsPage />} />
         <Route path="/c/:campaignId" element={<CampaignPage />} />
         <Route path="/c/:campaignId/characters/:characterId" element={<CharacterPage />} />
+        <Route path="/c/:campaignId/piety" element={<PietyPage />} />
         <Route path="/gods" element={<GodsPage />} />
         <Route path="/gods/:slug" element={<GodPage />} />
         <Route path="/invite/:code" element={<InvitePage />} />

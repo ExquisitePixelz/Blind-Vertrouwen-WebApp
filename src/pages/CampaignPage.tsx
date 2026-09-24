@@ -1,4 +1,4 @@
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { CharactersSection } from '../components/CharactersSection'
 import { InvitesSection } from '../components/InvitesSection'
 import { useMe } from '../lib/me'
@@ -47,7 +47,12 @@ export function CampaignPage() {
 
   return (
     <main className="page">
-      <h1>{campaign.data.name}</h1>
+      <div className="title-row">
+        <h1>{campaign.data.name}</h1>
+        <Link to={`/c/${campaignId}/piety`} className="button-link">
+          Piety
+        </Link>
+      </div>
 
       <CharactersSection campaignId={campaignId} />
 
