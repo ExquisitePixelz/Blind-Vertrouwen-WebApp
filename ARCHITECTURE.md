@@ -1,0 +1,577 @@
+# Theros DM Companion (web version): Project Plan and Decision Record
+
+*For the owner (Yannick) and for any AI model or coding agent (for example Claude Code) working on this project. It holds the goal, the scope, the decisions already made and why, and the build plan.*
+
+*If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
+
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8).*
+
+---
+
+## 1. Scope
+
+### 1.1 Version 1 (the only thing being built now)
+
+A small website at `https://dnd.yannickmul.nl` for a friend group playing in **Theros**. It is the web version of the owner's existing Unity app, the Theros DM Companion. Users log in with Google, join a campaign via an invite link shared in WhatsApp, and use it.
+
+**One DM.** The owner is the only DM, now and in the future. He is DM of the world and of every campaign in it, and can see and edit everything. There is no need for multiple DMs or DM permission levels.
+
+**The world and its campaigns.** Theros is the only world. Campaigns take place in it. Gods belong to the **world**, not to a single campaign, so every campaign sees the same pantheon.
+
+**Piety.** A character has a piety score with the god they believe in (for example, the character Sopar believes in Phenax).
+- **The player picks their god when creating the character.** The track starts at score 0.
+- Some characters gain piety a different way. For example, Seric does not believe in gods but is an oracle and gains piety by other rules.
+- So a piety track is attached **either to a god or to a custom source** (for example "Oracle"). A custom source has a name and a description of how it works.
+- A player who does not follow a god picks *"No god / other"* at creation, and the DM sets up the custom source.
+- A character normally has one track. The data allows more than one.
+- **The app does not calculate piety.** The DM sets the score by hand, whatever the rules for that track.
+
+**Players can:**
+- Create, edit and delete **their own characters**, including picking a god at creation.
+- View other players' characters, but not change them.
+- View the **Gods** page.
+- View the **Piety** page, including everyone's piety scores. Nothing else on that page.
+
+**The DM can:**
+- Do everything, everywhere:
+  - Edit or delete any character.
+  - Create and edit gods.
+  - Change a character's god after creation.
+  - Add custom sources.
+  - Change piety scores.
+- See everything, always.
+
+**Everything else is hidden from players** and is not built in version 1.
+
+### 1.2 Not in version 1
+
+Everything below goes on a **roadmap the owner will write** (see section 6). Do not build any of it, even partly, until the owner puts it on the roadmap and says to start:
+
+- Inventory (and inventory pictures)
+- Items with secret rules (cursed items)
+- Live combat and turn order
+- Lore / worldbuilding database, and people writing it together
+- Image uploads
+- Intro animation
+- Realtime live updates
+- Push notifications
+- A native phone app or Play Store release
+- Any other feature from the Unity app that is not listed in 1.1
+
+Version 1 is designed so that these can be added later **without redesigning the database** (see section 3.3). Designing for them is allowed; building them is not.
+
+### 1.3 Feature details needed from the Unity app
+
+The Character and Gods screens must **work the way they do in the Unity app**. The agent needs their exact contents.
+
+Piety is already fully specified in sections 1.1 and 4. It needs nothing from the Unity app unless that app shows extra piety information the owner wants kept.
+
+#### Specification (from the Unity app code, 2026-09-24)
+
+*Source: `Assets/Theros/Scripts` in the Unity project (Unity 6.3, UI Toolkit). The Unity app is single-user: it only has the DM, with no login or players. The Unity app compiles but has not yet been run on a phone, so this describes the code, not tested behaviour. Wherever the Unity behaviour conflicts with sections 1.1 or 3.3 of this plan, the plan wins. Those places are marked **⚠ Plan difference**.*
+
+##### A. Shared building blocks
+
+**A1. Number editing (keypad dialog).** Every number is edited in a dialog, never inline. The dialog has:
+- a title
+- a large display showing the current entry
+- a 3×4 keypad: `1–9`, `0`, backspace (`←`), and a `±` key where negatives are allowed (no character field allows negatives)
+- a **Cancel** button plus one or more action buttons
+
+Rules:
+- The **first key press replaces the value shown**. After that, keys append.
+- Backspace as the first press clears the entry.
+- At most 4 digits, not counting the minus sign.
+- An empty entry or a lone `-` counts as 0.
+- Cancel, or tapping outside the dialog, closes it without changing anything.
+
+On the web, a numeric `<input inputmode="numeric">` in a small dialog is fine. Keep "select all on focus", so typing replaces the value.
+
+**A2. Text editing (prompt dialog).** A title, one single-line text field pre-filled with the current value, and Cancel/OK. The value is trimmed. Some fields may be empty (listed per field below). For the others, OK does nothing while the field is empty.
+
+**A3. Confirm dialog.** Used for every delete. It has a title, a message, Cancel, and a red confirm button.
+
+**A4. Pick list.** A dialog with a title and a scrollable list of options. Tapping an option closes the dialog and applies it.
+
+**A5. Saving.** Every change saves immediately, except free-text notes, which save on blur or when the screen is left. On the web, follow section 3.4 instead.
+
+**A6. The 7-step standing scale** is used by god-to-god relationships and a god's attitude toward the party.
+
+| Value | Label | Text colour | Bar colour |
+|---|---|---|---|
+| 1 | Sworn Enemy | `#E0675C` | `#C0463C` |
+| 2 | Enemy | `#D98A5C` | `#C8703F` |
+| 3 | Unfriendly | `#BFA878` | `#A89060` |
+| 4 | Neutral *(default)* | `#8E8C87` (muted) | `#5E5D5A` |
+| 5 | Friendly | `#95BE86` | `#7DA56E` |
+| 6 | Ally | `#63BD95` | `#4FA37F` |
+| 7 | Greatest Ally | `#D4AF37` | `#D4AF37` |
+
+Values are always clamped to 1–7.
+
+**Standing bar widget:**
+- The top line shows the subject's name on the left and the current label on the right, in the value's text colour.
+- Below that are 7 equal, tappable steps. The neutral step (4) always has a thin outline.
+- The lit steps run from neutral to the current value, inclusive, in that value's bar colour. For example, 2 lights steps 2, 3 and 4 in the "Enemy" colour. At neutral, only step 4 is lit, in grey.
+- Tapping a step sets that value and saves it.
+
+##### B. Characters
+
+**B1. Fields**
+
+| Field | Type | Default | Rules |
+|---|---|---|---|
+| `name` | text | (entered at creation) | Required, trimmed, cannot be empty. |
+| `player` | text | `""` | Free text, may be empty. **Keep it as free text on the web** (owner decision, 2026-09-24). It is a display label only; ownership and permissions come from `owner_id`, never from this field. |
+| `classLevel` | text | `""` | One free-text field such as "Fighter 3". It is not split into class and level. May be empty. |
+| `ac` | integer | 10 | Minimum 0. |
+| `hpMax` | integer | 10 | Minimum 1. |
+| `hpCur` | integer | 10 | Kept between 0 and `hpMax`. |
+| `hpTemp` | integer | 0 | Minimum 0, no maximum. |
+| `speed` | integer (feet) | 30 | Minimum 0. Shown as "30 ft". |
+| `passivePerception` | integer | 10 | Minimum 0. Entered by hand, **not** calculated. |
+| `abilities` | 6 integers: STR, DEX, CON, INT, WIS, CHA | 10 each | Each clamped to 1–30. |
+| `devotedGodId` | god reference or empty | empty ("None") | Which god the Piety screen shows for this character. **⚠ Plan difference:** the web plan replaces this with `piety_tracks` (see B5). |
+
+No other fields exist: no skills, saving throws, proficiency bonus, spells, conditions, inventory or notes.
+
+**B2. Calculations**
+- **Ability modifier** = `floor((score − 10) / 2)`. It is shown as `+2`, `+0` or `−1`, using a true minus sign (U+2212) for negatives.
+- **Initiative** = the DEX modifier. It is read-only and cannot be edited.
+- **HP bar fill** = `clamp(hpCur / hpMax, 0, 1)`. It is green (`#6FA86A`), and turns red (`#D2574C`) at 25% or less.
+- **Damage X** (X at least 0):
+  1. Temp HP absorbs first: `absorbed = min(hpTemp, X)` and `hpTemp −= absorbed`.
+  2. Then `hpCur = max(0, hpCur − (X − absorbed))`.
+- **Heal X** (X at least 0): `hpCur = min(hpMax, hpCur + X)`. Healing never changes temp HP.
+- **Set current HP to X**: `hpCur = clamp(X, 0, hpMax)`.
+- **Set max HP to X**: `hpMax = max(1, X)`, then `hpCur = min(hpCur, hpMax)`. Raising max HP does **not** raise current HP.
+- There are no death saves or unconscious state. 0 HP is just a number.
+
+**B3. Screens**
+
+**Character list** (title "Characters", with a **+** button top-right):
+- Sorted by name, case-insensitive.
+- Each row shows:
+  - **name** in bold
+  - on the right, muted: `HP {hpCur}/{hpMax}   AC {ac}`
+  - a second line with `classLevel · player`, leaving out whichever is empty, and leaving out the line if both are empty
+- Tapping a row opens the character sheet.
+- With no characters, it shows the message "No characters yet. Tap + to add one."
+- **+** opens a prompt titled "New character" asking only for the name. It creates the character with every default from B1 and opens its sheet.
+- **⚠ Plan difference:** the web plan also asks for the god at creation, with a "No god / other" option. The Unity app sets the god afterwards, on the sheet.
+
+**Character sheet** (the title is the character's name; a **…** menu is top-right). From top to bottom:
+1. **Identity card**, three tappable rows showing the label on the left and the value on the right:
+   - **Player**: text prompt. An empty value shows "—".
+   - **Class & level**: text prompt. An empty value shows "—".
+   - **Devoted to**: opens a pick list titled "Devoted to". It offers "None" first, then all gods sorted by name, with a dot after the current choice. "None" is shown muted.
+2. **Hit points card**:
+   - The label "HIT POINTS", then a large `hpCur`, a smaller muted `/ hpMax`, and `+{hpTemp} temp` in blue (`#7FB3D5`) when temp HP is above 0. Below that is the HP bar.
+   - Tapping this area opens a keypad titled `HP {cur} / {max}`, starting at 0, with three actions: **Damage** (red), **Heal** (gold) and **Set** (grey).
+   - Below it are two large buttons, **Damage** and **Heal**. Each opens a keypad starting at 0 with one **Apply** action.
+3. **Tile row:** Max HP, Temp HP, AC. Tapping a tile opens a keypad with a **Set** action.
+4. **Tile row:** Speed ("30 ft"), Passive Perception (labelled "Passive Perc."), and Initiative (read-only, shown greyed).
+5. **Two tile rows of three abilities:** STR/DEX/CON, then INT/WIS/CHA. Each tile shows the label, the score large, and the modifier in gold below it. Tapping a tile opens a keypad with **Set**.
+
+The **…** menu has:
+- **Rename**: text prompt. The name cannot be empty.
+- **Delete character**: a confirm dialog saying "{name}, their stats and piety history will be removed." Deleting removes the character **and all of its piety history**, then returns to the list.
+
+**B4. Permissions on the web** (from plan 3.3). These are not in Unity, which has only the DM.
+- Players edit only their own characters and see everyone else's sheets read-only. On a read-only sheet, nothing is tappable.
+- The DM edits everything.
+
+**B5. How piety works in the Unity app** (for reference; the web plan's model replaces it)
+- **Model:** each character has a list of `{godId, value}` scores, one per god, 0–50, clamped. `devotedGodId` picks which one the Piety overview shows.
+- **Piety overview:** one card per character. The card shows:
+  - the name, and the devoted god in gold
+  - `−` / bar / `+`, changing the score by ±1 per tap
+  - a caption: `{v} / 50 · next at {m}`, or `· all milestones reached`
+  - a "Displeases / Pleases" line (see C4)
+  - with no devoted god: a **Choose a god** button instead of the bar
+
+  The bar has **four equal-width segments**: 0–3, 3–10, 10–25 and 25–50. Each segment fills proportionally in dim gold and turns solid gold when complete. The milestone numbers 3, 10, 25 and 50 sit under the right end of each segment and turn gold and bold once reached.
+- **Piety detail** (tap a card):
+  - the devoted-god picker
+  - a bar with ± for every god the character has more than 0 piety with, plus the devoted god
+  - a **"Piety with another god"** pick list that adds +1 with the chosen god
+- **Piety history:** every change is logged as `{character, god, delta, resulting score, latest session number, time}` and shown newest first, up to 100 entries.
+  - Each entry reads like `#4  Nylea  +3  → 12`.
+  - Taps on the same character and god, in the same session, less than 5 minutes apart, merge into one entry. If the merged total reaches 0, the entry is removed.
+
+  **Roadmap candidates** from this: the segmented milestone bar, "next at", the history log, and the Displeases/Pleases line. The plan already lists history and thresholds under "More piety features".
+
+##### C. Gods
+
+**C1. Fields**
+
+| Field | Type | Default | Rules |
+|---|---|---|---|
+| `id` | text slug, e.g. `nylea` | seeded | Fixed. |
+| `name` | text | seeded | **Not editable** in Unity. |
+| `epithet` | text | seeded | Editable (shown as "Title"). May be empty. |
+| `alignment` | text | seeded | Editable free text, e.g. "NG". May be empty. |
+| `domains` | text | seeded | Editable free text, comma-separated, e.g. "Life, Nature". It is not a list type. May be empty. |
+| `symbol` | text | seeded | Editable. May be empty. |
+| `notes` | long text | `""` | "DM notes", multiline. |
+| `partyAttitude` | integer 1–7 | 4 | This god's attitude toward the whole party, on the A6 scale. |
+
+- **No create or delete:** Unity seeds a fixed pantheon and never creates or deletes gods.
+- **⚠ Plan difference:** the web plan lets the DM create gods, so the web version needs a create form (and editable names).
+
+**C2. Seed data: the 15 gods**
+
+| id | Name | Epithet | Alignment | Domains | Symbol |
+|---|---|---|---|---|---|
+| athreos | Athreos | God of Passage | LE | Death, Grave | Crescent moon |
+| ephara | Ephara | God of the Polis | LN | Knowledge, Light | Urn pouring water |
+| erebos | Erebos | God of the Dead | NE | Death, Trickery | Serene face |
+| heliod | Heliod | God of the Sun | LG | Light | Laurel crown |
+| iroas | Iroas | God of Victory | CG | War | Four-winged helmet |
+| karametra | Karametra | God of Harvests | NG | Life, Nature | Cornucopia |
+| keranos | Keranos | God of Storms | CN | Knowledge, Tempest | Blue eye |
+| klothys | Klothys | God of Destiny | N | Knowledge, War | Drop spindle |
+| kruphix | Kruphix | God of Horizons | N | Knowledge, Trickery | Eight-pointed star |
+| mogis | Mogis | God of Slaughter | CE | War | Four-horned bull's head |
+| nylea | Nylea | God of the Hunt | NG | Nature | Four arrows |
+| pharika | Pharika | God of Affliction | NE | Death, Knowledge, Life | Snakes |
+| phenax | Phenax | God of Deception | CN | Trickery | Winged golden mask |
+| purphoros | Purphoros | God of the Forge | CN | Forge, Knowledge | Double crest |
+| thassa | Thassa | God of the Sea | N | Knowledge, Tempest | Waves |
+
+**Checked against the book.** This table matches the "Gods of Theros" table in *Mythic Odysseys of Theros* (confirmed by the owner, 2026-09-24). The Forge and Grave domains come from *Xanathar's Guide to Everything*.
+
+All relationships start at Neutral, and all party attitudes start at 4.
+
+**C3. Relationships (god → god)**
+- **Directed:** `value(A → B)` is how A sees B. It is independent of `value(B → A)`. Nylea may see Mogis as a Sworn Enemy while Mogis sees Nylea as Neutral.
+- Every ordered pair of different gods has a value 1–7. A god has no relationship with itself.
+- **Stored sparsely:** only non-neutral values are saved. A missing pair means 4, and setting a pair back to 4 deletes the row.
+- On the web this can be a table `god_relationships (from_god_id, to_god_id, value)`, with a check constraint that the two gods differ and the value is 1–7.
+
+**C4. Calculation: "who reacts when god X is favoured"** (shown on Piety cards in Unity)
+- Take every god G where `value(G → X)` is not 4.
+- **Displeases:** gods with value below 4, most hostile first, each as `Name (Label)`.
+- **Pleases:** gods with value above 4, friendliest first.
+- Show one line per group and leave out empty groups. Nothing is changed automatically; it is only a reminder.
+
+**C5. Screens**
+
+**God list** (title "Gods"):
+- All gods sorted by name, case-insensitive. Each row shows:
+  - the **name** in bold, with a coloured chip showing the party attitude label **only when it isn't Neutral**
+  - the epithet
+  - a muted line: `alignment · domains · symbol`, leaving out empty parts
+- Tapping a row opens the god page.
+
+**God page** (the title is the god's name). From top to bottom:
+1. **Facts card:** tappable rows **Title, Alignment, Domains, Symbol**. Each opens a text prompt, and all may be empty. An empty value shows "—".
+2. **"Attitude toward the party":** one standing bar labelled "The party".
+3. **"How {god} sees others":** a standing bar for each of the other 14 gods, sorted by name. Tapping a step saves `value(this → other)` and immediately refreshes section 4.
+4. **"How others see {god}":** read-only. It lists every god whose view of this god isn't neutral, most hostile first, as name plus a coloured label chip. If there are none, it shows "Every god is neutral toward {god}."
+5. **"DM notes":** a multiline text box with the placeholder "Your notes on {god}…". It saves on blur, when the screen is left, and when the app is backgrounded.
+
+**C6. Web visibility (decided by the owner, 2026-09-24).** In Unity everything is DM-only, because there are no players. On the web, **everything on the god page is visible to players**:
+- **God notes**, **god-to-god relationships** and **party attitude** all have audience `members`. Players read them; only the DM writes.
+- The notes can be a plain column on `gods`. Label the section **"Notes"** on the web, not "DM notes", so the DM remembers players can read it.
+- The notes are not a place for secrets. Hidden god lore belongs to the roadmap's `dm`-audience rows (section 3.3), not v1.
+
+##### D. Other Unity app features (not v1, for the roadmap)
+
+1. **Session notes:**
+   - **Create Session** makes session number = highest existing number + 1 (not count + 1).
+   - It opens a full-screen note taker that autosaves 1.5 s after typing stops, and also on leave and on app pause.
+   - An optional title is tappable. The screen shows the creation date as `d MMM yyyy`.
+   - A session left with an empty title and body is deleted automatically.
+   - The **Sessions** list is newest first, showing `#n`, the title (or "Untitled"), the date, and the first line of the notes up to 80 characters.
+   - Rename and delete (with confirmation) are in the **…** menu.
+2. **Piety extras:** the milestone bar, the history log, and the Displeases/Pleases line (B5, C4).
+3. **God attitude toward the party** (C1, C3), if not included in v1.
+4. **Backup & restore:**
+   - export the whole campaign as JSON via the share sheet or clipboard
+   - import from the clipboard, with confirmation, taking a snapshot first
+   - automatic on-device snapshots once a day and before each import, keeping the latest 20, each restorable
+
+   On the web this is largely replaced by the server backups in 3.2. A DM "export everything as JSON" button could still be a small roadmap item.
+5. **Main menu:** shows "Last session: #n".
+6. **App-only behaviour** that doesn't carry over to the web: the Android back button, safe-area and keyboard padding, reduced frame rate when idle, portrait lock, and a dark theme.
+   - **Dark theme palette:** background `#121214`, surface `#1C1C20`, text `#ECEAE4`, muted `#8E8C87`, gold accent `#D4AF37`, danger `#D2574C`.
+   - The web can reuse this palette.
+
+**Rules for the agent:**
+- If the block above still contains the placeholder, you may do Phases 0 to 2 (tools, hosting, login, database and security) and build the Piety page. **Stop and ask the owner for the specification before building the Character or Gods screens or their tables' detailed columns.**
+- Reproduce behaviour and data, not Unity code.
+- If the specification describes other features, they are **not** version 1 scope. List them for the owner's roadmap instead of building them.
+- There is no existing data to migrate (confirmed by the owner).
+
+---
+
+## 2. Priorities
+
+In order:
+1. **Never lose what someone typed.** Saving must survive the tab being backgrounded, closed or the phone locking.
+2. **Correct privacy.** Players must never be able to read or change what they are not allowed to, and this is enforced by the server, not just hidden in the interface.
+3. **Near-zero cost.**
+4. **Small, light, battery-friendly**, and installable on a phone's home screen.
+5. **Easy for an AI agent to build and for a non-programmer owner to maintain.** Prefer boring, well-documented solutions over clever ones.
+
+**Not a priority:** working without internet. This is a website and needs a connection (confirmed by the owner).
+
+---
+
+## 3. Decisions
+
+### 3.1 Platform: website (PWA) on GitHub Pages. *Decided*
+- No install needed, works on Android and iPhone, updates instantly, free to host.
+- Replaces the Unity app because a Unity web build is tens of MB and runs poorly on phones.
+- Can be added to a phone's home screen like an app (PWA).
+- A native app is a possible roadmap item later (see section 6), not a v1 concern.
+
+### 3.2 Backend: Supabase, free plan. *Decided*
+Hosted Postgres database with login, row-level security (RLS) and file storage, with no server to run.
+- **Why Postgres:** the future lore database is made of linked things (gods, places, people, items referring to each other). That fits a relational database well.
+- **The public "anon" key** and project URL are safe in the website's code **only because RLS is enforced on every table**. The secret **service-role key must never be in the repository or the website**.
+
+**Known free-plan drawbacks and how we handle them:**
+
+| Drawback | Handling |
+|---|---|
+| Projects pause after about a week without activity. Groups often go longer between sessions, and a paused project means the site does not work until the owner restores it in the dashboard. | A scheduled GitHub Action makes a tiny database request every few days to keep it active. **Check that this is allowed under current Supabase terms.** If not, the owner restores it manually when needed. |
+| No automatic backups. | A scheduled GitHub Action in a **separate private repository** runs a database export weekly and stores it there. **Backups must never go in the public website repository**, because they contain every campaign's private data. |
+| The built-in email sender is for testing only: very low hourly limit, and it may only send to the project team's own addresses. | Not needed: login is Google only (section 3.5), so the app sends no email. |
+
+### 3.3 Permissions model. *Decided*
+
+This is the most important design in the app.
+
+**Roles.** There are only two:
+- **The DM:** one person, the owner, set once in the `worlds` row. The DM can read and write everything.
+- **Players:** members of one or more campaigns.
+
+**Levels.** Content lives at one of two levels:
+- **World content** belongs to Theros and is shared by all its campaigns. Gods now, the lore database later.
+- **Campaign content** belongs to one campaign. Characters and piety tracks.
+
+**Reading.** Every piece of content has an **audience** that decides who can read it:
+
+| Audience | Who can read it | Example |
+|---|---|---|
+| `members` | For campaign content: the players in that campaign, and the DM. For world content: every player in any campaign, and the DM. | A character sheet, a god |
+| `owner` | The owner of the thing, and the DM | A player's inventory *(roadmap)* |
+| `dm` | Only the DM | DM notes, secret lore *(roadmap)* |
+
+**Writing:**
+- A player can create, edit and delete things they **own**, unless a table's rules say otherwise (piety, below).
+- The DM can create, edit and delete **everything**.
+
+**Version 1 uses it like this:**
+- **Characters:** campaign content, audience `members`, owned by the creating player. Players in the campaign read. The owner and the DM write.
+- **Gods:** world content, audience `members`. Players read. Only the DM writes.
+- **Piety tracks:** campaign content, audience `members`. Players in the campaign read. Writing is restricted (section 4):
+  - A player may create **one god track** for their own character, at creation, and it always starts at score 0.
+  - Everything else is DM only: changing the score, changing the god later, custom sources, and deleting tracks.
+
+**Secrets inside a visible thing.** RLS works on whole rows, not individual fields. When one part of a thing is secret, the secret part goes in its **own row** with a stricter audience.
+
+Worked example (roadmap, not v1): the 5e *Longsword of Vengeance*.
+- The item row is readable by whoever can see the item, e.g. "a longsword".
+- A separate "secret rules" row holds the curse and has audience `owner` (the holder and the DM) or `dm` (only the DM, if the curse should stay hidden until it triggers).
+
+Build the v1 tables so this pattern can be added without changing existing tables.
+
+**Rule for the agent:** every table gets RLS switched on in the same migration that creates it. No table is ever readable without a policy.
+
+### 3.4 Online-first saving. *Decided*
+The server is the single source of truth. There is **no local database and no sync engine** in version 1. This is deliberate: sync engines are the hardest part to get right, and they can leak hidden content that stays cached on a player's phone after the DM hides it.
+
+Saving works like this:
+- Edits save automatically about one second after the user stops typing.
+- Also save immediately when the page is hidden or closed (`visibilitychange` and `pagehide` events).
+- Until the server confirms a save, the unsent change is kept in the browser's local storage. It is sent again on the next visit or when the connection comes back. After confirmation it is deleted.
+- A small indicator shows *Saved / Saving… / Not saved yet*.
+- **Conflict guard:** every row has a `version` number. A save only succeeds if the version has not changed since the user loaded it. If it has (for example, the DM edited your character in the meantime), show a warning and let the user choose. Never overwrite silently.
+- Timestamps (`updated_at`) are set by the **database**, not by the phone, because phone clocks can be wrong.
+- Deleting marks a row as deleted (`deleted_at`) instead of removing it, so accidental deletes can be undone by the DM.
+
+### 3.5 Login: Google only. *Decided*
+- The group talks on WhatsApp, which cannot be used as a login.
+- Everyone in the group has a Google account (confirmed by the owner). Google login needs no passwords and no email sending.
+- **Not Apple login:** it needs a paid Apple developer account.
+- The Supabase login settings must list **both** `https://dnd.yannickmul.nl` and the local development address as allowed redirect URLs.
+
+**Invite links will be shared in WhatsApp. Test this early.**
+- Some apps open links in their own built-in browser, and Google blocks login inside those.
+- In Phase 1, send yourself an invite link through WhatsApp, and open it on both an Android phone and an iPhone.
+- If login fails there, the invite page must detect the built-in browser and tell the user to open the link in their normal browser. That is also where "Add to home screen" works.
+
+### 3.6 No realtime in version 1. *Decided*
+Data refreshes when a screen opens and when the user returns to the tab. Characters are edited by one person, and gods and piety scores change rarely, so live updates are not needed yet. This keeps the app simpler and lighter on battery.
+Realtime is added later together with the features that need it, such as live combat.
+
+### 3.7 Tech stack. *Decided*
+
+| Part | Choice | Reason |
+|---|---|---|
+| Language | TypeScript | Catches mistakes before they reach users. |
+| Framework | React + Vite | AI agents have the most examples to work from. The size difference compared with lighter frameworks makes no real battery difference. |
+| Backend client | Official Supabase JavaScript client | |
+| Database changes | Supabase CLI migration files in the repo | The whole database can be rebuilt from files. |
+| Installable app | `vite-plugin-pwa` | When a new version is deployed, show a *"New version, tap to reload"* message, so nobody is stuck on an old cached version. |
+| Hosting | GitHub Pages, public repository, deployed by GitHub Actions on every push | |
+
+### 3.8 Hosting details. *Decided*
+- **Page links:** GitHub Pages returns "404 not found" when someone refreshes on any page other than the home page. Fix: the build copies `index.html` to `404.html`, so every link loads the app.
+- **Custom domain:** at Strato (DNS editing confirmed available), add a `CNAME` record for `dnd` pointing to `<github-username>.github.io`. Set `dnd.yannickmul.nl` in the repository's Pages settings and enable **Enforce HTTPS**.
+- **Domain protection:** also verify `yannickmul.nl` in the GitHub account settings (Pages → verified domains), so nobody else can claim the subdomain.
+- **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
+
+---
+
+## 4. Data model (version 1)
+
+Detailed columns for characters and gods come from the specification in section 1.3.
+
+**Every content table has:**
+- `id`
+- `owner_id`
+- `audience` (`members` / `owner` / `dm`)
+- `version`
+- `created_at`, `updated_at` (set by the database)
+- `deleted_at` (empty unless deleted)
+- **Either** `world_id` (world content) **or** `campaign_id` (campaign content)
+
+**Structure tables:**
+
+| Table | Purpose |
+|---|---|
+| `profiles` | One per user: display name. Linked to the Supabase login user. |
+| `worlds` | One row: Theros, with `dm_user_id` set to the owner. "Is this user the DM?" is answered from here and used by every RLS policy. The future lore database also lives at this level. |
+| `campaigns` | Name, `world_id`. Created by the DM. |
+| `campaign_members` | Which players are in which campaign. The DM is not listed; the DM has access everywhere. |
+| `campaign_invites` | Invite codes the DM shares as a link in WhatsApp. They can expire or be revoked. |
+
+**Content tables:**
+
+| Table | Level | Purpose |
+|---|---|---|
+| `characters` | Campaign | Player characters. Owned by the creating player. |
+| `gods` | World | The pantheon of Theros, shown on the Gods page and offered as choices at character creation. |
+| `piety_tracks` | Campaign | One row per piety track a character has (details below). |
+
+**`piety_tracks` columns:**
+- `character_id`
+- `god_id`: the god, for a normal believer such as Sopar and Phenax.
+- `custom_source_name` and `custom_source_rules`: a name and a description, for a character like Seric who gains piety another way.
+- `score`
+
+**Rules for `piety_tracks`, all enforced in the database, not only in the interface:**
+- Each row has **exactly one** of `god_id` or `custom_source_name`.
+- A player may insert a track only when **all** of these hold:
+  - it is for **their own** character,
+  - that character has **no track yet**,
+  - it uses a **god** (not a custom source).
+- The database **forces the score to 0** on any track a player creates, whatever the website sends.
+- All other changes are **DM only**: updating the score or the god, adding custom sources, and deleting tracks.
+- The simplest safe way to build this is one database function, *create character with chosen god*. It creates the character and its track together, so there is never a character left half-created. Direct inserts into `piety_tracks` stay DM only.
+- The Piety page lists every character in the campaign with their track or tracks and scores, and shows the god's name or the custom source's name.
+- Reusing custom sources across characters, or calculating piety automatically, is a roadmap item. It is not v1.
+
+**Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
+
+---
+
+## 5. Build plan
+
+Work in small steps. Commit to Git after each working step so anything can be rolled back. Keep `ARCHITECTURE.md` in the repo up to date. This document seeds it.
+
+### Phase 0: Accounts and tools
+1. GitHub account, plus a **public** repository for the website and a **private** repository for backups.
+2. Supabase project on the free plan. Record the project URL and anon key. Never commit the service-role key or database password.
+3. A Google Cloud project with an OAuth client for Google login. It is free. The agent gives step-by-step instructions.
+4. Install Node.js, Git and Claude Code.
+
+### Phase 1: Live on the internet with working login
+1. Set up React + Vite + TypeScript with the installable-app setup and the `404.html` fix.
+2. Deploy with GitHub Actions to GitHub Pages.
+3. Connect `dnd.yannickmul.nl`, enforce HTTPS, verify the domain.
+4. Google login working **on the real domain, on a real phone**, including when the link is opened from WhatsApp (section 3.5).
+
+### Phase 2: Database and security, before any screens
+1. Create the tables from section 4 as migration files, with RLS on every table.
+2. **Automated permission test:** a script that logs in as test users (the DM, Player A, Player B, and a non-member) and checks, among other things:
+   - Player B cannot edit or delete Player A's character.
+   - Player B can read Player A's character and Player A's piety.
+   - Player A can create a character with a chosen god, and the track starts at 0 **even if the request asks for a higher score**.
+   - Player A cannot change their own score, change their god afterwards, add a second track, add a custom source, or delete a track.
+   - Player A cannot create a track for Player B's character.
+   - The DM can do all of the above.
+   - A track with both a god and a custom source, or neither, is rejected.
+   - Players cannot edit gods. The DM can.
+   - A non-member cannot read anything in the campaign, or any gods.
+   - A row with audience `dm` is invisible to players.
+   - A row with audience `owner` is invisible to other players.
+
+   These pass using test rows even though v1 has no `owner`/`dm` content yet. **Run this script after every database change.** Most security bugs come from later changes, not the first version.
+3. Scheduled GitHub Actions: keep-alive ping, and the weekly backup into the private repository.
+
+### Phase 3: Version 1 features
+**Character and Gods need the specification from section 1.3.**
+1. The DM creates a campaign in Theros. Players join one via an invite link.
+2. Gods page: players read, the DM edits.
+3. Characters: create (including picking a god, or *"No god / other"*), view, edit, delete, following the specification.
+4. Piety page: players in the campaign read. The DM changes scores and gods, and adds custom sources.
+5. Saving behaviour from section 3.4 on every edit screen.
+
+One screen or feature per step. **Do not add anything that is not in section 1.1.**
+
+### Phase 4: Test and share
+1. Try to break it:
+   - Close the tab mid-edit.
+   - Lose the connection mid-edit.
+   - DM and player editing the same character.
+   - A player trying to edit someone else's character.
+   - The site on an iPhone and an Android phone.
+2. Check performance with Lighthouse (mobile).
+3. Share the link with the group, ask them to add it to their home screen, and gather feedback.
+
+**Stop here. Version 1 is complete.** Work continues only from the owner's roadmap.
+
+---
+
+## 6. Roadmap input (unordered; the owner decides what and when)
+
+These are candidates, not commitments. Each one lists what version 1 already provides for it.
+
+| Candidate | Already prepared in v1 |
+|---|---|
+| **Inventory**, private to the owner and DM | The `owner` audience |
+| **Items with secret rules** (e.g. Longsword of Vengeance) | The separate-secret-row pattern in 3.3 |
+| **Lore database** with linked entries, written together | The world level, and Postgres suits linked data. Writing in the same document **at the same time** would need an extra technology (for example Yjs) and is a larger project. Taking turns editing works with the v1 conflict guard. |
+| **Live combat** with shared turn order | Add Supabase Realtime together with this feature |
+| **Image uploads** | `image_path` columns. Compress on the phone before upload. |
+| **Intro animation** | Short, skippable, must not delay loading. |
+| **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
+| **More piety features**: history of changes, reusable custom sources, automatic calculation, boons at thresholds | `piety_tracks` already separates god and custom sources |
+| **Other Unity app features** | From the specification (section 1.3) |
+
+---
+
+## 7. Costs
+Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan limits hold. Check current Supabase and GitHub limits before starting.
+
+## 8. Open items
+
+**Still to check:**
+1. Check that the Supabase keep-alive approach is allowed under current terms.
+
+**Resolved:**
+- **`player` field on characters:** kept as free text, a display label only (section 1.3, B1).
+- **God seed data:** checked against the book's "Gods of Theros" table (section 1.3, C2).
+- **God notes, relationships and party attitude:** visible to players (audience `members`), editable only by the DM. The owner wants players to see them. See section 1.3, C6.
+- **Specification:** Character and Gods specification filled in from the Unity code (section 1.3). It describes the code as written; the app has not been tested on a phone.
+- **Piety:** a score per character per track, where a track is a god or a custom source. The player picks a god at creation (score 0). Everything after that is the DM's.
+- **DM:** the owner is the only DM, now and in the future, with full access.
+- **Login:** Google only. Everyone in the group has an account. Contact is WhatsApp.
+- **Joining:** by a DM-shared invite link.
+- **World:** Theros is the one world. Campaigns belong to it, and gods are world content.
+- **Domain:** Strato allows the `CNAME` record for `dnd.yannickmul.nl`, which currently points nowhere.
