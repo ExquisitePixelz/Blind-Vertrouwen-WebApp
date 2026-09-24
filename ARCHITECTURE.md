@@ -675,6 +675,7 @@ Done as one group session with several people and devices at once.
 **As built (Phase 4.5, 2026-09-25):**
 - **Screens:** `/` is the dashboard, `/c/:id/characters`, `/c/:id/players` (DM only), `/c/:id/piety` (titled "Piety Scores"), `/gods`, `/settings`, `/privacy` (readable without logging in). Opening `/c/:id` (e.g. after an invite) makes that campaign current and shows the dashboard. Opening any screen inside a campaign also makes it current.
 - **Last campaign:** stored only in `profiles.last_campaign_id`; the old per-device browser copy is gone. A trigger (`guard_profile_update`) stops a player pointing it at a campaign they are not in.
+- **Profiles backfilled:** accounts that first logged in before the profiles table existed (including the DM's) had no profile row, so saving a display name or last campaign silently changed nothing. A migration gives every existing login a profile.
 - **Settings save when OK is tapped**, not through the save hook (3.4). `profiles` and `campaigns` are structure tables without a `version` column, and a prompt dialog is one deliberate change, not typing.
 - **Google sign-in:** the Google Identity Services button is used when the `VITE_GOOGLE_CLIENT_ID` variable is set (GitHub Actions variable, and `.env.local`). Without it, or if Google's script cannot load, the old redirect login is shown, so nobody is locked out. Owner setup steps are in the README.
 

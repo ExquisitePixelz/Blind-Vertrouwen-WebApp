@@ -24,9 +24,13 @@ export function useRememberCampaign() {
   return useCallback(
     async (campaignId: string) => {
       if (campaignId === me.lastCampaignId) return
-      const result = await supabase.from('profiles').update({ last_campaign_id: campaignId }).eq('id', me.userId)
-      // Not a campaign this user is in: leave the remembered one alone.
-      if (!result.error) update({ lastCampaignId: campaignId })
+      const result = await supabase
+        .from('profiles')
+        .update({ last_campaign_id: campaignId })
+        .eq('id', me.userId)
+        .select('id')
+      // Not a campaign this user is in (or no profile row): leave the remembered one alone.
+      if (!result.error && result.data.length) update({ lastCampaignId: campaignId })
     },
     [me.lastCampaignId, me.userId, update],
   )
