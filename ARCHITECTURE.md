@@ -59,13 +59,43 @@ Everything below goes on a **roadmap the owner will write** (see section 6). Do 
 - Live combat and turn order
 - Lore / worldbuilding database, and people writing it together
 - Image uploads
-- Intro animation
+- Intro animation *(now in Phase 4.5 as the Lottie splash, see 1.5)*
 - Realtime live updates
 - Push notifications
 - A native phone app or Play Store release
 - Any other feature from the Unity app that is not listed in 1.1
 
 Version 1 is designed so that these can be added later **without redesigning the database** (see section 3.3). Designing for them is allowed; building them is not.
+
+### 1.5 Phase 4.5: Look and navigation *(put in scope by the owner, 2026-09-24; built before Phase 5)*
+
+The site must feel like a phone app, based on the Unity main menu (owner's reference screenshot): a dashboard of large full-width buttons, not a text menu in a header.
+
+**Dashboard** (the home page, `/`):
+- Opens on the user's **last selected campaign**, remembered **per account** (`profiles.last_campaign_id`), so phone and laptop agree. If none is remembered: with exactly one campaign, open it; otherwise show the campaign picker.
+- Top: the campaign name large in gold, and its subtitle muted below (default "A Theros campaign").
+- Full-width buttons, in order: **Piety Scores**, **Characters**, **Gods**, and for the DM only **Players** (the player list and invite links, moved off the old campaign page). Phase 5 adds **Create Session** (gold, first) and **Sessions** above them, for the DM only.
+- Below the buttons, muted: "Last session: #n" or "No sessions yet" (DM only; added in Phase 5).
+
+**Top bar on other screens:** a back arrow and the screen title on the left, the account button on the right. No text menu.
+
+**Account button:** shows the user's name (or initial on narrow screens). Tapping opens a small popover with:
+- the current campaign, and **Switch campaign** (a pick list of the user's campaigns; the DM also gets **New campaign** there)
+- **Settings**
+- **Log out**
+
+**Settings:**
+- **Display name:** stored in `profiles.display_name` and shown everywhere in place of the Google name.
+- **Animations on/off:** per device (browser storage), and off by default when the phone asks for reduced motion.
+- **Campaign name and subtitle** (DM only): `campaigns.name` and a new `campaigns.subtitle`.
+
+**Mobile first:** designed for a ~375 px wide phone first; tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6).
+
+**Lottie animations** (the owner makes the files, e.g. After Effects + Bodymovin):
+- **Splash screen** on a cold start only. It covers loading and fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**.
+- **Animated icons / buttons** on the dashboard.
+- Uses the light SVG build of `lottie-web`, loaded lazily so it does not slow the first load. Animations pause when off screen and are skipped when Animations is off.
+- Until the owner delivers the files, the dashboard uses static buttons and there is no splash.
 
 ### 1.4 Phase 5: Session notes *(put in scope by the owner, 2026-09-24)*
 
@@ -93,7 +123,7 @@ A **Sessions** tab where the DM takes notes per session. It is based on the Unit
 
 **Empty sessions.** A session left with an empty title and empty notes is deleted (soft delete) automatically when the DM leaves it, as in Unity.
 
-**Also in Phase 5:** the campaign page shows "Last session: #n" to the DM (1.3 D5).
+**Also in Phase 5:** the dashboard shows "Last session: #n" to the DM (1.3 D5, 1.5).
 
 **Not in Phase 5 (roadmap):** search across sessions, linking characters or gods from notes, player-visible recaps, exporting notes.
 
@@ -456,6 +486,7 @@ Realtime is added later together with the features that need it, such as live co
 | Database changes | Supabase CLI migration files in the repo | The whole database can be rebuilt from files. |
 | Installable app | `vite-plugin-pwa` | When a new version is deployed, show a *"New version, tap to reload"* message, so nobody is stuck on an old cached version. |
 | Hosting | GitHub Pages, public repository, deployed by GitHub Actions on every push | |
+| Animations *(Phase 4.5)* | `lottie-web`, light SVG build, loaded lazily | Plays the owner's After Effects / Bodymovin files. Kept out of the first load. |
 
 ### 3.8 Hosting details. *Decided*
 - **Page links:** GitHub Pages returns "404 not found" when someone refreshes on any page other than the home page. Fix: the build copies `index.html` to `404.html`, so every link loads the app.
@@ -612,13 +643,20 @@ Done as one group session with several people and devices at once.
 
 **Stop here. Version 1 is complete.** Work continues only from the owner's roadmap.
 
+### Phase 4.5: Look and navigation (section 1.5)
+1. Migration: `profiles.last_campaign_id` and `campaigns.subtitle`, with permission-test cases (a player can set only their own `last_campaign_id`; only the DM changes campaign names).
+2. App shell: top bar with back arrow and title, the account popover (Switch campaign, Settings, Log out), and a mobile-first CSS pass.
+3. Dashboard on `/` with the last campaign and its buttons. Characters move to `/c/:campaignId/characters`, players and invites to `/c/:campaignId/players`.
+4. Settings: display name, animations on/off, campaign name and subtitle.
+5. Lottie: splash and animated dashboard icons, once the owner has delivered the files.
+
 ### Phase 5: Session notes (section 1.4)
 1. Migration: the `sessions` table with RLS (DM only), the unique-number rule, and new cases in the permission test.
-2. Sessions list and **New session** (starting number for the first session, highest + 1 after that), plus the **Sessions** link in the header for the DM only.
+2. Sessions list and **New session** (starting number for the first session, highest + 1 after that), plus the **Create Session** and **Sessions** buttons on the dashboard for the DM only (1.5).
 3. Note taker: title, played-on date, notes, autosave via the shared save hook, the **…** menu (Rename, Change number, Delete), and auto-delete of empty sessions on leave.
 4. Formatting: Edit / Preview toggle with markdown.
 5. Attendance checkboxes (with its migration and permission tests).
-6. "Last session: #n" on the campaign page.
+6. "Last session: #n" on the dashboard.
 
 One step per commit. **Do not add anything that is not in section 1.4.**
 
@@ -682,6 +720,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 
 **Resolved:**
 - **Session notes (Phase 5):** DM only, numbered per campaign from a starting number the DM picks, with an editable played-on date, and empty sessions deleted automatically (owner decisions, 2026-09-24). See section 1.4.
+- **Look and navigation (Phase 4.5):** dashboard in the Unity style, last campaign remembered per account, Players button on the DM's dashboard, account popover with Switch campaign and Settings (display name, animations, campaign name), and a Lottie splash that never delays the app (owner decisions, 2026-09-24). See section 1.5.
 - **Phase 5 extras:** markdown formatting and session attendance are in Phase 5; character/god links stay on the roadmap. Next after Phase 5: character notes and inventory (owner decisions, 2026-09-24).
 - **Phase 4:** skipped for now (owner decision, 2026-09-24).
 - **Login from WhatsApp:** tested 2026-09-24 on desktop, Android (WhatsApp opened the link in Chrome) and iPhone. It works everywhere, so the built-in-browser detection from section 3.5 is not needed.
