@@ -8,4 +8,4 @@ Read ARCHITECTURE.md before doing any work. It is the plan and decision record f
 - When a decision changes, update ARCHITECTURE.md in the same commit.
 - Never commit secrets: no Supabase service-role key, database password or data exports.
 
-Current phase: 1 (live on the internet with working login)
+Current phase: 2 (database and security)

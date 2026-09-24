@@ -479,6 +479,20 @@ Detailed columns for characters and gods come from the specification in section 
 
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
 
+**As built (Phase 2, 2026-09-24).** Schema: `supabase/migrations/`. Permission test: `tests/permissions.test.ts`.
+- **Policy helpers** live in a `private` schema that the API does not expose (`is_dm`, `is_campaign_member`, `is_world_member`, `shares_campaign`, `audience_allows`). Every table has one "DM can do everything" policy plus narrow player policies.
+- **Database functions the website calls:**
+  - `create_character(campaign, name, god or null)` creates the character and its score-0 track together.
+  - `delete_character(id)` soft-deletes the character and its tracks. Players cannot set `deleted_at` directly.
+  - `accept_invite(code)` joins a campaign.
+- **Conflict guard:** a save must send the `version` it loaded. If the row changed since then, the database refuses it with HTTP 409. `version`, `created_at` and `updated_at` are always set by triggers.
+- **Owner-only fields:** a player cannot change a character's `owner_id`, `campaign_id` or `deleted_at`.
+- **Character stats:** the six abilities are stored as `strength` … `charisma`.
+- **Gods:** have a fixed `slug` (e.g. `phenax`) next to the `id`.
+- **`god_relationships`:** readable when both gods are readable. Value 4 (Neutral) is never stored.
+- **`piety_tracks.owner_id`:** set by the database to the character's owner.
+- **Seed data:** Theros and the 15 gods are in a migration. `worlds.dm_user_id` is set by hand once (see Phase 2 notes in the README).
+
 ---
 
 ## 5. Build plan
