@@ -59,7 +59,7 @@ Everything below goes on a **roadmap the owner will write** (see section 6). Do 
 - Live combat and turn order
 - Lore / worldbuilding database, and people writing it together
 - Image uploads
-- Intro animation *(now in Phase 4.5 as the Lottie splash, see 1.5)*
+- Intro animation *(planned as a Lottie splash, see roadmap section 6)*
 - Realtime live updates
 - Push notifications
 - A native phone app or Play Store release
@@ -360,7 +360,6 @@ The site must feel like a phone app, based on the Unity main menu (owner's refer
 
 **Settings:**
 - **Display name:** stored in `profiles.display_name` and shown everywhere in place of the Google name.
-- **Animations on/off:** per device (browser storage), and off by default when the phone asks for reduced motion.
 - **Campaign name and subtitle** (DM only): `campaigns.name` and a new `campaigns.subtitle`.
 
 **Mobile first, scales to every screen:** designed for a ~375 px wide phone first, and responsive from 320 px phones up to tablets and laptops:
@@ -378,12 +377,6 @@ Tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6
 - The app gets a short **privacy policy page** (Google requires one).
 - **Rejected:** a Supabase custom domain (`auth.yannickmul.nl`). It needs the Pro plan plus the add-on (about $35/month, checked 2026-09-24), against priority 3.
 - Still Google-only login (3.5). Redo the WhatsApp test (3.5) on Android and iPhone after the switch.
-
-**Lottie animations** (the owner makes the files, e.g. After Effects + Bodymovin):
-- **Splash screen** on a cold start only. It covers loading and fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**.
-- **Animated icons / buttons** on the dashboard.
-- Uses the light SVG build of `lottie-web`, loaded lazily so it does not slow the first load. Animations pause when off screen and are skipped when Animations is off.
-- Until the owner delivers the files, the dashboard uses static buttons and there is no splash. The files will come later (owner, 2026-09-24): leave a clear place for them in the code.
 
 ---
 
@@ -500,7 +493,6 @@ Realtime is added later together with the features that need it, such as live co
 | Database changes | Supabase CLI migration files in the repo | The whole database can be rebuilt from files. |
 | Installable app | `vite-plugin-pwa` | When a new version is deployed, show a *"New version, tap to reload"* message, so nobody is stuck on an old cached version. |
 | Hosting | GitHub Pages, public repository, deployed by GitHub Actions on every push | |
-| Animations *(Phase 4.5)* | `lottie-web`, light SVG build, loaded lazily | Plays the owner's After Effects / Bodymovin files. Kept out of the first load. |
 
 ### 3.8 Hosting details. *Decided*
 - **Page links:** GitHub Pages returns "404 not found" when someone refreshes on any page other than the home page. Fix: the build copies `index.html` to `404.html`, so every link loads the app.
@@ -661,9 +653,8 @@ Done as one group session with several people and devices at once.
 1. Migration: `profiles.last_campaign_id` and `campaigns.subtitle`, with permission-test cases (a player can set only their own `last_campaign_id`; only the DM changes campaign names).
 2. App shell: top bar with back arrow and title, the account popover (Switch campaign, Settings, Log out), and a mobile-first CSS pass.
 3. Dashboard on `/` with the last campaign and its buttons. Characters move to `/c/:campaignId/characters`, players and invites to `/c/:campaignId/players`.
-4. Settings: display name, animations on/off, campaign name and subtitle.
+4. Settings: display name, campaign name and subtitle.
 5. Google sign-in button with `signInWithIdToken`, the privacy policy page, and step-by-step instructions for the owner (allowed origins, Search Console, brand verification). Redo the WhatsApp login test.
-6. Lottie: splash and animated dashboard icons, once the owner has delivered the files.
 
 ### Phase 5: Session notes (section 1.4)
 1. Migration: the `sessions` table with RLS (DM only), the unique-number rule, and new cases in the permission test.
@@ -688,7 +679,7 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Lore database** with linked entries, written together | The world level, and Postgres suits linked data. Writing in the same document **at the same time** would need an extra technology (for example Yjs) and is a larger project. Taking turns editing works with the v1 conflict guard. |
 | **Live combat** with shared turn order | Add Supabase Realtime together with this feature |
 | **Image uploads** | `image_path` columns. Compress on the phone before upload. |
-| **Intro animation** | Short, skippable, must not delay loading. |
+| **Lottie animations** *(owner plan, 2026-09-24; the owner makes the files later, e.g. After Effects + Bodymovin)*: a splash screen and animated dashboard icons/buttons | The Phase 4.5 dashboard (1.5). Agreed behaviour: the splash shows on a cold start only, covers loading, fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**. Use the light SVG build of `lottie-web`, loaded lazily; pause off screen. Add an **Animations on/off** setting (per device, off by default when the phone asks for reduced motion) together with it. |
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
 | **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
@@ -736,7 +727,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 **Resolved:**
 - **Session notes (Phase 5):** DM only, numbered per campaign from a starting number the DM picks, with an editable played-on date, and empty sessions deleted automatically (owner decisions, 2026-09-24). See section 1.4.
 - **Google sign-in screen showing supabase.co:** fixed for free with Google's own sign-in button plus brand verification, not with the paid Supabase custom domain (owner request, 2026-09-24). See section 1.5.
-- **Look and navigation (Phase 4.5):** dashboard in the Unity style, last campaign remembered per account, Players button on the DM's dashboard, account popover with Switch campaign and Settings (display name, animations, campaign name), and a Lottie splash that never delays the app (owner decisions, 2026-09-24). See section 1.5.
+- **Look and navigation (Phase 4.5):** dashboard in the Unity style, last campaign remembered per account, Players button on the DM's dashboard, account popover with Switch campaign and Settings (display name, campaign name) (owner decisions, 2026-09-24). Lottie animations moved to the roadmap (section 6). See section 1.5.
 - **Phase 5 extras:** markdown formatting and session attendance are in Phase 5; character/god links stay on the roadmap. Next after Phase 5: character notes and inventory (owner decisions, 2026-09-24).
 - **Phase 4:** skipped for now (owner decision, 2026-09-24).
 - **Login from WhatsApp:** tested 2026-09-24 on desktop, Android (WhatsApp opened the link in Chrome) and iPhone. It works everywhere, so the built-in-browser detection from section 3.5 is not needed.
