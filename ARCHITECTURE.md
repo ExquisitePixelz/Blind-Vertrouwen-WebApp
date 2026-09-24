@@ -634,6 +634,12 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
 | **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
+| **Session notes: links and formatting** *(owner interest, 2026-09-24)*: mention a character or god in the notes as a tappable link; headings, lists and bold (markdown) | The `sessions` table (1.4). Links can be stored as text markers, so no new table is needed. |
+| **Session attendance** *(owner interest)*: tick which characters were present in each session | `sessions` and `characters`; a small join table `session_attendance` |
+| **Initiative tracker** *(owner interest)*: turn order for combat, DM only at first | Realtime only if players must see it live (see Live combat) |
+| **NPC / lore notes** *(owner interest)*: the DM's notes on NPCs, places and factions, DM only or shared per entry | The world level and the `dm` / `members` audiences |
+| **Character notes** *(owner interest)*: a free-text notes field on a player's own sheet (backstory, goals) | `characters` (owner and DM write) |
+| **Session quiz** *(owner idea, very future)*: a Kahoot-style quiz where players answer questions about the previous session, maybe with AI-generated questions | Needs Realtime for a live quiz. AI questions would read the DM-only notes, so the DM must approve every question before players see it (priority 2), and an AI API has a running cost (priority 3). |
 
 ---
 
