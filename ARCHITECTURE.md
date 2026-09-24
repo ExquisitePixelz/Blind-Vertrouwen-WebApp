@@ -25,12 +25,19 @@ A small website at `https://dnd.yannickmul.nl` for a friend group playing in **T
 - A player who does not follow a god picks *"No god / other"* at creation, and the DM sets up the custom source.
 - A character normally has one track. The data allows more than one.
 - **The app does not calculate piety.** The DM sets the score by hand, whatever the rules for that track.
+- **Milestone bar** *(added to v1 by the owner, 2026-09-24)*. Players are rewarded at piety **3, 10, 25 and 50**. Every track shows the segmented milestone bar and the "next at" caption from 1.3 B5:
+  - The bar has four equal segments: 0–3, 3–10, 10–25, 25–50.
+  - A segment fills in dim gold, and turns solid gold when complete.
+  - A milestone number is grey, and turns gold and bold once reached.
+  - The caption reads `{score} / 50 · next at {m}`, or `· all milestones reached`.
+  - Scores stay between 0 and 50.
+  - The − and + buttons, "Add track" and the track menu are DM-only.
 
 **Players can:**
 - Create, edit and delete **their own characters**, including picking a god at creation.
 - View other players' characters, but not change them.
 - View the **Gods** page.
-- View the **Piety** page, including everyone's piety scores. Nothing else on that page.
+- View the **Piety** page, including everyone's piety scores and milestone bars. Nothing else on that page. It is linked in the header next to **Gods**.
 
 **The DM can:**
 - Do everything, everywhere:
@@ -199,7 +206,7 @@ The **…** menu has:
   - Each entry reads like `#4  Nylea  +3  → 12`.
   - Taps on the same character and god, in the same session, less than 5 minutes apart, merge into one entry. If the merged total reaches 0, the entry is removed.
 
-  **Roadmap candidates** from this: the segmented milestone bar, "next at", the history log, and the Displeases/Pleases line. The plan already lists history and thresholds under "More piety features".
+  **Roadmap candidates** from this: the history log and the Displeases/Pleases line. The plan already lists history under "More piety features". *(The segmented milestone bar and "next at" moved into v1: see 1.1.)*
 
 ##### C. Gods
 
@@ -285,7 +292,7 @@ All relationships start at Neutral, and all party attitudes start at 4.
    - A session left with an empty title and body is deleted automatically.
    - The **Sessions** list is newest first, showing `#n`, the title (or "Untitled"), the date, and the first line of the notes up to 80 characters.
    - Rename and delete (with confirmation) are in the **…** menu.
-2. **Piety extras:** the milestone bar, the history log, and the Displeases/Pleases line (B5, C4).
+2. **Piety extras:** the history log and the Displeases/Pleases line (B5, C4). *(The milestone bar is in v1.)*
 3. **God attitude toward the party** (C1, C3), if not included in v1.
 4. **Backup & restore:**
    - export the whole campaign as JSON via the share sheet or clipboard
@@ -569,7 +576,7 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Image uploads** | `image_path` columns. Compress on the phone before upload. |
 | **Intro animation** | Short, skippable, must not delay loading. |
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
-| **More piety features**: history of changes, reusable custom sources, automatic calculation, boons at thresholds | `piety_tracks` already separates god and custom sources |
+| **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
 
 ---

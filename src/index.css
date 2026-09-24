@@ -553,26 +553,135 @@ select.text-input {
 
 /* ---------- Piety ---------- */
 
-.button-link {
-  padding: 0.5rem 1rem;
-  color: var(--bg);
-  background: var(--gold);
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-}
-
 .gold {
   color: var(--gold);
 }
 
 .piety-card {
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.1rem 0.9rem;
   margin-bottom: 0.75rem;
+  border-radius: 14px;
 }
 
-.piety-card .title-row {
+.piety-name {
+  display: block;
+  font-size: 1.15rem;
   margin-bottom: 0.25rem;
+}
+
+.track + .track {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #2a2a30;
+}
+
+.track-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.track-head strong {
+  font-size: 1.15rem;
+}
+
+.track-source.right {
+  margin-left: auto;
+}
+
+.track-head .small-icon {
+  width: 2rem;
+  height: 2rem;
+  font-size: 1rem;
+  margin-left: auto;
+}
+
+.track-source.right + .small-icon {
+  margin-left: 0;
+}
+
+.rules {
+  margin: 0.2rem 0 0;
+  white-space: pre-wrap;
+}
+
+.piety-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+button.round {
+  flex-shrink: 0;
+  width: 2.8rem;
+  height: 2.8rem;
+  margin-top: -0.5rem;
+  padding: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+  background: #2a2a30;
+  border-radius: 50%;
+}
+
+.piety-bar {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0;
+  color: inherit;
+  background: none;
+  border-radius: 0;
+}
+
+.piety-segment {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.piety-track {
+  display: block;
+  height: 1.1rem;
+  background: #2a2a30;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.piety-fill {
+  display: block;
+  height: 100%;
+  background: rgb(212 175 55 / 0.4); /* dim gold while filling */
+}
+
+.piety-fill.done {
+  background: var(--gold);
+}
+
+.piety-milestone {
+  align-self: flex-end;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.piety-milestone.reached {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.piety-caption {
+  margin: 0.5rem 0 0;
+  text-align: center;
+}
+
+.piety-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
 }
 
 button.small-button {
@@ -580,51 +689,8 @@ button.small-button {
   font-size: 0.85rem;
 }
 
-.track {
-  padding: 0.6rem 0;
-  border-top: 1px solid #2a2a30;
-}
-
-.track-main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.track-source {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.rules {
-  white-space: pre-wrap;
-}
-
-.track-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-shrink: 0;
-}
-
-.score {
-  font-size: 1.5rem;
-  font-weight: 700;
-  min-width: 2.5rem;
-  text-align: center;
-}
-
-button.tappable-score {
-  padding: 0.1rem 0.3rem;
-  color: var(--text);
-  background: none;
-}
-
-button.step {
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-  font-size: 1.3rem;
+@media (max-width: 420px) {
+  .header-name {
+    display: none;
+  }
 }

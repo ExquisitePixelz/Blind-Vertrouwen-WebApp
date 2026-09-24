@@ -4,6 +4,7 @@ import { ConfirmDialog, Dialog, NumberDialog, PickDialog } from '../components/D
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { byName, loadGods, type God } from '../lib/gods'
 import { useMe } from '../lib/me'
+import { caption, clampPiety, segments } from '../lib/piety'
 import { useRowSaver } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
@@ -83,18 +84,12 @@ export function PietyPage() {
         const own = tracks.filter((t) => t.character_id === character.id)
         return (
           <section key={character.id} className="card piety-card">
-            <div className="title-row">
-              <strong>{character.name}</strong>
-              {me.isDm && (
-                <button className="secondary small-button" onClick={() => setAdding({ characterId: character.id, custom: false })}>
-                  Add track
-                </button>
-              )}
-            </div>
+            {own.length !== 1 && <strong className="piety-name">{character.name}</strong>}
             {own.length === 0 && <p className="muted small">No piety track.</p>}
             {own.map((track) => (
               <TrackRow
                 key={track.id}
+                title={own.length === 1 ? character.name : undefined}
                 track={track}
                 sourceName={track.god_id ? (godName.get(track.god_id) ?? 'Unknown god') : (track.custom_source_name ?? '')}
                 canEdit={me.isDm}
@@ -103,6 +98,16 @@ export function PietyPage() {
                 onChanged={data.reload}
               />
             ))}
+            {me.isDm && (
+              <div className="piety-footer">
+                <button
+                  className="secondary small-button"
+                  onClick={() => setAdding({ characterId: character.id, custom: false })}
+                >
+                  Add track
+                </button>
+              </div>
+            )}
           </section>
         )
       })}
@@ -140,6 +145,7 @@ export function PietyPage() {
 type Open = { kind: 'score' } | { kind: 'menu' } | { kind: 'source' } | { kind: 'custom' } | { kind: 'delete' }
 
 function TrackRow({
+  title,
   track,
   sourceName,
   canEdit,
@@ -147,6 +153,8 @@ function TrackRow({
   onSaved,
   onChanged,
 }: {
+  /** The character's name, when this is their only track. */
+  title?: string
   track: Track
   sourceName: string
   canEdit: boolean
@@ -159,37 +167,38 @@ function TrackRow({
   const saver = useRowSaver<Track>('piety_tracks', track, onSaved)
   const t = saver.view ?? track
   const isGod = t.god_id !== null
-  const setScore = (score: number) => saver.change({ score: Math.max(0, score) }, true)
+  const setScore = (score: number) => saver.change({ score: clampPiety(score) }, true)
 
   return (
     <div className="track">
       {saver.status === 'conflict' && (
         <ConflictBanner onKeepMine={saver.keepMine} onUseTheirs={() => saver.discardMine(onChanged)} />
       )}
-      <div className="track-main">
-        <div className="track-source">
-          <span className={isGod ? 'gold' : undefined}>{sourceName}</span>
-          {!isGod && t.custom_source_rules && <span className="muted small rules">{t.custom_source_rules}</span>}
-        </div>
-        {canEdit ? (
-          <div className="track-controls">
-            <button className="secondary step" aria-label="Lower" onClick={() => setScore(t.score - 1)}>
-              −
-            </button>
-            <button className="score tappable-score" onClick={() => setOpen({ kind: 'score' })}>
-              {t.score}
-            </button>
-            <button className="secondary step" aria-label="Raise" onClick={() => setScore(t.score + 1)}>
-              +
-            </button>
-            <button className="icon secondary" aria-label="Track options" onClick={() => setOpen({ kind: 'menu' })}>
-              …
-            </button>
-          </div>
-        ) : (
-          <span className="score">{t.score}</span>
+      <div className="track-head">
+        {title && <strong>{title}</strong>}
+        <span className={`track-source${isGod ? ' gold' : ''}${title ? ' right' : ''}`}>{sourceName}</span>
+        {canEdit && (
+          <button className="icon secondary small-icon" aria-label="Track options" onClick={() => setOpen({ kind: 'menu' })}>
+            …
+          </button>
         )}
       </div>
+      {!isGod && t.custom_source_rules && <p className="muted small rules">{t.custom_source_rules}</p>}
+
+      <div className="piety-row">
+        {canEdit && (
+          <button className="round" aria-label="Lower piety" onClick={() => setScore(t.score - 1)}>
+            −
+          </button>
+        )}
+        <PietyBar score={t.score} onClick={canEdit ? () => setOpen({ kind: 'score' }) : undefined} />
+        {canEdit && (
+          <button className="round" aria-label="Raise piety" onClick={() => setScore(t.score + 1)}>
+            +
+          </button>
+        )}
+      </div>
+      <p className="piety-caption muted">{caption(t.score)}</p>
       {canEdit && saver.status !== 'saved' && <SaveIndicator status={saver.status} />}
 
       {open?.kind === 'score' && (
@@ -304,5 +313,33 @@ function CustomSourceDialog({
         </div>
       </form>
     </Dialog>
+  )
+}
+
+/**
+ * The milestone bar: four equal segments (0–3, 3–10, 10–25, 25–50). Each fills
+ * in dim gold and turns solid gold when complete; its milestone number turns
+ * gold and bold once reached. Tappable for the DM to type a score.
+ */
+function PietyBar({ score, onClick }: { score: number; onClick?: () => void }) {
+  const content = segments(score).map((segment) => (
+    <span key={segment.milestone} className="piety-segment">
+      <span className="piety-track">
+        <span
+          className={`piety-fill${segment.reached ? ' done' : ''}`}
+          style={{ width: `${segment.fill * 100}%` }}
+        />
+      </span>
+      <span className={`piety-milestone${segment.reached ? ' reached' : ''}`}>{segment.milestone}</span>
+    </span>
+  ))
+  return onClick ? (
+    <button type="button" className="piety-bar" aria-label={`Piety ${score}, tap to set`} onClick={onClick}>
+      {content}
+    </button>
+  ) : (
+    <div className="piety-bar" aria-label={`Piety ${score}`}>
+      {content}
+    </div>
   )
 }

@@ -1,6 +1,8 @@
-import { Link, useParams } from 'react-router'
+import { useEffect } from 'react'
+import { useParams } from 'react-router'
 import { CharactersSection } from '../components/CharactersSection'
 import { InvitesSection } from '../components/InvitesSection'
+import { rememberCampaign } from '../lib/lastCampaign'
 import { useMe } from '../lib/me'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
@@ -35,6 +37,11 @@ export function CampaignPage() {
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
   }, [campaignId])
 
+  const found = !!campaign.data
+  useEffect(() => {
+    if (found) rememberCampaign(campaignId)
+  }, [found, campaignId])
+
   if (campaign.error) return <main className="page error">{campaign.error}</main>
   if (campaign.loading && !campaign.data) return <main className="page" />
   if (!campaign.data) {
@@ -47,12 +54,7 @@ export function CampaignPage() {
 
   return (
     <main className="page">
-      <div className="title-row">
-        <h1>{campaign.data.name}</h1>
-        <Link to={`/c/${campaignId}/piety`} className="button-link">
-          Piety
-        </Link>
-      </div>
+      <h1>{campaign.data.name}</h1>
 
       <CharactersSection campaignId={campaignId} />
 
