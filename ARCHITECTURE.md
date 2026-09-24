@@ -67,6 +67,35 @@ Everything below goes on a **roadmap the owner will write** (see section 6). Do 
 
 Version 1 is designed so that these can be added later **without redesigning the database** (see section 3.3). Designing for them is allowed; building them is not.
 
+### 1.4 Phase 5: Session notes *(put in scope by the owner, 2026-09-24)*
+
+A **Sessions** tab where the DM takes notes per session. It is based on the Unity note taker (1.3 D1), with the differences below.
+
+**DM only.** Sessions have audience `dm`. Players cannot read or write them, and the **Sessions** link in the header is not shown to players. This is the first real use of the `dm` audience.
+
+**Per campaign.** Sessions are campaign content. Each campaign has its own numbering. The page is `/c/:campaignId/sessions`.
+
+**Numbering.**
+- The first **New session** in a campaign asks for the starting number, pre-filled with 1. Campaigns that are already running (e.g. at session 53) start from there.
+- After that, **New session** uses the highest existing number + 1 (not count + 1).
+- The number can be changed later from the **…** menu.
+- Two live sessions in one campaign cannot share a number (enforced by the database). A deleted session does not block its number.
+
+**Sessions list.** Newest first (highest number first). Each row shows `#n`, the title (or "Untitled"), the played-on date, and the first line of the notes up to 80 characters. With no sessions: "No sessions yet. Tap + to start one."
+
+**Note taker.** Full screen:
+- an optional title (tap to edit, text prompt, may be empty)
+- a **played-on date**, defaulting to the day the session was created, editable by the DM (notes are often written up a day later). Shown as `d MMM yyyy`.
+- one large plain-text notes area
+- saving follows section 3.4 (the shared save hook, 1 s after typing stops, on hide and close, local backup, conflict guard, Saved indicator)
+- the **…** menu has **Rename**, **Change number** and **Delete** (confirm dialog; soft delete)
+
+**Empty sessions.** A session left with an empty title and empty notes is deleted (soft delete) automatically when the DM leaves it, as in Unity.
+
+**Also in Phase 5:** the campaign page shows "Last session: #n" to the DM (1.3 D5).
+
+**Not in Phase 5 (roadmap):** formatting (markdown), search across sessions, linking characters or gods from notes, player-visible recaps, exporting notes.
+
 ### 1.3 Feature details needed from the Unity app
 
 The Character and Gods screens must **work the way they do in the Unity app**. The agent needs their exact contents.
@@ -285,7 +314,7 @@ All relationships start at Neutral, and all party attitudes start at 4.
 
 ##### D. Other Unity app features (not v1, for the roadmap)
 
-1. **Session notes:**
+1. **Session notes** *(moved into Phase 5, see 1.4)*:
    - **Create Session** makes session number = highest existing number + 1 (not count + 1).
    - It opens a full-screen note taker that autosaves 1.5 s after typing stops, and also on leave and on app pause.
    - An optional title is tappable. The screen shows the creation date as `d MMM yyyy`.
@@ -300,7 +329,7 @@ All relationships start at Neutral, and all party attitudes start at 4.
    - automatic on-device snapshots once a day and before each import, keeping the latest 20, each restorable
 
    On the web this is largely replaced by the server backups in 3.2. A DM "export everything as JSON" button could still be a small roadmap item.
-5. **Main menu:** shows "Last session: #n".
+5. **Main menu:** shows "Last session: #n". *(In Phase 5 as a line on the campaign page, see 1.4.)*
 6. **App-only behaviour** that doesn't carry over to the web: the Android back button, safe-area and keyboard padding, reduced frame rate when idle, portrait lock, and a dark theme.
    - **Dark theme palette:** background `#121214`, surface `#1C1C20`, text `#ECEAE4`, muted `#8E8C87`, gold accent `#D4AF37`, danger `#D2574C`.
    - The web can reuse this palette.
@@ -484,6 +513,14 @@ Detailed columns for characters and gods come from the specification in section 
 - The Piety page lists every character in the campaign with their track or tracks and scores, and shows the god's name or the custom source's name.
 - Reusing custom sources across characters, or calculating piety automatically, is a roadmap item. It is not v1.
 
+**`sessions` columns (Phase 5, section 1.4):** the standard columns above with `campaign_id` and audience `dm`, plus:
+- `number` (integer, at least 1; unique per campaign among rows where `deleted_at` is empty)
+- `title` (text, may be empty)
+- `notes` (long text, may be empty)
+- `played_on` (date, defaults to the creation day)
+
+Only the DM can read or write sessions. Add these cases to the permission test: players and non-members cannot read or write sessions, and duplicate live numbers in one campaign are refused.
+
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
 
 **As built (Phase 2, 2026-09-24).** Schema: `supabase/migrations/`. Permission test: `tests/permissions.test.ts`.
@@ -550,6 +587,8 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 One screen or feature per step. **Do not add anything that is not in section 1.1.**
 
 ### Phase 4: Stress test and share
+*Skipped for now (owner decision, 2026-09-24). Work moved on to Phase 5.*
+
 Done as one group session with several people and devices at once.
 
 1. Try to break it:
@@ -569,6 +608,14 @@ Done as one group session with several people and devices at once.
 3. Share the link with the group, ask them to add it to their home screen, and gather feedback.
 
 **Stop here. Version 1 is complete.** Work continues only from the owner's roadmap.
+
+### Phase 5: Session notes (section 1.4)
+1. Migration: the `sessions` table with RLS (DM only), the unique-number rule, and new cases in the permission test.
+2. Sessions list and **New session** (starting number for the first session, highest + 1 after that), plus the **Sessions** link in the header for the DM only.
+3. Note taker: title, played-on date, notes, autosave via the shared save hook, the **…** menu (Rename, Change number, Delete), and auto-delete of empty sessions on leave.
+4. "Last session: #n" on the campaign page.
+
+One step per commit. **Do not add anything that is not in section 1.4.**
 
 ---
 
@@ -599,6 +646,8 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 1. Supabase keep-alive. *Checked 2026-09-24:* the [Terms of Service](https://supabase.com/terms) say nothing about free-plan pausing or keep-alive requests, and the [pausing docs](https://supabase.com/docs/guides/platform/free-project-pausing) say only that a project is paused without "sufficient user database activity over the past week" ("a few user requests to the database each day" is typically enough). A scheduled ping is not forbidden, but not explicitly allowed either, and Supabase could change how it counts activity. Plan: build the ping in Phase 2 as a real, tiny read query (not just a health check), run it daily, and keep the manual restore in the dashboard as the fallback. *Built 2026-09-24:* see the backups row in section 3.2.
 
 **Resolved:**
+- **Session notes (Phase 5):** DM only, numbered per campaign from a starting number the DM picks, with an editable played-on date, and empty sessions deleted automatically (owner decisions, 2026-09-24). See section 1.4.
+- **Phase 4:** skipped for now (owner decision, 2026-09-24).
 - **Login from WhatsApp:** tested 2026-09-24 on desktop, Android (WhatsApp opened the link in Chrome) and iPhone. It works everywhere, so the built-in-browser detection from section 3.5 is not needed.
 - **`player` field on characters:** kept as free text, a display label only (section 1.3, B1).
 - **God seed data:** checked against the book's "Gods of Theros" table (section 1.3, C2).
