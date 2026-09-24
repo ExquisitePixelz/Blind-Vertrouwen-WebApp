@@ -590,8 +590,8 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 |---|---|
 | Phases 0–3: version 1 (login, database and security, campaigns, gods, characters, piety) | **Done** |
 | Phase 4: stress test and share | **Skipped for now** (owner decision). Its saving tests still apply once the group tries the app together. |
-| **Phase 4.5: look and navigation** (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Next.** Start at step 1. |
-| Phase 5: session notes (1.4): DM-only notes numbered from a chosen start, markdown, attendance | After 4.5 |
+| Phase 4.5: look and navigation (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Built** (2026-09-25). Owner to-dos: the Google console steps in the README, brand verification, and the WhatsApp retest. |
+| **Phase 5: session notes** (1.4): DM-only notes numbered from a chosen start, markdown, attendance | **Next.** Start at step 1. |
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | 1. Player features: character notes and inventory (items designed to carry effects later) | Planned next after Phase 5 |
 | 2. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
@@ -671,6 +671,12 @@ Done as one group session with several people and devices at once.
 3. Dashboard on `/` with the last campaign and its buttons. Characters move to `/c/:campaignId/characters`, players and invites to `/c/:campaignId/players`.
 4. Settings: display name, campaign name and subtitle.
 5. Google sign-in button with `signInWithIdToken`, the privacy policy page, and step-by-step instructions for the owner (allowed origins, Search Console, brand verification). Redo the WhatsApp login test.
+
+**As built (Phase 4.5, 2026-09-25):**
+- **Screens:** `/` is the dashboard, `/c/:id/characters`, `/c/:id/players` (DM only), `/c/:id/piety` (titled "Piety Scores"), `/gods`, `/settings`, `/privacy` (readable without logging in). Opening `/c/:id` (e.g. after an invite) makes that campaign current and shows the dashboard. Opening any screen inside a campaign also makes it current.
+- **Last campaign:** stored only in `profiles.last_campaign_id`; the old per-device browser copy is gone. A trigger (`guard_profile_update`) stops a player pointing it at a campaign they are not in.
+- **Settings save when OK is tapped**, not through the save hook (3.4). `profiles` and `campaigns` are structure tables without a `version` column, and a prompt dialog is one deliberate change, not typing.
+- **Google sign-in:** the Google Identity Services button is used when the `VITE_GOOGLE_CLIENT_ID` variable is set (GitHub Actions variable, and `.env.local`). Without it, or if Google's script cannot load, the old redirect login is shown, so nobody is locked out. Owner setup steps are in the README.
 
 ### Phase 5: Session notes (section 1.4)
 1. Migration: the `sessions` table with RLS (DM only), the unique-number rule, and new cases in the permission test.

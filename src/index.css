@@ -877,3 +877,25 @@ button.row-button {
   width: 100%;
   text-align: left;
 }
+
+/* ---------- Sign-in and privacy (1.5) ---------- */
+
+.google-button {
+  display: flex;
+  justify-content: center;
+  min-height: var(--tap);
+  width: min(20rem, 100%);
+  margin: 0 auto;
+}
+
+.prose {
+  padding-top: calc(1rem + env(safe-area-inset-top));
+}
+
+.prose ul {
+  padding-left: 1.25rem;
+}
+
+.prose li + li {
+  margin-top: 0.5rem;
+}

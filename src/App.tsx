@@ -14,6 +14,7 @@ import { InvitePage } from './pages/InvitePage'
 import { LoginPage } from './pages/LoginPage'
 import { PietyPage } from './pages/PietyPage'
 import { PlayersPage } from './pages/PlayersPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { useRememberCampaign } from './lib/campaigns'
 
@@ -29,6 +30,7 @@ export default function App() {
 function Screens() {
   const session = useSession()
   const onInvite = useMatch('/invite/:code')
+  const onPrivacy = useMatch('/privacy')
   const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
   const userId = session?.user.id
@@ -75,6 +77,7 @@ function Screens() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId])
 
+  if (onPrivacy) return <PrivacyPage />
   if (session === undefined) return null
   if (!session) {
     return (
