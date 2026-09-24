@@ -504,6 +504,61 @@ describe('profiles', () => {
     assert.equal(ok(await playerA.db.from('profiles').select('id').eq('id', playerB.id)).length, 1)
     assert.equal(ok(await outsider.db.from('profiles').select('id').eq('id', playerA.id)).length, 0)
   })
+
+  test('A player sets only their own display name and last campaign, and only to a campaign they are in', async () => {
+    const mine = ok(
+      await playerA.db
+        .from('profiles')
+        .update({ display_name: 'Anna', last_campaign_id: campaignId })
+        .eq('id', playerA.id)
+        .select()
+        .single(),
+    )
+    assert.equal(mine.display_name, 'Anna')
+    assert.equal(mine.last_campaign_id, campaignId)
+
+    refused(
+      await playerA.db.from('profiles').update({ last_campaign_id: otherCampaignId }).eq('id', playerA.id).select(),
+      'last campaign not a member of',
+    )
+    noEffect(
+      await playerA.db
+        .from('profiles')
+        .update({ display_name: 'Hacked', last_campaign_id: campaignId })
+        .eq('id', playerB.id)
+        .select(),
+      "A edits B's profile",
+    )
+    const theirs = ok(await admin.from('profiles').select('display_name, last_campaign_id').eq('id', playerB.id).single())
+    assert.equal(theirs.display_name, 'player-b')
+    assert.equal(theirs.last_campaign_id, null)
+
+    const dmProfile = ok(
+      await dm.db.from('profiles').update({ last_campaign_id: otherCampaignId }).eq('id', dm.id).select().single(),
+    )
+    assert.equal(dmProfile.last_campaign_id, otherCampaignId, 'the DM may open any campaign')
+  })
+})
+
+describe('campaign name and subtitle', () => {
+  test('Only the DM changes a campaign name or subtitle; players read them', async () => {
+    noEffect(
+      await playerA.db.from('campaigns').update({ name: 'Hacked', subtitle: 'Hacked' }).eq('id', campaignId).select(),
+      'player renames campaign',
+    )
+    const updated = ok(
+      await dm.db
+        .from('campaigns')
+        .update({ name: 'Test campaign', subtitle: 'The long road' })
+        .eq('id', campaignId)
+        .select()
+        .single(),
+    )
+    assert.equal(updated.subtitle, 'The long road')
+    const seen = ok(await playerA.db.from('campaigns').select('name, subtitle').eq('id', campaignId).single())
+    assert.deepEqual(seen, { name: 'Test campaign', subtitle: 'The long road' })
+    assert.equal(ok(await outsider.db.from('campaigns').select('id').eq('id', campaignId)).length, 0)
+  })
 })
 
 async function firstWorldId(): Promise<string> {
