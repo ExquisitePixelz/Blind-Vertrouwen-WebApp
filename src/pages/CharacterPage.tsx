@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
+import { MarkdownNotes, type NotesMode } from '../components/MarkdownNotes'
+import { PrivateSections } from '../components/PrivateSections'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import {
   ABILITIES,
@@ -20,7 +22,7 @@ import {
 } from '../lib/character'
 import { loadGods } from '../lib/gods'
 import { useMe } from '../lib/me'
-import { useRowSaver } from '../lib/saver'
+import { useRowSaver, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 
@@ -37,14 +39,17 @@ type Open =
   | { kind: 'delete' }
 
 /**
- * Character sheet (1.3 B3). The owner and the DM edit; everyone else in the
- * campaign sees it read-only, with nothing tappable (B4).
+ * Character sheet (1.3 B3, 1.8). The owner and the DM edit; everyone else in
+ * the campaign sees it read-only, with nothing tappable (B4), and does not
+ * see the private notes, coins or inventory.
  */
 export function CharacterPage() {
   const { campaignId = '', characterId = '' } = useParams()
   const me = useMe()
   const navigate = useNavigate()
   const [open, setOpen] = useState<Open | null>(null)
+  const [backstoryMode, setBackstoryMode] = useState<NotesMode | null>(null)
+  const [privateStatus, setPrivateStatus] = useState<SaveStatus>('saved')
   const close = () => setOpen(null)
 
   const character = useLoad(async () => {
@@ -116,7 +121,7 @@ export function CharacterPage() {
       </TopBar>
       {canEdit && (
         <p className="page-status">
-          <SaveIndicator status={saver.status} />
+          <SaveIndicator status={worst(saver.status, privateStatus)} />
         </p>
       )}
 
@@ -193,6 +198,27 @@ export function CharacterPage() {
           />
         ))}
       </div>
+
+      <MarkdownNotes
+        title="Backstory"
+        notes={c.backstory}
+        mode={backstoryMode ?? (c.backstory.trim() ? 'preview' : 'edit')}
+        setMode={setBackstoryMode}
+        onChange={(backstory) => saver.change({ backstory })}
+        onBlur={() => void saver.flush()}
+        placeholder="Backstory, goals, personality…"
+        emptyText={canEdit ? 'Nothing written yet. Tap Edit to start.' : 'No backstory yet.'}
+        readOnly={!canEdit}
+      />
+
+      {canEdit && (
+        <PrivateSections
+          characterId={c.id}
+          campaignId={c.campaign_id}
+          strength={c.strength}
+          onStatus={setPrivateStatus}
+        />
+      )}
 
       {open?.kind === 'hp' && (
         <NumberDialog
@@ -273,6 +299,11 @@ export function CharacterPage() {
     </main>
   )
 }
+
+const SEVERITY: SaveStatus[] = ['saved', 'saving', 'unsaved', 'conflict']
+
+/** One indicator for the sheet: show the least-saved of its rows. */
+const worst = (a: SaveStatus, b: SaveStatus) => (SEVERITY.indexOf(a) >= SEVERITY.indexOf(b) ? a : b)
 
 function Tappable({ onClick, className, children }: { onClick?: () => void; className?: string; children: ReactNode }) {
   return onClick ? (

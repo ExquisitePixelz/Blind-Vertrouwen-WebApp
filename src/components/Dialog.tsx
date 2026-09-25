@@ -141,18 +141,20 @@ type NumberAction = { label: string; className?: string; onApply: (value: number
 
 /**
  * A1: edit a number. Typing replaces the value shown (it is selected on
- * focus), at most 4 digits, and an empty entry counts as 0. No field on a
- * character allows negatives.
+ * focus), at most 4 digits (coins allow more, 1.8), and an empty entry
+ * counts as 0. No field on a character allows negatives.
  */
 export function NumberDialog({
   title,
   initial,
   actions,
+  maxDigits = 4,
   onClose,
 }: {
   title: string
   initial: number
   actions: NumberAction[]
+  maxDigits?: number
   onClose: () => void
 }) {
   const [text, setText] = useState(String(initial))
@@ -176,7 +178,7 @@ export function NumberDialog({
           inputMode="numeric"
           pattern="[0-9]*"
           value={text}
-          onChange={(e) => setText(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          onChange={(e) => setText(e.target.value.replace(/\D/g, '').slice(0, maxDigits))}
           onFocus={(e) => e.target.select()}
           autoFocus
         />

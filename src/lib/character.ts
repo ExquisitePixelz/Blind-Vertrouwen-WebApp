@@ -20,11 +20,12 @@ export type Character = {
   intelligence: number
   wisdom: number
   charisma: number
+  backstory: string
 }
 
 export const CHARACTER_COLUMNS =
   'id, version, campaign_id, owner_id, name, player, class_level, ac, hp_max, hp_cur, hp_temp, speed, ' +
-  'passive_perception, strength, dexterity, constitution, intelligence, wisdom, charisma'
+  'passive_perception, strength, dexterity, constitution, intelligence, wisdom, charisma, backstory'
 
 export type Ability = 'strength' | 'dexterity' | 'constitution' | 'intelligence' | 'wisdom' | 'charisma'
 

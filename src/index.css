@@ -1133,3 +1133,37 @@ button.dash-button {
   min-height: var(--tap);
   color: var(--muted);
 }
+
+/* ---------- Player features (1.8) ---------- */
+
+.notes-hint {
+  margin: -0.25rem 0 0.5rem;
+}
+
+.tiles.coins {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.item-chips {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.inventory-totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+}
+
+.item-description {
+  display: block;
+  margin-top: 0.75rem;
+  min-height: 6rem;
+}
+
+.dialog-actions .save-indicator {
+  margin-right: auto;
+  align-self: center;
+}

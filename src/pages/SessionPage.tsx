@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import Markdown from 'react-markdown'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { ConfirmDialog, Dialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { FactRow } from '../components/FactRow'
+import { MarkdownNotes, type NotesMode } from '../components/MarkdownNotes'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
 import { byName } from '../lib/gods'
@@ -26,7 +26,7 @@ function NoteTaker() {
   const navigate = useNavigate()
   const [open, setOpen] = useState<Open | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [mode, setMode] = useState<'edit' | 'preview' | null>(null)
+  const [mode, setMode] = useState<NotesMode | null>(null)
   const close = () => setOpen(null)
   const list = `/c/${campaignId}/sessions`
 
@@ -117,13 +117,18 @@ function NoteTaker() {
         <FactRow label="Played on" value={formatPlayedOn(s.played_on)} onClick={() => setOpen('date')} />
       </div>
 
-      <NotesArea
+      <MarkdownNotes
+        title="Notes"
         notes={s.notes}
         // Opens on the formatted notes, or on the editor while there are none.
         mode={mode ?? (s.notes.trim() ? 'preview' : 'edit')}
         setMode={setMode}
         onChange={(notes) => saver.change({ notes })}
         onBlur={() => void saver.flush()}
+        placeholder="What happened this session…"
+        emptyText="Nothing written yet. Tap Edit to start."
+        tall
+        autoFocus={!s.notes}
       />
 
       <Attendance campaignId={campaignId} sessionId={s.id} />
@@ -241,80 +246,6 @@ function Attendance({ campaignId, sessionId }: { campaignId: string; sessionId: 
               <span>{c.name}</span>
             </label>
           ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-/**
- * The notes (1.4): the DM types markdown and switches between Edit and
- * Preview. Raw HTML in the notes is never rendered (skipHtml).
- */
-function NotesArea({
-  notes,
-  mode,
-  setMode,
-  onChange,
-  onBlur,
-}: {
-  notes: string
-  mode: 'edit' | 'preview'
-  setMode: (mode: 'edit' | 'preview') => void
-  onChange: (notes: string) => void
-  onBlur: () => void
-}) {
-  return (
-    <section>
-      <div className="title-row">
-        <h2>Notes</h2>
-        <span className="segmented" role="tablist">
-          {(['edit', 'preview'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={mode === m}
-              className={mode === m ? 'on' : undefined}
-              onClick={() => setMode(m)}
-            >
-              {m === 'edit' ? 'Edit' : 'Preview'}
-            </button>
-          ))}
-        </span>
-      </div>
-      {mode === 'edit' ? (
-        <>
-          <textarea
-            className="text-input notes session-notes"
-            value={notes}
-            placeholder="What happened this session…"
-            onChange={(e) => onChange(e.target.value)}
-            onBlur={onBlur}
-            autoFocus={!notes}
-          />
-          <p className="muted small">
-            Formatting: <code># Heading</code>, <code>- list</code>, <code>**bold**</code>, <code>*italic*</code>
-          </p>
-        </>
-      ) : (
-        <div className="card markdown" onDoubleClick={() => setMode('edit')}>
-          {notes.trim() ? (
-            <Markdown
-              skipHtml
-              components={{
-                a: ({ href, children }) => (
-                  <a href={href} target="_blank" rel="noopener noreferrer">
-                    {children}
-                  </a>
-                ),
-              }}
-            >
-              {notes}
-            </Markdown>
-          ) : (
-            <p className="muted">Nothing written yet. Tap Edit to start.</p>
-          )}
         </div>
       )}
     </section>
