@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { ConfirmDialog, Dialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { FactRow } from '../components/FactRow'
-import { MarkdownNotes, type NotesMode } from '../components/MarkdownNotes'
+import { MarkdownNotes } from '../components/MarkdownNotes'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
 import { byName } from '../lib/gods'
@@ -26,7 +26,6 @@ function NoteTaker() {
   const navigate = useNavigate()
   const [open, setOpen] = useState<Open | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [mode, setMode] = useState<NotesMode | null>(null)
   const close = () => setOpen(null)
   const list = `/c/${campaignId}/sessions`
 
@@ -120,9 +119,6 @@ function NoteTaker() {
       <MarkdownNotes
         title="Notes"
         notes={s.notes}
-        // Opens on the formatted notes, or on the editor while there are none.
-        mode={mode ?? (s.notes.trim() ? 'preview' : 'edit')}
-        setMode={setMode}
         onChange={(notes) => saver.change({ notes })}
         onBlur={() => void saver.flush()}
         placeholder="What happened this session…"

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
-import { MarkdownNotes, type NotesMode } from '../components/MarkdownNotes'
+import { MarkdownNotes } from '../components/MarkdownNotes'
 import { PrivateSections } from '../components/PrivateSections'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import {
@@ -48,7 +48,6 @@ export function CharacterPage() {
   const me = useMe()
   const navigate = useNavigate()
   const [open, setOpen] = useState<Open | null>(null)
-  const [backstoryMode, setBackstoryMode] = useState<NotesMode | null>(null)
   const [privateStatus, setPrivateStatus] = useState<SaveStatus>('saved')
   const close = () => setOpen(null)
 
@@ -202,8 +201,6 @@ export function CharacterPage() {
       <MarkdownNotes
         title="Backstory"
         notes={c.backstory}
-        mode={backstoryMode ?? (c.backstory.trim() ? 'preview' : 'edit')}
-        setMode={setBackstoryMode}
         onChange={(backstory) => saver.change({ backstory })}
         onBlur={() => void saver.flush()}
         placeholder="Backstory, goals, personality…"

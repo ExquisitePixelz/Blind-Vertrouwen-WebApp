@@ -221,7 +221,7 @@ function ItemEditor({
       />
       <div className="dialog-actions">
         <SaveIndicator status={saver.status} />
-        <button type="button" className="danger-text" onClick={() => setSub('delete')}>
+        <button type="button" className="secondary danger-text" onClick={() => setSub('delete')}>
           Delete item
         </button>
         <button type="button" onClick={onClose}>

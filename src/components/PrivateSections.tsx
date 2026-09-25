@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MarkdownNotes, type NotesMode } from './MarkdownNotes'
+import { MarkdownNotes } from './MarkdownNotes'
 import { NumberDialog } from './Dialog'
 import { ConflictBanner } from './SaveState'
 import { Inventory } from './Inventory'
@@ -24,7 +24,6 @@ export function PrivateSections({
   strength: number
   onStatus: (status: SaveStatus) => void
 }) {
-  const [mode, setMode] = useState<NotesMode | null>(null)
   const [coin, setCoin] = useState<{ field: Coin; label: string } | null>(null)
 
   const row = useLoad(async () => {
@@ -58,8 +57,6 @@ export function PrivateSections({
         title="Private notes"
         hint="Only the player and the DM can see this."
         notes={p.notes}
-        mode={mode ?? (p.notes.trim() ? 'preview' : 'edit')}
-        setMode={setMode}
         onChange={(notes) => saver.change({ notes })}
         onBlur={() => void saver.flush()}
         placeholder="Secrets, plans, things to remember…"

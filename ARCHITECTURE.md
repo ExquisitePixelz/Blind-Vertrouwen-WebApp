@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. The same day the owner started Phase 6 (player features, section 1.8). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -472,6 +472,12 @@ Players get a place on their own character sheet for their story, their private 
 
 **Removed players and deleted accounts.** Same as characters (1.6): a removed player's notes, coins and items stay, visible only to the DM. Deleting an account removes them for good. Deleting a character soft-deletes them with it.
 
+**As built (2026-09-25):**
+- **Database:** one migration (`20260925170000_player_features.sql`). A trigger gives every new character its `character_private` row, however it is created; existing characters were backfilled. A guard trigger sets `owner_id` and `campaign_id` from the character and stops players moving rows or bypassing soft delete. `delete_character` now also soft-deletes the private row and items. The composite foreign keys follow a character if the DM moves it to another campaign.
+- **Screens:** the sections sit below the abilities on `/c/:id/characters/:characterId`. The sheet's one Saved indicator shows the least-saved of the character and its private row; the item editor has its own. The item editor is a dialog; its field dialogs replace it while open.
+- **Shared notes component:** Backstory, Private notes and the session notes use one component (`src/components/MarkdownNotes.tsx`). It chooses Edit or Preview once, when it opens. *Fix:* before this, the session notes switched to Preview as soon as the first letter was typed into empty notes.
+- The coin, weight and totals rules are unit-tested (`tests/inventory.test.ts`).
+
 **Not in Phase 6 (roadmap):** item effects and the automatic sheet (6.1), items shared with or given to other players, a party stash, item pictures, secret item rules (3.3), encumbrance rules, spell components, a shop.
 
 ---
@@ -599,7 +605,7 @@ Realtime is added later together with the features that need it, such as live co
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
 ### 3.9 Version number. *Decided (owner, 2026-09-25)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.5.2-alpha` (2026-09-25: Phase 5, then two fixes: footer alignment, and the rename).*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.6.0-alpha` (2026-09-25: Phase 6).*
 - **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …); a fix between phases adds 1 to the last number (`0.5.1-alpha`).
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.
@@ -717,7 +723,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 5: session notes (1.4): DM-only notes numbered from a chosen start, markdown, attendance | **Built** (2026-09-25), checked by the owner |
 | Extras (2026-09-25): footer on every page, terms page, version number (3.9), rename to DnD Companion App | **Built**, version `0.5.2-alpha` |
 | Then, from the roadmap (section 6), in the owner's current order: | |
-| Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **In progress** (started 2026-09-25) |
+| Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | 1. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
 | 2. Quest Journal (6.2) | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |

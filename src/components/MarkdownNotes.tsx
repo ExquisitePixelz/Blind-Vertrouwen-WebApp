@@ -1,18 +1,18 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import Markdown from 'react-markdown'
 
-export type NotesMode = 'edit' | 'preview'
+type NotesMode = 'edit' | 'preview'
 
 /**
  * A notes area with markdown and an Edit / Preview toggle (ARCHITECTURE.md
  * 1.4, 1.8). Raw HTML in the notes is never rendered (skipHtml). Read-only
- * shows only the formatted text.
+ * shows only the formatted text. It opens on Preview when there are notes,
+ * on Edit when there are none, and then stays where the user puts it (so
+ * typing the first letter does not switch to Preview).
  */
 export function MarkdownNotes({
   title,
   notes,
-  mode,
-  setMode,
   onChange,
   onBlur,
   placeholder,
@@ -24,8 +24,6 @@ export function MarkdownNotes({
 }: {
   title: string
   notes: string
-  mode: NotesMode
-  setMode: (mode: NotesMode) => void
   onChange: (notes: string) => void
   onBlur: () => void
   placeholder: string
@@ -36,6 +34,7 @@ export function MarkdownNotes({
   tall?: boolean
   autoFocus?: boolean
 }) {
+  const [mode, setMode] = useState<NotesMode>(() => (notes.trim() ? 'preview' : 'edit'))
   const shown = readOnly ? 'preview' : mode
   return (
     <section>
