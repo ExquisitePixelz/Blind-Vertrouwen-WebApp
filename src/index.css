@@ -974,3 +974,29 @@ button.link.forgot {
   gap: 0.25rem;
   margin-top: 1.25rem;
 }
+
+/* ---------- Sessions (1.4) ---------- */
+
+button.dash-button {
+  width: 100%;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.session-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.session-number {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.nowrap {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}

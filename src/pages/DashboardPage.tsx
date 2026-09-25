@@ -4,6 +4,7 @@ import { PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { createCampaign, DEFAULT_SUBTITLE, loadCampaigns, useRememberCampaign, type Campaign } from '../lib/campaigns'
 import { useMe } from '../lib/me'
+import { useNewSession } from '../lib/sessions'
 import { useLoad } from '../lib/useLoad'
 
 /**
@@ -43,6 +44,7 @@ export function DashboardPage() {
 
 function Dashboard({ campaign }: { campaign: Campaign }) {
   const me = useMe()
+  const newSession = useNewSession(campaign.id)
   const base = `/c/${campaign.id}`
   return (
     <main className="page dashboard">
@@ -52,6 +54,16 @@ function Dashboard({ campaign }: { campaign: Campaign }) {
         <p className="muted">{campaign.subtitle || DEFAULT_SUBTITLE}</p>
       </div>
       <nav className="dash-buttons">
+        {me.isDm && (
+          <>
+            <button type="button" className="dash-button primary" onClick={() => void newSession.start()}>
+              Create Session
+            </button>
+            <Link className="dash-button" to={`${base}/sessions`}>
+              Sessions
+            </Link>
+          </>
+        )}
         <Link className="dash-button" to={`${base}/piety`}>
           Piety Scores
         </Link>
@@ -67,6 +79,8 @@ function Dashboard({ campaign }: { campaign: Campaign }) {
           </Link>
         )}
       </nav>
+      {newSession.error && <p className="error">{newSession.error}</p>}
+      {newSession.dialog}
     </main>
   )
 }

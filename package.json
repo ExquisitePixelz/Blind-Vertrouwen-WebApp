@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:db": "node --test tests/*.test.ts",
-    "test": "node --test tests/character.test.ts tests/piety.test.ts tests/validate.test.ts"
+    "test": "node --test tests/character.test.ts tests/piety.test.ts tests/validate.test.ts tests/sessionText.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.1",
