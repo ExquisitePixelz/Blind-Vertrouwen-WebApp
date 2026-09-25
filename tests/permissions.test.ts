@@ -678,6 +678,67 @@ describe('email sign-up needs an invite (Phase 4.7)', () => {
   })
 })
 
+describe('sessions (Phase 5)', () => {
+  let first: { id: string; number: number; version: number }
+
+  test('The DM starts numbering at a chosen number, then continues from the highest', async () => {
+    first = ok(await dm.db.rpc('create_session', { p_campaign_id: campaignId, p_number: 53 }))
+    assert.equal(first.number, 53)
+    assert.match((first as unknown as { played_on: string }).played_on, /^\d{4}-\d{2}-\d{2}$/)
+    const next = ok(await dm.db.rpc('create_session', { p_campaign_id: campaignId }))
+    assert.equal(next.number, 54)
+    const elsewhere = ok(await dm.db.rpc('create_session', { p_campaign_id: otherCampaignId }))
+    assert.equal(elsewhere.number, 1, 'each campaign has its own numbering')
+  })
+
+  test('Two live sessions in one campaign cannot share a number; a deleted one does not block it', async () => {
+    refused(await dm.db.rpc('create_session', { p_campaign_id: campaignId, p_number: 54 }), 'duplicate via rpc')
+    refused(
+      await dm.db.from('sessions').update({ number: 54, version: first.version }).eq('id', first.id).select(),
+      'renumber onto a live number',
+    )
+    const s54 = ok(await dm.db.from('sessions').select('id, version').eq('campaign_id', campaignId).eq('number', 54).single())
+    ok(await dm.db.from('sessions').update({ deleted_at: new Date().toISOString(), version: s54.version }).eq('id', s54.id))
+    const again = ok(await dm.db.rpc('create_session', { p_campaign_id: campaignId }))
+    assert.equal(again.number, 54, 'highest live number + 1')
+  })
+
+  test('Players and non-members cannot read or write sessions', async () => {
+    for (const user of [playerA, playerB, outsider]) {
+      assert.equal(ok(await user.db.from('sessions').select('id')).length, 0, 'reads sessions')
+      refused(await user.db.rpc('create_session', { p_campaign_id: campaignId, p_number: 99 }), 'create via rpc')
+      refused(await user.db.from('sessions').insert({ campaign_id: campaignId, number: 98 }), 'insert')
+      noEffect(
+        await user.db.from('sessions').update({ notes: 'hacked', version: first.version }).eq('id', first.id).select(),
+        'update',
+      )
+      noEffect(await user.db.from('sessions').delete().eq('id', first.id).select(), 'delete')
+    }
+    const row = ok(await admin.from('sessions').select('notes').eq('id', first.id).single())
+    assert.equal(row.notes, '')
+    refused(await anon.from('sessions').insert({ campaign_id: campaignId, number: 97 }), 'anonymous insert')
+  })
+
+  test('Attendance is the DM’s only; unticking removes the row', async () => {
+    const hero = ok(await dm.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Present' }))
+    ok(await dm.db.from('session_attendance').insert({ session_id: first.id, character_id: hero.id }))
+    refused(
+      await dm.db.from('session_attendance').insert({ session_id: first.id, character_id: hero.id }),
+      'ticked twice',
+    )
+    for (const user of [playerA, playerB, outsider]) {
+      assert.equal(ok(await user.db.from('session_attendance').select('session_id')).length, 0, 'reads attendance')
+      refused(
+        await user.db.from('session_attendance').insert({ session_id: first.id, character_id: hero.id }),
+        'player ticks',
+      )
+      noEffect(await user.db.from('session_attendance').delete().eq('session_id', first.id).select(), 'player unticks')
+    }
+    ok(await dm.db.from('session_attendance').delete().eq('session_id', first.id).eq('character_id', hero.id))
+    assert.equal(ok(await dm.db.from('session_attendance').select('session_id').eq('session_id', first.id)).length, 0)
+  })
+})
+
 async function firstWorldId(): Promise<string> {
   return ok(await dm.db.from('worlds').select('id').limit(1).single()).id
 }
