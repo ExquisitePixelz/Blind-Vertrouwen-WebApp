@@ -376,7 +376,7 @@ Tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6
 - Add **brand verification** in the Google Auth Platform (app name "Theros DM Companion", logo, homepage, privacy policy link, `yannickmul.nl` verified in Google Search Console via DNS at Strato), so the window shows the app name and logo. Google takes a few business days.
 - The app gets a short **privacy policy page** (Google requires one).
 - **Rejected:** a Supabase custom domain (`auth.yannickmul.nl`). It needs the Pro plan plus the add-on (about $35/month, checked 2026-09-24), against priority 3.
-- Still Google-only login (3.5). Redo the WhatsApp test (3.5) on Android and iPhone after the switch.
+- Still Google-only login at the time (3.5; email login was added in 1.7). Redo the WhatsApp test (3.5) on Android and iPhone after the switch.
 
 ### 1.6 Phase 4.6: Invite-only access and accounts *(put in scope by the owner, 2026-09-25; built before Phase 5)*
 
@@ -393,6 +393,29 @@ Anyone with a Google account could log in. They saw nothing (row-level security)
 **Rejected:** a Supabase "Before User Created" hook with a list of allowed Google addresses. It runs before the invite link is used, so it cannot tell a new friend from a stranger, and the DM would need every friend's Gmail address first.
 
 The database decides (`check_access`) and row-level security stays the real lock: an account that skips the website still reads nothing.
+
+### 1.7 Phase 4.7: Email and password login *(put in scope by the owner, 2026-09-25; built before Phase 5)*
+
+Not everyone has, or wants to use, a Google account. Next to Google, people can log in with an email address and a password.
+
+**Creating an account happens only through an invite link.** The invite page offers "Log in with Google" or **Create an account** with:
+- email address
+- display name (the name everyone sees, as in Settings; people log in with their email, not a username)
+- password, and the password again; they must match
+
+The website checks the form before sending: a valid-looking email (trimmed, lower-case), a display name of 1–40 characters, a password of at least 8 characters, and matching passwords. Supabase checks again on the server.
+
+**Verification mail.** "Confirm email" is on: nobody can log in until they click the link in the mail. The link brings them back to the invite link, so they join the campaign straight away. It works on another device too (the mail carries a one-time token, checked with `verifyOtp`, not a code stored in the first browser).
+
+**Log in and forgot password.** The login page has Google, plus email and password with a **Forgot password?** link. That sends a reset mail; its link opens `/reset-password`, where the user types a new password twice.
+
+**Passwords are Supabase's job, not ours.** Supabase Auth stores only a bcrypt hash with a random salt per password, so rainbow tables do not work. Passwords never reach our own tables, and the website never hashes or stores them. Inputs reach the database only through Supabase's parameterised API.
+
+**No sign-up without an invite.** A Supabase *Before User Created* hook (free plan) refuses every new email account that does not carry a valid invite code (not revoked, not expired, campaign not deleted). This stops strangers creating accounts and using the mail quota to spam people. New Google accounts are still allowed and handled as in 1.6: signed out and deleted if they have no invite.
+
+**Sending mail: Resend** (owner decision, 2026-09-25), connected to Supabase as custom SMTP. Free for 3,000 mails a month. The sender is `noreply@yannickmul.nl`; the owner adds Resend's DNS records at Strato so mails do not land in spam. Supabase's built-in sender cannot be used: it only sends to the project team's own addresses.
+
+**Not in 4.7:** changing email or password from Settings (use Forgot password), login with a username, magic links, other providers.
 
 ---
 
@@ -429,7 +452,7 @@ Hosted Postgres database with login, row-level security (RLS) and file storage, 
 |---|---|
 | Projects pause after about a week without activity. Groups often go longer between sessions, and a paused project means the site does not work until the owner restores it in the dashboard. | A scheduled GitHub Action makes a tiny database request every few days to keep it active. **Check that this is allowed under current Supabase terms.** If not, the owner restores it manually when needed. |
 | No automatic backups. | A scheduled GitHub Action in a **separate private repository** (`theros-backups`) runs a database export weekly and stores it there. **Backups must never go in the public website repository**, because they contain every campaign's private data. *Built:* the same private repo also runs the daily keep-alive (a `select` on `gods`). Both use one repository secret, `SUPABASE_DB_URL` (Session pooler connection string). They live there, not in the public repo, because the database password must not be anywhere near public code, and because GitHub switches off scheduled workflows in **public** repos after 60 days without activity. |
-| The built-in email sender is for testing only: very low hourly limit, and it may only send to the project team's own addresses. | Not needed: login is Google only (section 3.5), so the app sends no email. |
+| The built-in email sender is for testing only: very low hourly limit, and it may only send to the project team's own addresses. | Email login (1.7) sends verification and reset mails through **Resend** as custom SMTP (free, 3,000 mails a month). |
 
 ### 3.3 Permissions model. *Decided*
 
@@ -484,9 +507,10 @@ Saving works like this:
 - Timestamps (`updated_at`) are set by the **database**, not by the phone, because phone clocks can be wrong.
 - Deleting marks a row as deleted (`deleted_at`) instead of removing it, so accidental deletes can be undone by the DM.
 
-### 3.5 Login: Google only. *Decided*
+### 3.5 Login: Google, or email and password. *Decided (changed 2026-09-25)*
 - The group talks on WhatsApp, which cannot be used as a login.
-- Everyone in the group has a Google account (confirmed by the owner). Google login needs no passwords and no email sending.
+- Google login needs no passwords and no email sending. It stays the main way in.
+- *Changed 2026-09-25 (owner):* people without a Google account can use an email address and password, created only through an invite link, with a verification mail. See section 1.7. Before this, the plan was Google only.
 - **Not Apple login:** it needs a paid Apple developer account.
 - The Supabase login settings must list **both** `https://dnd.yannickmul.nl` and the local development address as allowed redirect URLs.
 
@@ -608,7 +632,8 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 4: stress test and share | **Skipped for now** (owner decision). Its saving tests still apply once the group tries the app together. |
 | Phase 4.5: look and navigation (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Built** (2026-09-25). Owner to-dos: the Google console steps in the README, brand verification, and the WhatsApp retest. |
 | Phase 4.6: invite-only access, remove player, delete my account (1.6) | **Built** (2026-09-25) |
-| **Phase 5: session notes** (1.4): DM-only notes numbered from a chosen start, markdown, attendance | **Next.** Start at step 1. |
+| **Phase 4.7: email and password login** (1.7): sign-up through invite links, verification mail, forgot password, Resend | **Next.** Start at step 1. |
+| Phase 5: session notes (1.4): DM-only notes numbered from a chosen start, markdown, attendance | After 4.7 |
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | 1. Player features: character notes and inventory (items designed to carry effects later) | Planned next after Phase 5 |
 | 2. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
@@ -700,6 +725,12 @@ Done as one group session with several people and devices at once.
 1. Migration: `check_access()` (who is let in; deletes a stranger's empty account) and `delete_my_account()`, with permission-test cases (strangers are not let in and their account is gone; members and the DM are; only the DM removes players; a removed player reads nothing and keeps their characters; a player deletes their account and characters; the DM's account cannot be deleted).
 2. The website signs out anyone not let in, with a message on the login page. Remove player on the Players screen. Delete my account in Settings. Privacy policy updated.
 
+### Phase 4.7: Email and password login (section 1.7)
+1. Migration: the *Before User Created* hook function (email sign-ups need a valid invite code; Google sign-ups pass), switched on in `supabase/config.toml` for the tests, with test cases (sign-up without a code, with a revoked or expired code, and with a valid code; the display name comes from the form).
+2. Invite page: Create an account (email, display name, password twice, checks), and the confirmation link that joins the campaign.
+3. Login page: email and password, Forgot password, and `/reset-password`.
+4. Owner setup with step-by-step instructions: Resend account and DNS records at Strato, Supabase SMTP settings, Email provider with Confirm email, minimum password length 8, the two email templates, and switching the hook on. Then test the whole flow with a non-Google address.
+
 ### Phase 5: Session notes (section 1.4)
 1. Migration: the `sessions` table with RLS (DM only), the unique-number rule, and new cases in the permission test.
 2. Sessions list and **New session** (starting number for the first session, highest + 1 after that), plus the **Create Session** and **Sessions** buttons on the dashboard for the DM only (1.5).
@@ -788,6 +819,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 1. Supabase keep-alive. *Checked 2026-09-24:* the [Terms of Service](https://supabase.com/terms) say nothing about free-plan pausing or keep-alive requests, and the [pausing docs](https://supabase.com/docs/guides/platform/free-project-pausing) say only that a project is paused without "sufficient user database activity over the past week" ("a few user requests to the database each day" is typically enough). A scheduled ping is not forbidden, but not explicitly allowed either, and Supabase could change how it counts activity. Plan: build the ping in Phase 2 as a real, tiny read query (not just a health check), run it daily, and keep the manual restore in the dashboard as the fallback. *Built 2026-09-24:* see the backups row in section 3.2.
 
 **Resolved:**
+- **Email and password login (Phase 4.7):** next to Google, sign-up only through an invite link, verification mail, forgot password; the display name is the "username"; mail through Resend (owner decisions, 2026-09-25). See section 1.7.
 - **Invite-only access, removing players, deleting accounts (Phase 4.6):** an invite lets someone in until the DM removes them; strangers are signed out and their empty account deleted; removed players keep their characters; players can permanently delete their own account (owner decisions, 2026-09-25). See section 1.6.
 - **Session notes (Phase 5):** DM only, numbered per campaign from a starting number the DM picks, with an editable played-on date, and empty sessions deleted automatically (owner decisions, 2026-09-24). See section 1.4.
 - **Google sign-in screen showing supabase.co:** fixed for free with Google's own sign-in button plus brand verification, not with the paid Supabase custom domain (owner request, 2026-09-24). See section 1.5.
@@ -801,7 +833,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 - **Specification:** Character and Gods specification filled in from the Unity code (section 1.3). It describes the code as written; the app has not been tested on a phone.
 - **Piety:** a score per character per track, where a track is a god or a custom source. The player picks a god at creation (score 0). Everything after that is the DM's.
 - **DM:** the owner is the only DM, now and in the future, with full access.
-- **Login:** Google only. Everyone in the group has an account. Contact is WhatsApp.
+- **Login:** Google, or email and password through an invite link (changed 2026-09-25, section 1.7). Contact is WhatsApp.
 - **Joining:** by a DM-shared invite link.
 - **World:** Theros is the one world. Campaigns belong to it, and gods are world content.
 - **Domain:** Strato allows the `CNAME` record for `dnd.yannickmul.nl`, which currently points nowhere.
