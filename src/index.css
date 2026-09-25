@@ -886,6 +886,10 @@ button.row-button {
   min-height: var(--tap);
   width: min(20rem, 100%);
   margin: 0 auto;
+  /* Google's button is an iframe with a light page inside. When its colour
+     scheme differs from ours (dark), browsers paint it on an opaque white
+     backdrop; matching it keeps the backdrop transparent. */
+  color-scheme: light;
 }
 
 .prose {
