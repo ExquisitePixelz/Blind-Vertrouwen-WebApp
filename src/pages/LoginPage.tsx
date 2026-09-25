@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { googleClientId, renderGoogleButton } from '../lib/googleSignIn'
+import { clearLoginNotice, readLoginNotice } from '../lib/access'
 import { signIn } from '../lib/supabase'
 
 export function LoginPage({ message }: { message?: string }) {
+  const [notice] = useState(readLoginNotice)
+  useEffect(clearLoginNotice, [])
   return (
     <main className="page center">
       <h1>Theros DM Companion</h1>
       <p className="muted">{message ?? 'Characters, gods and piety for our Theros campaigns.'}</p>
+      {notice && <p className="notice">{notice}</p>}
       {googleClientId ? <GoogleButton /> : <button onClick={() => signIn()}>Log in with Google</button>}
       <p className="small">
         <Link to="/privacy" className="muted">

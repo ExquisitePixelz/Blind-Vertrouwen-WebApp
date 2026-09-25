@@ -899,3 +899,17 @@ button.row-button {
 .prose li + li {
   margin-top: 0.5rem;
 }
+
+.notice {
+  max-width: 22rem;
+  margin: 0 auto 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+}
+
+.player-row {
+  align-items: center;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}

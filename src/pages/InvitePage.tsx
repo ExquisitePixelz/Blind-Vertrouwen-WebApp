@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { checkAccess, signOutWith } from '../lib/access'
 import { useMe } from '../lib/me'
 import { must, supabase } from '../lib/supabase'
 
@@ -27,7 +28,14 @@ export function InvitePage() {
         }
         if (!cancelled) navigate(`/c/${campaignId}`, { replace: true })
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e))
+        if (cancelled) return
+        const message = e instanceof Error ? e.message : String(e)
+        // Not in any campaign yet, so not let in (1.6): sign out with the reason.
+        if (!me.isDm && !(await checkAccess().catch(() => true))) {
+          await signOutWith(`${message} Ask the DM for a new link.`)
+          return
+        }
+        setError(message)
       }
     }
     join()

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useMatch } from 'react-router'
 import { UpdatePrompt } from './components/UpdatePrompt'
+import { checkAccess, INVITE_ONLY, signOutWith } from './lib/access'
 import { MeContext, type Me } from './lib/me'
 import { flushAllPending, setPendingOwner } from './lib/saver'
 import { must, supabase } from './lib/supabase'
@@ -42,7 +43,14 @@ function Screens() {
     }
     let cancelled = false
     const user = session.user
+    const joining = !!onInvite
     ;(async () => {
+      // Invite-only (1.6). Someone opening an invite link is checked after
+      // joining instead (InvitePage), or joining would be refused first.
+      if (!joining && !(await checkAccess())) {
+        if (!cancelled) await signOutWith(INVITE_ONLY)
+        return
+      }
       // Players see Theros only once they are in a campaign; the DM always does.
       const [worlds, profile] = await Promise.all([
         supabase

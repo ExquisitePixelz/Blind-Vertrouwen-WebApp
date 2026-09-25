@@ -13,7 +13,8 @@ export function PrivacyPage() {
       <p>
         Theros DM Companion (dnd.yannickmul.nl) is a small, private website for one group of friends playing a
         Dungeons &amp; Dragons campaign. It is run by Yannick Mul, the group's Dungeon Master. It is not a business,
-        shows no ads and sells nothing.
+        shows no ads and sells nothing. It is invite-only: if you log in without an invite link, you are signed out and
+        the account that was just made for you is deleted straight away.
       </p>
 
       <h2>What we store</h2>
@@ -42,7 +43,8 @@ export function PrivacyPage() {
 
       <h2>Removing your data</h2>
       <p>
-        Ask the DM, and your account and everything linked to it will be removed. You can also remove the site's access
+        Delete your account yourself under Settings, or ask the DM. Your account, your characters and everything linked
+        to them are then removed permanently. You can also remove the site's access
         to your Google account at any time at{' '}
         <a href="https://myaccount.google.com/connections" className="gold">
           myaccount.google.com/connections
