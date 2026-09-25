@@ -1,4 +1,4 @@
-# Theros DM Companion (web)
+# DnD Companion App (web)
 
 Read ARCHITECTURE.md before doing any work. It is the plan and decision record for this project.
 

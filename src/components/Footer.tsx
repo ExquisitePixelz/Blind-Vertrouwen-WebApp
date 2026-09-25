@@ -5,7 +5,7 @@ import { versionLabel } from '../lib/version'
 export function Footer() {
   return (
     <footer className="footer">
-      <span>Theros DM Companion {versionLabel()}</span>
+      <span>DnD Companion App {versionLabel()}</span>
       <span>Created by: Yannick Mul</span>
       <span className="footer-links">
         <Link to="/privacy">Privacy</Link>

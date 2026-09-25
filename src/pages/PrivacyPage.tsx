@@ -6,12 +6,12 @@ export function PrivacyPage() {
     <main className="page prose">
       <p>
         <Link to="/" className="muted">
-          ← Theros DM Companion
+          ← DnD Companion App
         </Link>
       </p>
       <h1>Privacy policy</h1>
       <p>
-        Theros DM Companion (dnd.yannickmul.nl) is a small, private website for one group of friends playing a
+        DnD Companion App (dnd.yannickmul.nl) is a small, private website for one group of friends playing a
         Dungeons &amp; Dragons campaign. It is run by Yannick Mul, the group's Dungeon Master. It is not a business,
         shows no ads and sells nothing. It is invite-only: if you log in without an invite link, you are signed out and
         the account that was just made for you is deleted straight away.

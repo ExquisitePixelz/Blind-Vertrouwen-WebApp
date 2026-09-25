@@ -19,7 +19,7 @@ export function LoginPage({ inviteCode, notice: passedNotice }: { inviteCode?: s
 
   return (
     <main className="page center login">
-      <h1>Theros DM Companion</h1>
+      <h1>DnD Companion App</h1>
       <p className="muted">
         {inviteCode
           ? 'You have been invited to a Theros campaign. Log in or create an account to join.'

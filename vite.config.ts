@@ -29,8 +29,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Theros DM Companion',
-        short_name: 'Theros',
+        name: 'DnD Companion App',
+        short_name: 'DnD Companion',
         description: 'Characters, gods and piety for our Theros campaigns.',
         theme_color: '#121214',
         background_color: '#121214',

@@ -1,4 +1,4 @@
-# Theros DM Companion (web version): Project Plan and Decision Record
+# DnD Companion App (web version of the Theros DM Companion): Project Plan and Decision Record
 
 *For the owner (Yannick) and for any AI model or coding agent (for example Claude Code) working on this project. It holds the goal, the scope, the decisions already made and why, and the build plan.*
 
@@ -12,7 +12,7 @@
 
 ### 1.1 Version 1 (built in Phases 0–3)
 
-A small website at `https://dnd.yannickmul.nl` for a friend group playing in **Theros**. It is the web version of the owner's existing Unity app, the Theros DM Companion. Users log in with Google, join a campaign via an invite link shared in WhatsApp, and use it.
+A small website at `https://dnd.yannickmul.nl` for a friend group playing in **Theros**. It is the web version of the owner's existing Unity app, the Theros DM Companion. The web app is called **DnD Companion App** (renamed by the owner, 2026-09-25). Users log in with Google, join a campaign via an invite link shared in WhatsApp, and use it.
 
 **One DM.** The owner is the only DM, now and in the future. He is DM of the world and of every campaign in it, and can see and edit everything. There is no need for multiple DMs or DM permission levels.
 
@@ -380,7 +380,7 @@ Tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6
 
 **Friendlier Google sign-in (owner request, 2026-09-24).** Google's sign-in window currently says "continue to olzfzwlaprjqobasxekn.supabase.co", which looks like phishing.
 - **Fix (free):** use **Google's own sign-in button** (Google Identity Services) and hand the resulting ID token to Supabase with `signInWithIdToken` (with a nonce). The Google window then opens from `dnd.yannickmul.nl`, and no supabase.co redirect is involved.
-- Add **brand verification** in the Google Auth Platform (app name "Theros DM Companion", logo, homepage, privacy policy link, `yannickmul.nl` verified in Google Search Console via DNS at Strato), so the window shows the app name and logo. Google takes a few business days.
+- Add **brand verification** in the Google Auth Platform (app name "DnD Companion App", logo, homepage, privacy policy link, `yannickmul.nl` verified in Google Search Console via DNS at Strato), so the window shows the app name and logo. Google takes a few business days.
 - The app gets a short **privacy policy page** (Google requires one).
 - **Rejected:** a Supabase custom domain (`auth.yannickmul.nl`). It needs the Pro plan plus the add-on (about $35/month, checked 2026-09-24), against priority 3.
 - Still Google-only login at the time (3.5; email login was added in 1.7). Redo the WhatsApp test (3.5) on Android and iPhone after the switch.
@@ -558,7 +558,7 @@ The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.
 - **Release:** `1.0.0`, when the owner says everything works.
 - **Rule for the agent:** bump the version in the same commit that finishes a phase or a fix, and keep `package-lock.json` in step.
 
-**Footer on every page** *(owner, 2026-09-25)*: "Theros DM Companion v…", "Created by: Yannick Mul", and links to the privacy policy (`/privacy`) and the terms of use (`/terms`). Both pages are readable without logging in. The terms page is optional for Google's branding, but linked there too.
+**Footer on every page** *(owner, 2026-09-25)*: "DnD Companion App v…", "Created by: Yannick Mul", and links to the privacy policy (`/privacy`) and the terms of use (`/terms`). Both pages are readable without logging in. The terms page is optional for Google's branding, but linked there too.
 
 ---
 

@@ -6,12 +6,12 @@ export function TermsPage() {
     <main className="page prose">
       <p>
         <Link to="/" className="muted">
-          ← Theros DM Companion
+          ← DnD Companion App
         </Link>
       </p>
       <h1>Terms of use</h1>
       <p>
-        Theros DM Companion (dnd.yannickmul.nl) is a free, private hobby website for one group of friends playing a
+        DnD Companion App (dnd.yannickmul.nl) is a free, private hobby website for one group of friends playing a
         Dungeons &amp; Dragons campaign, made and run by Yannick Mul. By logging in you agree to the points below.
       </p>
 
