@@ -1087,3 +1087,8 @@ button.dash-button {
   height: 1.3rem;
   accent-color: var(--gold);
 }
+
+.dash-last {
+  margin-top: 1.25rem;
+  text-align: center;
+}

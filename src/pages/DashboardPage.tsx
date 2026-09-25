@@ -5,6 +5,7 @@ import { TopBar } from '../components/TopBar'
 import { createCampaign, DEFAULT_SUBTITLE, loadCampaigns, useRememberCampaign, type Campaign } from '../lib/campaigns'
 import { useMe } from '../lib/me'
 import { useNewSession } from '../lib/sessions'
+import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 
 /**
@@ -46,6 +47,20 @@ function Dashboard({ campaign }: { campaign: Campaign }) {
   const me = useMe()
   const newSession = useNewSession(campaign.id)
   const base = `/c/${campaign.id}`
+  // "Last session: #n" (1.3 D5), DM only.
+  const last = useLoad(async () => {
+    if (!me.isDm) return null
+    const rows = must(
+      await supabase
+        .from('sessions')
+        .select('number')
+        .eq('campaign_id', campaign.id)
+        .is('deleted_at', null)
+        .order('number', { ascending: false })
+        .limit(1),
+    ) as { number: number }[]
+    return rows[0]?.number ?? 0
+  }, [me.isDm, campaign.id])
   return (
     <main className="page dashboard">
       <TopBar />
@@ -79,6 +94,9 @@ function Dashboard({ campaign }: { campaign: Campaign }) {
           </Link>
         )}
       </nav>
+      {me.isDm && typeof last.data === 'number' && (
+        <p className="muted dash-last">{last.data ? `Last session: #${last.data}` : 'No sessions yet'}</p>
+      )}
       {newSession.error && <p className="error">{newSession.error}</p>}
       {newSession.dialog}
     </main>

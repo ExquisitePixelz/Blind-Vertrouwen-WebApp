@@ -339,6 +339,13 @@ A **Sessions** tab where the DM takes notes per session. It is based on the Unit
 
 **Also in Phase 5:** the dashboard shows "Last session: #n" to the DM (1.3 D5, 1.5).
 
+**As built (2026-09-25):**
+- **Database:** `sessions` and `session_attendance` came in one migration (so one `db push`), each with only the "dm all" policy. `create_session(campaign, number or null)` uses the given starting number, else the highest live number + 1. `played_on` defaults to today in Europe/Amsterdam, not UTC.
+- **Screens:** `/c/:id/sessions` (list) and `/c/:id/sessions/:sessionId` (note taker). A session opens on Preview when it has notes, on Edit when empty.
+- **Changing the number, deleting, and the empty-session cleanup** first wait until every typed change has reached the server (`settle()` in the save hook), then change the row with its current version. The cleanup runs when the DM leaves the note taker inside the app; closing the tab on an empty session leaves it in the list until it is opened and left again.
+- **Long notes:** saves over 64 KB are sent without `keepalive` (browsers refuse larger keepalive requests); the local backup (3.4) still covers them.
+- Text helpers (the `d MMM yyyy` date and the first-line snippet) are unit-tested (`tests/sessionText.test.ts`).
+
 **Not in Phase 5 (roadmap):** search across sessions, linking characters or gods from notes, player-visible recaps, exporting notes.
 
 ### 1.5 Phase 4.5: Look and navigation *(put in scope by the owner, 2026-09-24; built before Phase 5)*
