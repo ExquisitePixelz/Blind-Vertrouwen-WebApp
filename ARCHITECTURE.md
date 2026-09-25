@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). **Section 5, "Where we are", shows the current order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -12,7 +12,7 @@
 
 ### 1.1 Version 1 (built in Phases 0–3)
 
-A small website at `https://dnd.yannickmul.nl` for a friend group playing in **Theros**. It is the web version of the owner's existing Unity app, the Theros DM Companion. The web app is called **DnD Companion App** (renamed by the owner, 2026-09-25). Users log in with Google, join a campaign via an invite link shared in WhatsApp, and use it.
+A small website at `https://dnd.yannickmul.nl` for a friend group playing in **Theros**. It is the web version of the owner's existing Unity app, the Theros DM Companion. The web app is called **DnD Companion App** (renamed by the owner, 2026-09-25). Users log in with Google (or, since 1.7, email and password), join a campaign via an invite link shared in WhatsApp, and use it.
 
 **One DM.** The owner is the only DM, now and in the future. He is DM of the world and of every campaign in it, and can see and edit everything. There is no need for multiple DMs or DM permission levels.
 
@@ -399,6 +399,8 @@ Anyone with a Google account could log in. They saw nothing (row-level security)
 
 **Rejected:** a Supabase "Before User Created" hook with a list of allowed Google addresses. It runs before the invite link is used, so it cannot tell a new friend from a stranger, and the DM would need every friend's Gmail address first.
 
+**Invite links stay reusable** (owner decision, 2026-09-25): one link works for everyone who opens it within its 7 days, so one link in the group chat is enough. The DM revokes it on the Players screen once everyone has joined. Single-use or capped links were offered and not wanted (roadmap, section 6).
+
 The database decides (`check_access`) and row-level security stays the real lock: an account that skips the website still reads nothing.
 
 ### 1.7 Phase 4.7: Email and password login *(put in scope by the owner, 2026-09-25; built before Phase 5)*
@@ -549,10 +551,11 @@ Realtime is added later together with the features that need it, such as live co
 - **Page links:** GitHub Pages returns "404 not found" when someone refreshes on any page other than the home page. Fix: the build copies `index.html` to `404.html`, so every link loads the app.
 - **Custom domain:** at Strato (DNS editing confirmed available), add a `CNAME` record for `dnd` pointing to `<github-username>.github.io`. Set `dnd.yannickmul.nl` in the repository's Pages settings and enable **Enforce HTTPS**.
 - **Domain protection:** also verify `yannickmul.nl` in the GitHub account settings (Pages → verified domains), so nobody else can claim the subdomain.
+- **Build settings** are GitHub Actions **variables** (public values, never secrets), read by `.github/workflows/deploy.yml`, and the same names in `.env.local` for local work (template: `.env.example`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GOOGLE_CLIENT_ID` (Google's button, 1.5) and `VITE_EMAIL_LOGIN=true` (email forms, 1.7). All four are set in GitHub (2026-09-25).
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
 ### 3.9 Version number. *Decided (owner, 2026-09-25)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha").
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.5.2-alpha` (2026-09-25: Phase 5, then two fixes: footer alignment, and the rename).*
 - **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …); a fix between phases adds 1 to the last number (`0.5.1-alpha`).
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.
@@ -579,9 +582,9 @@ Detailed columns for characters and gods come from the specification in section 
 
 | Table | Purpose |
 |---|---|
-| `profiles` | One per user: display name. Linked to the Supabase login user. |
+| `profiles` | One per user: display name, and `last_campaign_id` (the dashboard's campaign, 1.5). Linked to the Supabase login user. |
 | `worlds` | One row: Theros, with `dm_user_id` set to the owner. "Is this user the DM?" is answered from here and used by every RLS policy. The future lore database also lives at this level. |
-| `campaigns` | Name, `world_id`. Created by the DM. |
+| `campaigns` | Name, `subtitle` (1.5), `world_id`. Created by the DM. |
 | `campaign_members` | Which players are in which campaign. The DM is not listed; the DM has access everywhere. |
 | `campaign_invites` | Invite codes the DM shares as a link in WhatsApp. They can expire or be revoked. |
 
@@ -629,6 +632,7 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
   - `create_character(campaign, name, god or null)` creates the character and its score-0 track together.
   - `delete_character(id)` soft-deletes the character and its tracks. Players cannot set `deleted_at` directly.
   - `accept_invite(code)` joins a campaign.
+  - *Added later:* `check_access()` (1.6: is this user let in; deletes a stranger's empty account), `delete_my_account()` (1.6), `create_session(campaign, number or null)` (1.4). The *Before User Created* hook `private.before_user_created` (1.7) is called by Supabase Auth, not the website.
 - **Conflict guard:** a save must send the `version` it loaded. If the row changed since then, the database refuses it with HTTP 409. `version`, `created_at` and `updated_at` are always set by triggers.
 - **Owner-only fields:** a player cannot change a character's `owner_id`, `campaign_id` or `deleted_at`.
 - **Character stats:** the six abilities are stored as `strength` … `charisma`.
@@ -644,18 +648,25 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 
 Work in small steps. Commit to Git after each working step so anything can be rolled back. Keep `ARCHITECTURE.md` in the repo up to date. This document seeds it.
 
-### Where we are *(updated 2026-09-24)*
+**How a database change goes live** (the routine since Phase 4.5):
+1. The agent commits the migration and its permission-test cases, and pushes **only that** first. The Database tests workflow must be green.
+2. The owner applies it to the real project: `npx.cmd supabase db push` in PowerShell, in the project folder. (Plain `npx` is blocked by PowerShell's script policy on the owner's PC; `npx.cmd` works.) The owner types the database password; the agent never sees it.
+3. Only then does the agent push website code that uses the change. Pushing it earlier breaks the live site.
+4. The agent checks new screens in the Claude app's browser pane (local copy at `localhost:5173`, which talks to the real database). The owner logs in there; the agent cannot log in for them.
+
+### Where we are *(updated 2026-09-25)*
 
 | Step | Status |
 |---|---|
 | Phases 0–3: version 1 (login, database and security, campaigns, gods, characters, piety) | **Done** |
 | Phase 4: stress test and share | **Skipped for now** (owner decision). Its saving tests still apply once the group tries the app together. |
-| Phase 4.5: look and navigation (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Built** (2026-09-25). Owner to-dos: the Google console steps in the README, brand verification, and the WhatsApp retest. |
+| Phase 4.5: look and navigation (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Built** (2026-09-25). Google's button is set up and tested by the owner. Still open: brand verification, the WhatsApp retest (section 8). |
 | Phase 4.6: invite-only access, remove player, delete my account (1.6) | **Built** (2026-09-25) |
 | Phase 4.7: email and password login (1.7): sign-up through invite links, verification mail, forgot password, Resend | **Built and tested by the owner** (2026-09-25) |
 | Phase 5: session notes (1.4): DM-only notes numbered from a chosen start, markdown, attendance | **Built** (2026-09-25), checked by the owner |
+| Extras (2026-09-25): footer on every page, terms page, version number (3.9), rename to DnD Companion App | **Built**, version `0.5.2-alpha` |
 | Then, from the roadmap (section 6), in the owner's current order: | |
-| 1. Player features: character notes and inventory (items designed to carry effects later) | Planned next after Phase 5 |
+| 1. Player features: character notes and inventory (items designed to carry effects later) | **Suggested next**; waiting for the owner to say start. Write it up as its own section and phase first. |
 | 2. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
 | 3. Quest Journal (6.2) | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
@@ -782,6 +793,8 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Session notes: character/god links** *(owner interest, 2026-09-24)*: mention a character or god in the notes as a tappable link | The `sessions` table and markdown (1.4). Links can be stored as text markers, so no new table is needed. |
 | **Initiative tracker** *(owner interest)*: turn order for combat that players see live on their phones | Needs Supabase Realtime, so this is the same project as Live combat |
 | **NPC / lore notes** *(owner interest)*: NPCs, places and factions, each entry either DM only or shared with players, with secret parts in their own `dm` row | The world level, the `dm` / `members` audiences, and the separate-secret-row pattern in 3.3 |
+| **Tighter invites** *(offered 2026-09-25, not wanted for now)*: single-use links, or a maximum number of uses | `campaign_invites`; add a `max_uses` / used-by record |
+| **DM approves new players** *(offered 2026-09-25, not wanted for now)*: someone opening an invite waits until the DM taps Let in | `campaign_members`; add a pending state |
 | **Session quiz** *(owner idea, very future)*: a Kahoot-style quiz where players answer questions about the previous session, maybe with AI-generated questions | Needs Realtime for a live quiz. AI questions would read the DM-only notes, so the DM must approve every question before players see it (priority 2), and an AI API has a running cost (priority 3). |
 
 ### 6.1 Character builder and rules engine *(owner idea, 2026-09-24; roadmap, built in parts)*
@@ -838,7 +851,16 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 **Still to check:**
 1. Supabase keep-alive. *Checked 2026-09-24:* the [Terms of Service](https://supabase.com/terms) say nothing about free-plan pausing or keep-alive requests, and the [pausing docs](https://supabase.com/docs/guides/platform/free-project-pausing) say only that a project is paused without "sufficient user database activity over the past week" ("a few user requests to the database each day" is typically enough). A scheduled ping is not forbidden, but not explicitly allowed either, and Supabase could change how it counts activity. Plan: build the ping in Phase 2 as a real, tiny read query (not just a health check), run it daily, and keep the manual restore in the dashboard as the fallback. *Built 2026-09-24:* see the backups row in section 3.2.
 
+2. **Owner to-dos outside the code** (2026-09-25):
+   - Google Auth Platform → Branding: app name `DnD Companion App`, terms link `https://dnd.yannickmul.nl/terms`, and brand verification (Search Console DNS at Strato first). Google may take a few business days, and may question "DnD" as a trademark (D&D belongs to Wizards of the Coast); a name without it passes more easily.
+   - Supabase → Authentication → Emails: sender name `DnD Companion App`, and the new name in the Confirm signup and Reset password templates (README has the texts).
+   - Redo the WhatsApp login test (3.5) on Android and iPhone with Google's button and with email login.
+   - Phones that installed the app: on iPhone, remove and re-add it to pick up the new name.
+
 **Resolved:**
+- **App name:** the web app is **DnD Companion App** (owner, 2026-09-25); the Unity app keeps its name.
+- **Footer, terms page, version number:** see 3.9 (owner, 2026-09-25).
+- **Google sign-ups get no verification mail**, and there is no DM approval step (owner, 2026-09-25). See 1.7.
 - **Email and password login (Phase 4.7):** next to Google, sign-up only through an invite link, verification mail, forgot password; the display name is the "username"; mail through Resend (owner decisions, 2026-09-25). See section 1.7.
 - **Invite-only access, removing players, deleting accounts (Phase 4.6):** an invite lets someone in until the DM removes them; strangers are signed out and their empty account deleted; removed players keep their characters; players can permanently delete their own account (owner decisions, 2026-09-25). See section 1.6.
 - **Session notes (Phase 5):** DM only, numbered per campaign from a starting number the DM picks, with an editable played-on date, and empty sessions deleted automatically (owner decisions, 2026-09-24). See section 1.4.

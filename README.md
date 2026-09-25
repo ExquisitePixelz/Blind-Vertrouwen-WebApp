@@ -18,6 +18,8 @@ Every push to `main`:
 
 Only after the Database tests workflow is green. You type the database password yourself; never put it in a file or a chat.
 
+In Windows PowerShell, type `npx.cmd` instead of `npx` (PowerShell blocks `npx` itself), e.g. `npx.cmd supabase db push`.
+
 ```bash
 npx supabase login
 npx supabase link --project-ref olzfzwlaprjqobasxekn
