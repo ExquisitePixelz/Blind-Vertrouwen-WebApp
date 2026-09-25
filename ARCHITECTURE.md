@@ -378,6 +378,22 @@ Tap targets at least 44 px; no sideways scrolling; the same dark palette (1.3 D6
 - **Rejected:** a Supabase custom domain (`auth.yannickmul.nl`). It needs the Pro plan plus the add-on (about $35/month, checked 2026-09-24), against priority 3.
 - Still Google-only login (3.5). Redo the WhatsApp test (3.5) on Android and iPhone after the switch.
 
+### 1.6 Phase 4.6: Invite-only access and accounts *(put in scope by the owner, 2026-09-25; built before Phase 5)*
+
+Anyone with a Google account could log in. They saw nothing (row-level security), but the owner wants the site to be invite-only, a way to remove players, and a way for players to delete their account.
+
+**Who is let in:** the DM, always, and anyone in at least one live campaign, i.e. who joined with an invite link. An invite therefore lets someone in until the DM removes them. There is no list of Google addresses.
+
+**Everyone else:** as soon as they log in, the site signs them out with "This site is invite-only. Ask the DM for an invite link." Their account is deleted at once if it owns nothing, so strangers' accounts do not pile up. Someone opening an invite link is checked after joining, not before. Before the DM is set (a fresh install), everyone is let in, so the owner can log in once and make themselves the DM.
+
+**Remove player (DM only):** a Remove button per player on the Players screen, with a confirm dialog. They lose access to that campaign at once; if it was their only campaign they are no longer let in. Their characters stay in the campaign, visible to its players and editable only by the DM (owner decision, 2026-09-25). A new invite link lets them back in.
+
+**Delete my account (players):** in Settings, behind a warning and typing `DELETE`. It permanently deletes the login, the profile, the memberships, and the player's characters with their piety. This is a real delete, not a soft delete: the point is that the data is gone. The DM's account cannot be deleted this way.
+
+**Rejected:** a Supabase "Before User Created" hook with a list of allowed Google addresses. It runs before the invite link is used, so it cannot tell a new friend from a stranger, and the DM would need every friend's Gmail address first.
+
+The database decides (`check_access`) and row-level security stays the real lock: an account that skips the website still reads nothing.
+
 ---
 
 ## 2. Priorities
@@ -591,6 +607,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phases 0–3: version 1 (login, database and security, campaigns, gods, characters, piety) | **Done** |
 | Phase 4: stress test and share | **Skipped for now** (owner decision). Its saving tests still apply once the group tries the app together. |
 | Phase 4.5: look and navigation (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Built** (2026-09-25). Owner to-dos: the Google console steps in the README, brand verification, and the WhatsApp retest. |
+| Phase 4.6: invite-only access, remove player, delete my account (1.6) | **Built** (2026-09-25) |
 | **Phase 5: session notes** (1.4): DM-only notes numbered from a chosen start, markdown, attendance | **Next.** Start at step 1. |
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | 1. Player features: character notes and inventory (items designed to carry effects later) | Planned next after Phase 5 |
@@ -678,6 +695,10 @@ Done as one group session with several people and devices at once.
 - **Profiles backfilled:** accounts that first logged in before the profiles table existed (including the DM's) had no profile row, so saving a display name or last campaign silently changed nothing. A migration gives every existing login a profile.
 - **Settings save when OK is tapped**, not through the save hook (3.4). `profiles` and `campaigns` are structure tables without a `version` column, and a prompt dialog is one deliberate change, not typing.
 - **Google sign-in:** the Google Identity Services button is used when the `VITE_GOOGLE_CLIENT_ID` variable is set (GitHub Actions variable, and `.env.local`). Without it, or if Google's script cannot load, the old redirect login is shown, so nobody is locked out. Owner setup steps are in the README.
+
+### Phase 4.6: Invite-only access and accounts (section 1.6)
+1. Migration: `check_access()` (who is let in; deletes a stranger's empty account) and `delete_my_account()`, with permission-test cases (strangers are not let in and their account is gone; members and the DM are; only the DM removes players; a removed player reads nothing and keeps their characters; a player deletes their account and characters; the DM's account cannot be deleted).
+2. The website signs out anyone not let in, with a message on the login page. Remove player on the Players screen. Delete my account in Settings. Privacy policy updated.
 
 ### Phase 5: Session notes (section 1.4)
 1. Migration: the `sessions` table with RLS (DM only), the unique-number rule, and new cases in the permission test.
@@ -767,6 +788,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 1. Supabase keep-alive. *Checked 2026-09-24:* the [Terms of Service](https://supabase.com/terms) say nothing about free-plan pausing or keep-alive requests, and the [pausing docs](https://supabase.com/docs/guides/platform/free-project-pausing) say only that a project is paused without "sufficient user database activity over the past week" ("a few user requests to the database each day" is typically enough). A scheduled ping is not forbidden, but not explicitly allowed either, and Supabase could change how it counts activity. Plan: build the ping in Phase 2 as a real, tiny read query (not just a health check), run it daily, and keep the manual restore in the dashboard as the fallback. *Built 2026-09-24:* see the backups row in section 3.2.
 
 **Resolved:**
+- **Invite-only access, removing players, deleting accounts (Phase 4.6):** an invite lets someone in until the DM removes them; strangers are signed out and their empty account deleted; removed players keep their characters; players can permanently delete their own account (owner decisions, 2026-09-25). See section 1.6.
 - **Session notes (Phase 5):** DM only, numbered per campaign from a starting number the DM picks, with an editable played-on date, and empty sessions deleted automatically (owner decisions, 2026-09-24). See section 1.4.
 - **Google sign-in screen showing supabase.co:** fixed for free with Google's own sign-in button plus brand verification, not with the paid Supabase custom domain (owner request, 2026-09-24). See section 1.5.
 - **Look and navigation (Phase 4.5):** dashboard in the Unity style, last campaign remembered per account, Players button on the DM's dashboard, account popover with Switch campaign and Settings (display name, campaign name) (owner decisions, 2026-09-24). Lottie animations moved to the roadmap (section 6). See section 1.5.

@@ -561,6 +561,62 @@ describe('campaign name and subtitle', () => {
   })
 })
 
+describe('invite-only access (Phase 4.6)', () => {
+  const exists = async (id: string) => !(await admin.auth.admin.getUserById(id)).error
+
+  test('The DM and campaign members are let in and keep their accounts', async () => {
+    assert.equal(ok(await dm.db.rpc('check_access')), true)
+    assert.equal(ok(await playerB.db.rpc('check_access')), true)
+    assert.ok(await exists(playerB.id))
+  })
+
+  test('A stranger is not let in, and their empty account is deleted', async () => {
+    const stranger = await makeUser('stranger')
+    assert.equal(ok(await stranger.db.rpc('check_access')), false)
+    assert.equal(await exists(stranger.id), false)
+    assert.equal(ok(await admin.from('profiles').select('id').eq('id', stranger.id)).length, 0)
+    refused(await anon.rpc('check_access'), 'anonymous check_access')
+  })
+
+  test('Only the DM removes players; a removed player reads nothing and is not let in, but keeps their characters', async () => {
+    const leaver = await makeUser('leaver')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: campaignId, user_id: leaver.id }))
+    const character = ok(await leaver.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Leftover' }))
+
+    noEffect(
+      await playerB.db.from('campaign_members').delete().eq('user_id', leaver.id).select(),
+      'player removes another player',
+    )
+    assert.equal(ok(await admin.from('campaign_members').select('user_id').eq('user_id', leaver.id)).length, 1)
+
+    ok(await dm.db.from('campaign_members').delete().eq('campaign_id', campaignId).eq('user_id', leaver.id))
+    assert.equal(ok(await leaver.db.from('campaigns').select('id')).length, 0)
+    assert.equal(ok(await leaver.db.from('characters').select('id')).length, 0)
+    assert.equal(ok(await leaver.db.rpc('check_access')), false)
+    assert.ok(await exists(leaver.id), 'an account that owns characters is kept')
+    assert.equal(ok(await playerB.db.from('characters').select('id').eq('id', character.id)).length, 1)
+  })
+
+  test('A player can delete their own account, with their characters and piety', async () => {
+    const quitter = await makeUser('quitter')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: campaignId, user_id: quitter.id }))
+    const character = ok(
+      await quitter.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Gone', p_god_id: phenaxId }),
+    )
+    ok(await quitter.db.rpc('delete_my_account'))
+    assert.equal(await exists(quitter.id), false)
+    assert.equal(ok(await admin.from('characters').select('id').eq('id', character.id)).length, 0)
+    assert.equal(ok(await admin.from('piety_tracks').select('id').eq('character_id', character.id)).length, 0)
+    assert.equal(ok(await admin.from('campaign_members').select('user_id').eq('user_id', quitter.id)).length, 0)
+  })
+
+  test('The DM account cannot be deleted, and nobody can delete it logged out', async () => {
+    refused(await dm.db.rpc('delete_my_account'), 'DM deletes own account')
+    assert.ok(await exists(dm.id))
+    refused(await anon.rpc('delete_my_account'), 'anonymous delete_my_account')
+  })
+})
+
 async function firstWorldId(): Promise<string> {
   return ok(await dm.db.from('worlds').select('id').limit(1).single()).id
 }
