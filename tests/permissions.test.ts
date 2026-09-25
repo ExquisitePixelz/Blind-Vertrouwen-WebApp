@@ -739,6 +739,210 @@ describe('sessions (Phase 5)', () => {
   })
 })
 
+describe('player features (Phase 6)', () => {
+  let kit: { id: string; version: number }
+  let bex: { id: string }
+  let rope: { id: string; version: number }
+  const privateRow = (user: { db: SupabaseClient }, characterId: string) =>
+    user.db.from('character_private').select('*').eq('character_id', characterId)
+
+  before(async () => {
+    kit = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Kit', p_god_id: nyleaId }))
+    bex = ok(await playerB.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Bex' }))
+  })
+
+  test('Every new character gets a private row that only its owner and the DM can read', async () => {
+    const mine = ok(await privateRow(playerA, kit.id))
+    assert.equal(mine.length, 1)
+    assert.equal(mine[0].owner_id, playerA.id)
+    assert.equal(mine[0].campaign_id, campaignId)
+    assert.equal(mine[0].audience, 'owner')
+    assert.equal(mine[0].gp, 0)
+    assert.equal(ok(await privateRow(dm, kit.id)).length, 1)
+    assert.equal(ok(await privateRow(playerB, kit.id)).length, 0)
+    assert.equal(ok(await privateRow(outsider, kit.id)).length, 0)
+
+    const direct = ok(
+      await playerA.db.from('characters').insert({ campaign_id: campaignId, name: 'Direct' }).select().single(),
+    )
+    assert.equal(ok(await privateRow(playerA, direct.id)).length, 1, 'a directly inserted character')
+  })
+
+  test('Backstory: other players read it but cannot change it', async () => {
+    kit = ok(
+      await playerA.db.from('characters').update({ backstory: 'Raised by wolves.', version: kit.version }).eq('id', kit.id).select().single(),
+    )
+    const seen = ok(await playerB.db.from('characters').select('backstory').eq('id', kit.id).single())
+    assert.equal(seen.backstory, 'Raised by wolves.')
+    noEffect(
+      await playerB.db.from('characters').update({ backstory: 'hacked', version: kit.version }).eq('id', kit.id).select(),
+      'another player edits the backstory',
+    )
+  })
+
+  test('The owner and the DM edit private notes and coins; nobody else can', async () => {
+    let row = ok(await privateRow(playerA, kit.id))[0]
+    row = ok(
+      await playerA.db.from('character_private').update({ notes: 'Owes Bex 5 gp', gp: 12, version: row.version }).eq('id', row.id).select().single(),
+    )
+    assert.equal(row.gp, 12)
+    for (const user of [playerB, outsider]) {
+      noEffect(
+        await user.db.from('character_private').update({ gp: 999, version: row.version }).eq('id', row.id).select(),
+        'someone else edits coins',
+      )
+    }
+    refused(
+      await playerA.db.from('character_private').update({ gp: -1, version: row.version }).eq('id', row.id).select(),
+      'negative coins',
+    )
+    refused(
+      await playerA.db.from('character_private').update({ audience: 'members', version: row.version }).eq('id', row.id).select(),
+      'player makes private notes public',
+    )
+    refused(
+      await playerA.db.from('character_private').update({ owner_id: playerB.id, version: row.version }).eq('id', row.id).select(),
+      'player gives the row away',
+    )
+    refused(
+      await playerA.db.from('character_private').update({ deleted_at: new Date().toISOString(), version: row.version }).eq('id', row.id).select(),
+      'player soft-deletes the row',
+    )
+    refused(
+      await playerA.db.from('character_private').insert({ character_id: kit.id, campaign_id: campaignId }),
+      'player inserts a second private row',
+    )
+    noEffect(await playerA.db.from('character_private').delete().eq('id', row.id).select(), 'player deletes the row')
+
+    row = ok(await dm.db.from('character_private').update({ pp: 3, version: row.version }).eq('id', row.id).select().single())
+    assert.equal(row.pp, 3)
+    assert.equal(row.notes, 'Owes Bex 5 gp')
+  })
+
+  test('The owner adds and edits items on their own character only; other players see nothing', async () => {
+    rope = ok(
+      await playerA.db
+        .from('inventory_items')
+        .insert({ character_id: kit.id, campaign_id: otherCampaignId, name: 'Rope', weight: 10 })
+        .select()
+        .single(),
+    )
+    assert.equal(rope.owner_id, playerA.id)
+    assert.equal(rope.campaign_id, campaignId, 'the campaign comes from the character')
+    assert.equal(rope.quantity, 1)
+    assert.equal(rope.audience, 'owner')
+
+    for (const user of [playerB, outsider]) {
+      assert.equal(ok(await user.db.from('inventory_items').select('id').eq('id', rope.id)).length, 0, 'reads the item')
+      noEffect(
+        await user.db.from('inventory_items').update({ name: 'hacked', version: rope.version }).eq('id', rope.id).select(),
+        'edits the item',
+      )
+      refused(await user.db.rpc('delete_item', { p_item_id: rope.id }), 'deletes the item')
+    }
+    refused(
+      await playerB.db.from('inventory_items').insert({ character_id: kit.id, campaign_id: campaignId, name: 'Gift' }),
+      "adds an item to someone else's character",
+    )
+    refused(
+      await playerA.db.from('inventory_items').insert({ character_id: bex.id, campaign_id: campaignId, name: 'Gift' }),
+      "adds an item to someone else's character",
+    )
+    refused(
+      await outsider.db.from('inventory_items').insert({ character_id: kit.id, campaign_id: campaignId, name: 'Gift' }),
+      'a non-member adds an item',
+    )
+    refused(
+      await playerA.db.from('inventory_items').insert({ character_id: kit.id, campaign_id: campaignId, name: 'Shared', audience: 'members' }),
+      'a player makes an item public',
+    )
+    refused(
+      await playerA.db.from('inventory_items').insert({ character_id: kit.id, campaign_id: campaignId, name: '  ' }),
+      'an empty name',
+    )
+
+    rope = ok(
+      await playerA.db.from('inventory_items').update({ quantity: 2, equipped: true, version: rope.version }).eq('id', rope.id).select().single(),
+    )
+    assert.equal(rope.quantity, 2)
+    for (const bad of [{ quantity: -1 }, { weight: -0.5 }, { character_id: bex.id }, { audience: 'members' }]) {
+      refused(
+        await playerA.db.from('inventory_items').update({ ...bad, version: rope.version }).eq('id', rope.id).select(),
+        `player sets ${JSON.stringify(bad)}`,
+      )
+    }
+
+    const fromDm = ok(
+      await dm.db.from('inventory_items').insert({ character_id: kit.id, campaign_id: campaignId, name: 'Cursed ring' }).select().single(),
+    )
+    assert.equal(fromDm.owner_id, playerA.id, "an item the DM adds belongs to the character's owner")
+    rope = ok(await dm.db.from('inventory_items').update({ weight: 5, version: rope.version }).eq('id', rope.id).select().single())
+    assert.equal(Number(rope.weight), 5)
+  })
+
+  test('Items are deleted only through delete_item, softly', async () => {
+    noEffect(await playerA.db.from('inventory_items').delete().eq('id', rope.id).select(), 'hard delete')
+    refused(
+      await playerA.db.from('inventory_items').update({ deleted_at: new Date().toISOString(), version: rope.version }).eq('id', rope.id).select(),
+      'setting deleted_at directly',
+    )
+    ok(await playerA.db.rpc('delete_item', { p_item_id: rope.id }))
+    assert.equal(ok(await playerA.db.from('inventory_items').select('id').eq('id', rope.id)).length, 0)
+    const kept = ok(await admin.from('inventory_items').select('deleted_at').eq('id', rope.id).single())
+    assert.ok(kept.deleted_at, 'the row is kept, marked deleted')
+    refused(await playerA.db.rpc('delete_item', { p_item_id: rope.id }), 'deleting twice')
+  })
+
+  test('If the DM gives a character to someone else, its private row and items go with it', async () => {
+    const pet = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Pet' }))
+    const item = ok(
+      await playerA.db.from('inventory_items').insert({ character_id: pet.id, campaign_id: campaignId, name: 'Collar' }).select().single(),
+    )
+    ok(await dm.db.from('characters').update({ owner_id: playerB.id, version: pet.version }).eq('id', pet.id).select())
+    assert.equal(ok(await privateRow(playerB, pet.id)).length, 1)
+    assert.equal(ok(await privateRow(playerA, pet.id)).length, 0)
+    assert.equal(ok(await playerB.db.from('inventory_items').select('id').eq('id', item.id)).length, 1)
+    assert.equal(ok(await playerA.db.from('inventory_items').select('id').eq('id', item.id)).length, 0)
+  })
+
+  test('Deleting a character hides its private row and items from players, not from the DM', async () => {
+    const item = ok(
+      await playerA.db.from('inventory_items').insert({ character_id: kit.id, campaign_id: campaignId, name: 'Torch' }).select().single(),
+    )
+    ok(await playerA.db.rpc('delete_character', { p_character_id: kit.id }))
+    assert.equal(ok(await privateRow(playerA, kit.id)).length, 0)
+    assert.equal(ok(await playerA.db.from('inventory_items').select('id').eq('character_id', kit.id)).length, 0)
+    assert.equal(ok(await privateRow(dm, kit.id)).length, 1)
+    assert.equal(ok(await dm.db.from('inventory_items').select('id, deleted_at').eq('id', item.id).single()).deleted_at !== null, true)
+    refused(
+      await playerA.db.from('inventory_items').insert({ character_id: kit.id, campaign_id: campaignId, name: 'Late' }),
+      'adding an item to a deleted character',
+    )
+  })
+
+  test('Deleting an account removes its private rows and items for good', async () => {
+    const quitter = await makeUser('quitter-items')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: campaignId, user_id: quitter.id }))
+    const character = ok(await quitter.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Packed' }))
+    ok(await quitter.db.from('inventory_items').insert({ character_id: character.id, campaign_id: campaignId, name: 'Bag' }))
+    ok(await quitter.db.rpc('delete_my_account'))
+    assert.equal(ok(await admin.from('character_private').select('id').eq('character_id', character.id)).length, 0)
+    assert.equal(ok(await admin.from('inventory_items').select('id').eq('character_id', character.id)).length, 0)
+  })
+
+  test('Someone not logged in cannot read or write either table', async () => {
+    for (const table of ['character_private', 'inventory_items']) {
+      const result = await anon.from(table).select('*')
+      assert.ok(result.error || result.data.length === 0, `anonymous sees ${table}`)
+    }
+    refused(
+      await anon.from('inventory_items').insert({ character_id: bex.id, campaign_id: campaignId, name: 'Spam' }),
+      'anonymous insert',
+    )
+    refused(await anon.rpc('delete_item', { p_item_id: rope.id }), 'anonymous delete_item')
+  })
+})
+
 async function firstWorldId(): Promise<string> {
   return ok(await dm.db.from('worlds').select('id').limit(1).single()).id
 }
