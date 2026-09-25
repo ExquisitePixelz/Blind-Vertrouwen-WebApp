@@ -11,9 +11,18 @@ if (!url || !key) {
 export const supabase = createClient(url, key, {
   auth: { flowType: 'pkce' },
   // keepalive lets a save started while the tab is closing still reach the
-  // server (ARCHITECTURE.md 3.4). Only small bodies are allowed; ours are.
-  global: { fetch: (input, init) => fetch(input, { ...init, keepalive: true }) },
+  // server (ARCHITECTURE.md 3.4). Browsers refuse keepalive for bodies over
+  // 64 KB (long session notes), so those are sent as normal requests; the
+  // local backup in saver.ts still covers them.
+  global: { fetch: (input, init) => fetch(input, { ...init, keepalive: fitsKeepalive(init?.body) }) },
 })
+
+const KEEPALIVE_LIMIT = 60_000
+
+function fitsKeepalive(body: BodyInit | null | undefined) {
+  if (body == null) return true
+  return typeof body === 'string' && new Blob([body]).size < KEEPALIVE_LIMIT
+}
 
 /** Unwrap a Supabase result: return the data, or throw its error message. */
 export function must<T>(result: { data: T; error: { message: string } | null }): T {

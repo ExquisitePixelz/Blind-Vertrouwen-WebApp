@@ -18,6 +18,7 @@ import { PietyPage } from './pages/PietyPage'
 import { PlayersPage } from './pages/PlayersPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { SessionPage } from './pages/SessionPage'
 import { SessionsPage } from './pages/SessionsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { useRememberCampaign } from './lib/campaigns'
@@ -120,6 +121,7 @@ function Screens() {
         <Route path="/c/:campaignId/piety" element={<PietyPage />} />
         <Route path="/c/:campaignId/players" element={<PlayersPage />} />
         <Route path="/c/:campaignId/sessions" element={<SessionsPage />} />
+        <Route path="/c/:campaignId/sessions/:sessionId" element={<SessionPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/gods" element={<GodsPage />} />
         <Route path="/gods/:slug" element={<GodPage />} />

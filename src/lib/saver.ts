@@ -113,6 +113,7 @@ export function useRowSaver<T extends Row>(table: string, row: T | undefined, on
   const draft = useRef<Patch>({}) // changes not sent yet
   const inflight = useRef<Patch | null>(null) // changes on their way
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const running = useRef<Promise<void> | null>(null) // the save loop, while it runs
   const savedCallback = useRef(onSaved)
   useEffect(() => {
     savedCallback.current = onSaved
@@ -131,26 +132,43 @@ export function useRowSaver<T extends Row>(table: string, row: T | undefined, on
     if (!id || version.current === null || inflight.current || !Object.keys(draft.current).length) return
 
     setStatus('saving')
-    try {
-      // Keep sending until nothing new was typed while the last save was on its way.
-      while (Object.keys(draft.current).length) {
-        inflight.current = draft.current
-        draft.current = {}
-        const saved: T = await send<T>(table, id, version.current!, inflight.current)
-        version.current = saved.version
+    const run = (async () => {
+      try {
+        // Keep sending until nothing new was typed while the last save was on its way.
+        while (Object.keys(draft.current).length) {
+          inflight.current = draft.current
+          draft.current = {}
+          const saved: T = await send<T>(table, id, version.current!, inflight.current)
+          version.current = saved.version
+          inflight.current = null
+          persist()
+          savedCallback.current(saved)
+        }
+        setLocal({})
+        setStatus('saved')
+      } catch (e) {
+        // Put the changes back so nothing typed is lost.
+        draft.current = { ...inflight.current, ...draft.current }
         inflight.current = null
-        persist()
-        savedCallback.current(saved)
+        setStatus(e instanceof ConflictError ? 'conflict' : 'unsaved')
       }
-      setLocal({})
-      setStatus('saved')
-    } catch (e) {
-      // Put the changes back so nothing typed is lost.
-      draft.current = { ...inflight.current, ...draft.current }
-      inflight.current = null
-      setStatus(e instanceof ConflictError ? 'conflict' : 'unsaved')
-    }
+    })()
+    running.current = run
+    await run
+    if (running.current === run) running.current = null
   }, [table, id, persist])
+
+  /**
+   * Send everything now and wait until it has reached the server. `saved` is
+   * false when something could not be sent (offline, conflict); `version` is
+   * the row's version on the server.
+   */
+  const settle = useCallback(async () => {
+    while (running.current) await running.current
+    await flush()
+    while (running.current) await running.current
+    return { saved: !inflight.current && !Object.keys(draft.current).length, version: version.current }
+  }, [flush])
 
   // Adopt the server's version whenever the row is (re)loaded and nothing is
   // waiting; pick up changes left over from an earlier visit.
@@ -234,5 +252,5 @@ export function useRowSaver<T extends Row>(table: string, row: T | undefined, on
   )
 
   const view = row ? ({ ...row, ...local } as T) : undefined
-  return { view, status, change, flush, keepMine, discardMine }
+  return { view, status, change, flush, settle, keepMine, discardMine }
 }
