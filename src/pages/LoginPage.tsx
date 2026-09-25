@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link } from 'react-router'
 import { clearLoginNotice, readLoginNotice } from '../lib/access'
 import { emailLoginEnabled, logInWithEmail, sendPasswordReset, signUpWithEmail } from '../lib/emailAuth'
 import { googleClientId, renderGoogleButton } from '../lib/googleSignIn'
@@ -54,9 +53,6 @@ export function LoginPage({ inviteCode, notice: passedNotice }: { inviteCode?: s
             Back to log in
           </button>
         )}
-        <Link to="/privacy" className="muted">
-          Privacy policy
-        </Link>
       </p>
     </main>
   )

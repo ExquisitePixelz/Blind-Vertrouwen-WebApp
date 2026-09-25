@@ -54,7 +54,7 @@ Until this is done the site keeps the old login, whose Google window says "conti
 4. Push any commit (or re-run the Deploy workflow) so the site is rebuilt with the variable. The login page now shows Google's button.
 5. **Brand verification**, so the Google window shows the app name and logo:
    1. [Google Search Console](https://search.google.com/search-console): add a **Domain** property `yannickmul.nl`. Google shows a `TXT` record; add it in the Strato DNS settings for `yannickmul.nl`, wait a few minutes, then press Verify.
-   2. Google Cloud console → **Google Auth Platform** → **Branding**: app name `Theros DM Companion`, a square logo of 120 × 120 px, homepage `https://dnd.yannickmul.nl`, privacy policy `https://dnd.yannickmul.nl/privacy`, and `yannickmul.nl` under Authorized domains. Save.
+   2. Google Cloud console → **Google Auth Platform** → **Branding**: app name `Theros DM Companion`, a square logo of 120 × 120 px, homepage `https://dnd.yannickmul.nl`, privacy policy `https://dnd.yannickmul.nl/privacy`, terms of service `https://dnd.yannickmul.nl/terms`, and `yannickmul.nl` under Authorized domains. Save.
    3. Google Auth Platform → **Verification Centre** → submit for brand verification. The app must be **In production** (Audience page), not Testing. Google takes a few business days.
 6. Redo the WhatsApp test: send yourself an invite link in WhatsApp and log in from it on an Android phone and an iPhone.
 

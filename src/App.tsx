@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useMatch } from 'react-router'
+import { Footer } from './components/Footer'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { checkAccess, INVITE_ONLY, signOutWith } from './lib/access'
 import { consumeMailToken } from './lib/emailAuth'
@@ -21,12 +22,16 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SessionPage } from './pages/SessionPage'
 import { SessionsPage } from './pages/SessionsPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { TermsPage } from './pages/TermsPage'
 import { useRememberCampaign } from './lib/campaigns'
 
 export default function App() {
   return (
     <>
-      <Screens />
+      <div className="screen">
+        <Screens />
+      </div>
+      <Footer />
       <UpdatePrompt />
     </>
   )
@@ -36,6 +41,7 @@ function Screens() {
   const session = useSession()
   const onInvite = useMatch('/invite/:code')
   const onPrivacy = useMatch('/privacy')
+  const onTerms = useMatch('/terms')
   const onReset = useMatch('/reset-password')
   // Opened from a verification mail (1.7): log in with its token first.
   const [confirming, setConfirming] = useState(() => !onReset && new URLSearchParams(window.location.search).has('token_hash'))
@@ -103,6 +109,7 @@ function Screens() {
   }, [userId])
 
   if (onPrivacy) return <PrivacyPage />
+  if (onTerms) return <TermsPage />
   if (onReset) return <ResetPasswordPage />
   if (confirming) return <main className="page center muted">Confirming your email…</main>
   if (session === undefined) return null

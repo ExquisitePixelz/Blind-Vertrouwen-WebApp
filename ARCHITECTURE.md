@@ -551,6 +551,15 @@ Realtime is added later together with the features that need it, such as live co
 - **Domain protection:** also verify `yannickmul.nl` in the GitHub account settings (Pages → verified domains), so nobody else can claim the subdomain.
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
+### 3.9 Version number. *Decided (owner, 2026-09-25)*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha").
+- **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …); a fix between phases adds 1 to the last number (`0.5.1-alpha`).
+- **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
+- **Release:** `1.0.0`, when the owner says everything works.
+- **Rule for the agent:** bump the version in the same commit that finishes a phase or a fix, and keep `package-lock.json` in step.
+
+**Footer on every page** *(owner, 2026-09-25)*: "Theros DM Companion v…", "Created by: Yannick Mul", and links to the privacy policy (`/privacy`) and the terms of use (`/terms`). Both pages are readable without logging in. The terms page is optional for Google's branding, but linked there too.
+
 ---
 
 ## 4. Data model (version 1)

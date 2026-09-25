@@ -1092,3 +1092,43 @@ button.dash-button {
   margin-top: 1.25rem;
   text-align: center;
 }
+
+/* ---------- Footer (every page) ---------- */
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.screen {
+  flex: 1;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1rem;
+  max-width: 40rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1rem max(var(--gutter), env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom))
+    max(var(--gutter), env(safe-area-inset-left));
+  border-top: 1px solid var(--surface);
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--muted);
+}
