@@ -1109,6 +1109,7 @@ button.dash-button {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center; /* the links are taller (44 px tap area) than the text */
   gap: 0.25rem 1rem;
   max-width: 40rem;
   width: 100%;
