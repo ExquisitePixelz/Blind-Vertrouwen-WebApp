@@ -22,14 +22,28 @@ const noSession = { auth: { persistSession: false, autoRefreshToken: false } }
 const admin = createClient(url, adminKey, noSession)
 const anon = createClient(url, publicKey, noSession)
 
+// Email sign-ups need a valid invite code (Phase 4.7 hook). Test users are
+// made with email, so they carry one, from a campaign made only for this.
+let signupCode: string | undefined
+
+async function bootstrapInvite(): Promise<string> {
+  const world = ok(await admin.from('worlds').select('id').eq('name', 'Theros').single())
+  const campaign = ok(
+    await admin.from('campaigns').insert({ world_id: world.id, name: 'Sign-up codes' }).select('id').single(),
+  )
+  const invite = ok(await admin.from('campaign_invites').insert({ campaign_id: campaign.id }).select('code').single())
+  return invite.code
+}
+
 async function makeUser(label: string): Promise<{ id: string; db: SupabaseClient }> {
+  signupCode ??= await bootstrapInvite()
   const email = `${label}-${randomUUID()}@test.local`
   const password = randomUUID()
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: label },
+    user_metadata: { full_name: label, invite_code: signupCode },
   })
   if (error) throw error
   const db = createClient(url, publicKey!, noSession)
@@ -68,6 +82,7 @@ let characterB: { id: string }
 let trackA: { id: string; score: number; god_id: string }
 
 before(async () => {
+  signupCode = await bootstrapInvite() // before the users are made in parallel
   ;[dm, playerA, playerB, outsider] = await Promise.all([
     makeUser('dm'),
     makeUser('player-a'),
@@ -614,6 +629,52 @@ describe('invite-only access (Phase 4.6)', () => {
     refused(await dm.db.rpc('delete_my_account'), 'DM deletes own account')
     assert.ok(await exists(dm.id))
     refused(await anon.rpc('delete_my_account'), 'anonymous delete_my_account')
+  })
+})
+
+describe('email sign-up needs an invite (Phase 4.7)', () => {
+  const signUp = (invite_code?: string) =>
+    createClient(url, publicKey!, noSession).auth.signUp({
+      email: `signup-${randomUUID()}@test.local`,
+      password: randomUUID(),
+      options: { data: { full_name: 'New Player', invite_code } },
+    })
+
+  test('Without an invite code, or with a revoked or expired one, no account is created', async () => {
+    const revoked = ok(
+      await dm.db
+        .from('campaign_invites')
+        .insert({ campaign_id: campaignId, revoked_at: new Date().toISOString() })
+        .select('code')
+        .single(),
+    )
+    const expired = ok(
+      await dm.db
+        .from('campaign_invites')
+        .insert({ campaign_id: campaignId, expires_at: '2020-01-01T00:00:00Z' })
+        .select('code')
+        .single(),
+    )
+    for (const [code, label] of [
+      [undefined, 'no code'],
+      ['not-a-real-code', 'unknown code'],
+      [revoked.code, 'revoked code'],
+      [expired.code, 'expired code'],
+    ]) {
+      const result = await signUp(code)
+      assert.ok(result.error, `${label}: expected the sign-up to be refused`)
+      assert.equal(result.data.user, null, `${label}: an account was created`)
+    }
+  })
+
+  test('With a valid invite code the account is created, named from the form, and can join', async () => {
+    const invite = ok(await dm.db.from('campaign_invites').insert({ campaign_id: campaignId }).select('code').single())
+    const result = await signUp(invite.code)
+    assert.equal(result.error, null, JSON.stringify(result.error))
+    const user = result.data.user!
+    const profile = ok(await admin.from('profiles').select('display_name').eq('id', user.id).single())
+    assert.equal(profile.display_name, 'New Player')
+    assert.equal(ok(await admin.from('campaign_members').select('user_id').eq('user_id', user.id)).length, 0, 'the code alone does not join')
   })
 })
 
