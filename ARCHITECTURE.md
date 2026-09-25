@@ -645,6 +645,9 @@ Detailed columns for characters and gods come from the specification in section 
 | `characters` | Campaign | Player characters. Owned by the creating player. |
 | `gods` | World | The pantheon of Theros, shown on the Gods page and offered as choices at character creation. |
 | `piety_tracks` | Campaign | One row per piety track a character has (details below). |
+| `sessions`, `session_attendance` | Campaign | DM-only session notes (Phase 5, below). |
+| `character_private` | Campaign | A character's private notes and coins, audience `owner` (Phase 6, below). |
+| `inventory_items` | Campaign | A character's items, audience `owner` (Phase 6, below). |
 
 **`piety_tracks` columns:**
 - `character_id`
@@ -689,7 +692,7 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
   - `create_character(campaign, name, god or null)` creates the character and its score-0 track together.
   - `delete_character(id)` soft-deletes the character and its tracks. Players cannot set `deleted_at` directly.
   - `accept_invite(code)` joins a campaign.
-  - *Added later:* `check_access()` (1.6: is this user let in; deletes a stranger's empty account), `delete_my_account()` (1.6), `create_session(campaign, number or null)` (1.4). The *Before User Created* hook `private.before_user_created` (1.7) is called by Supabase Auth, not the website.
+  - *Added later:* `check_access()` (1.6: is this user let in; deletes a stranger's empty account), `delete_my_account()` (1.6), `create_session(campaign, number or null)` (1.4), `delete_item(id)` (1.8; `delete_character` now also soft-deletes the private row and items). The *Before User Created* hook `private.before_user_created` (1.7) is called by Supabase Auth, not the website.
 - **Conflict guard:** a save must send the `version` it loaded. If the row changed since then, the database refuses it with HTTP 409. `version`, `created_at` and `updated_at` are always set by triggers.
 - **Owner-only fields:** a player cannot change a character's `owner_id`, `campaign_id` or `deleted_at`.
 - **Character stats:** the six abilities are stored as `strength` … `charisma`.
