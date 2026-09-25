@@ -8,4 +8,4 @@ Read ARCHITECTURE.md before doing any work. It is the plan and decision record f
 - When a decision changes, update ARCHITECTURE.md in the same commit.
 - Never commit secrets: no Supabase service-role key, database password or data exports.
 
-Current phase: 5 (session notes). Phases 4.5, 4.6 and 4.7 are built; Phase 4 is skipped for now.
+Current phase: none. Phases 4.5 to 5 are built; the owner picks the next roadmap item (section 5, 'Where we are'). Phase 4 is skipped for now.

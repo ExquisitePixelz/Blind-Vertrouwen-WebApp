@@ -644,7 +644,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 4.5: look and navigation (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Built** (2026-09-25). Owner to-dos: the Google console steps in the README, brand verification, and the WhatsApp retest. |
 | Phase 4.6: invite-only access, remove player, delete my account (1.6) | **Built** (2026-09-25) |
 | Phase 4.7: email and password login (1.7): sign-up through invite links, verification mail, forgot password, Resend | **Built and tested by the owner** (2026-09-25) |
-| **Phase 5: session notes** (1.4): DM-only notes numbered from a chosen start, markdown, attendance | **Next.** Start at step 1. |
+| Phase 5: session notes (1.4): DM-only notes numbered from a chosen start, markdown, attendance | **Built** (2026-09-25), checked by the owner |
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | 1. Player features: character notes and inventory (items designed to carry effects later) | Planned next after Phase 5 |
 | 2. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
