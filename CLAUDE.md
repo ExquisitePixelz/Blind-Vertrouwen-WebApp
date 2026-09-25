@@ -9,4 +9,4 @@ Read ARCHITECTURE.md before doing any work. It is the plan and decision record f
 - Bump the version in package.json when a phase or fix is finished (ARCHITECTURE.md 3.9).
 - Never commit secrets: no Supabase service-role key, database password or data exports.
 
-Current phase: none. Phases 4.5 to 5 are built; the owner picks the next roadmap item (section 5, 'Where we are'). Phase 4 is skipped for now.
+Current phase: Phase 6, player features (ARCHITECTURE.md 1.8). Phase 4 is skipped for now.

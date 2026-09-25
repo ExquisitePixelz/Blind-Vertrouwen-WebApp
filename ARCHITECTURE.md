@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. The same day the owner started Phase 6 (player features, section 1.8). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -430,6 +430,50 @@ The website checks the form before sending: a valid-looking email (trimmed, lowe
 
 **Not in 4.7:** changing email or password from Settings (use Forgot password), login with a username, magic links, other providers.
 
+### 1.8 Phase 6: Player features, notes and inventory *(put in scope by the owner, 2026-09-25)*
+
+Players get a place on their own character sheet for their story, their private notes, their money and their things. Everything is on the **character sheet**, in new sections below the abilities (owner decision, 2026-09-25). Who can write stays as in B4: the character's owner and the DM. Who can read depends on the section.
+
+**Backstory** (everyone in the campaign reads):
+- One text area for backstory, goals and personality, with markdown and an **Edit / Preview** toggle, as in the session note taker (1.4). Raw HTML is switched off.
+- It opens on Preview when it has text. Other players see only the rendered text; when empty they see "No backstory yet."
+- It saves through the character's save hook (3.4), 1 s after typing stops.
+
+**Private notes** (only the owner and the DM read):
+- One text area like Backstory, labelled "Private notes", with the muted line "Only the player and the DM can see this."
+- Other players do not see the section at all.
+
+**Coins** (only the owner and the DM):
+- A row of four tiles: **CP, SP, GP, PP**. No electrum (owner decision, 2026-09-25).
+- Tapping a tile opens the number dialog with **Add**, **Spend** and **Set**, like the HP dialog. Spend never goes below 0. Up to 6 digits (coins can pass 9,999, unlike the stats in A1).
+
+**Inventory** (only the owner and the DM):
+- A list of items, sorted by name (case-insensitive). Each row shows:
+  - the **name** in bold, with `×{quantity}` after it when the quantity is not 1
+  - on the right, muted: the row's weight, `{quantity × weight} lb`, left out when 0
+  - a second line with an **Equipped** and/or **Attuned** chip, left out when neither
+- With no items: "No items yet."
+- **Add item** asks only for the name (text prompt). The item starts at quantity 1 and weight 0, and its editor opens.
+- **Item editor** (a dialog; title is the item's name), with tappable rows:
+  - **Name** (text prompt, cannot be empty)
+  - **Quantity** (number dialog, 0 or more; 0 keeps the item, e.g. out of arrows)
+  - **Weight** per item in lb (a decimal, e.g. 0.5; comma or dot both work)
+  - **Equipped** and **Attuned** (on/off)
+  - **Description** (plain multiline text, saves like other typing)
+  - **Delete item** (confirm dialog; soft delete)
+- **Totals** below the list, muted:
+  - `Carried {total} / {capacity} lb`: total = the sum of quantity × weight, plus coins at 50 to the pound. Capacity = STR × 15 (PHB). Shown red when over.
+  - `Attuned {n} / 3`, shown when n is above 0, red when above 3.
+  - Neither total blocks anything; they are reminders, like C4.
+
+**Why a separate private row.** RLS works on whole rows (3.3), so private notes and coins cannot be columns on `characters`, which every player in the campaign reads. They go in their own one-per-character row with audience `owner`. Inventory items are rows with audience `owner` too.
+
+**Ready for item effects (6.1 part 2).** Equipped and Attuned are what effects will hang on. The effects themselves come later as their own table (or a link to a library item); no speculative columns now.
+
+**Removed players and deleted accounts.** Same as characters (1.6): a removed player's notes, coins and items stay, visible only to the DM. Deleting an account removes them for good. Deleting a character soft-deletes them with it.
+
+**Not in Phase 6 (roadmap):** item effects and the automatic sheet (6.1), items shared with or given to other players, a party stash, item pictures, secret item rules (3.3), encumbrance rules, spell components, a shop.
+
 ---
 
 ## 2. Priorities
@@ -624,6 +668,13 @@ Detailed columns for characters and gods come from the specification in section 
 
 Only the DM can read or write sessions and attendance. Add these cases to the permission test: players and non-members cannot read or write sessions, and duplicate live numbers in one campaign are refused.
 
+**Phase 6 (section 1.8):**
+- `characters.backstory` (long text, may be empty). Audience `members`, like the rest of the character.
+- `character_private`: the standard columns with `campaign_id` and audience `owner`, plus `character_id` (unique: one row per character), `notes` (long text), and `cp`, `sp`, `gp`, `pp` (integers, 0 to 999,999). The database creates it together with the character and backfills existing characters. Players never insert or delete it; the owner and the DM edit it.
+- `inventory_items`: the standard columns with `campaign_id` and audience `owner`, plus `character_id`, `name` (not empty), `quantity` (integer, 0 or more, default 1), `weight` (lb per item, decimal, 0 or more, default 0), `description` (text), `equipped` and `attuned` (true/false). The owner and the DM create and edit; deleting goes through `delete_item(id)` (soft delete).
+- On both, `owner_id` is set by the database to the character's owner, and follows it if the character changes owner. Players cannot change `owner_id`, `audience`, `campaign_id`, `character_id` or `deleted_at`.
+- Permission test: other players and non-members cannot read or write either table; a player cannot add items to someone else's character; the owner and the DM can; players cannot insert or delete the private row; deleting a character hides them; deleting an account removes them.
+
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
 
 **As built (Phase 2, 2026-09-24).** Schema: `supabase/migrations/`. Permission test: `tests/permissions.test.ts`.
@@ -666,9 +717,9 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 5: session notes (1.4): DM-only notes numbered from a chosen start, markdown, attendance | **Built** (2026-09-25), checked by the owner |
 | Extras (2026-09-25): footer on every page, terms page, version number (3.9), rename to DnD Companion App | **Built**, version `0.5.2-alpha` |
 | Then, from the roadmap (section 6), in the owner's current order: | |
-| 1. Player features: character notes and inventory (items designed to carry effects later) | **Suggested next**; waiting for the owner to say start. Write it up as its own section and phase first. |
-| 2. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
-| 3. Quest Journal (6.2) | Owner decides when |
+| Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **In progress** (started 2026-09-25) |
+| 1. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
+| 2. Quest Journal (6.2) | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
 A roadmap item becomes buildable only when the owner says to start it. At that point, write it up as its own scope section (like 1.4 and 1.5) and phase, and add its build steps below.
@@ -772,6 +823,15 @@ Done as one group session with several people and devices at once.
 
 One step per commit. **Do not add anything that is not in section 1.4.**
 
+### Phase 6: Player features (section 1.8)
+1. Migration: `characters.backstory`, `character_private` (created with each character, existing ones backfilled) and `inventory_items`, with RLS, `delete_item`, updates to `delete_character`, and new cases in the permission test. Pushed alone first; the owner runs `db push`.
+2. Backstory and Private notes on the character sheet (markdown, Edit / Preview, autosave).
+3. Coins row with Add / Spend / Set.
+4. Inventory list, Add item, the item editor, and Delete item.
+5. Totals: carried weight against capacity, and attunement (a unit-tested calculation in `src/lib`). Version `0.6.0-alpha`.
+
+One step per commit. **Do not add anything that is not in section 1.8.**
+
 ---
 
 ## 6. Roadmap input (unordered; the owner decides what and when)
@@ -789,7 +849,7 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
 | **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
-| **Player features: character notes and inventory** *(owner's pick for the next phase after Phase 5, 2026-09-24)*: a free-text notes field on a player's own sheet (backstory, goals), and an inventory private to the player and the DM | `characters` (owner and DM write); the `owner` audience. Items should be able to carry effects later (6.1, part 2). |
+| **Player features: character notes and inventory** *(moved into Phase 6, see 1.8)* | |
 | **Session notes: character/god links** *(owner interest, 2026-09-24)*: mention a character or god in the notes as a tappable link | The `sessions` table and markdown (1.4). Links can be stored as text markers, so no new table is needed. |
 | **Initiative tracker** *(owner interest)*: turn order for combat that players see live on their phones | Needs Supabase Realtime, so this is the same project as Live combat |
 | **NPC / lore notes** *(owner interest)*: NPCs, places and factions, each entry either DM only or shared with players, with secret parts in their own `dm` row | The world level, the `dm` / `members` audiences, and the separate-secret-row pattern in 3.3 |
@@ -858,6 +918,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
    - Phones that installed the app: on iPhone, remove and re-add it to pick up the new name.
 
 **Resolved:**
+- **Player features (Phase 6):** on the character sheet; a Backstory everyone in the campaign reads plus Private notes for the player and DM; items with name, quantity, weight, description, Equipped and Attuned, and a carried-weight total; a coin row without electrum (owner decisions, 2026-09-25). See section 1.8.
 - **App name:** the web app is **DnD Companion App** (owner, 2026-09-25); the Unity app keeps its name.
 - **Footer, terms page, version number:** see 3.9 (owner, 2026-09-25).
 - **Google sign-ups get no verification mail**, and there is no DM approval step (owner, 2026-09-25). See 1.7.
