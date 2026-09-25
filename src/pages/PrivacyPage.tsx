@@ -24,6 +24,10 @@ export function PrivacyPage() {
           for your account. Nothing else, and never your password.
         </li>
         <li>
+          <strong>If you use email instead of Google</strong>: your email address and your password. The password is
+          never stored as you typed it, only as a salted hash that cannot be turned back into the password.
+        </li>
+        <li>
           <strong>What you type into the site</strong>: your display name, your characters and anything else you
           enter for the campaign.
         </li>
@@ -37,7 +41,8 @@ export function PrivacyPage() {
 
       <h2>Where it is kept</h2>
       <p>
-        In a database at Supabase, which also handles the login. Your browser keeps your login and any change that has
+        In a database at Supabase, which also handles the login. Verification and password-reset mails are sent
+        through Resend. Your browser keeps your login and any change that has
         not reached the server yet, so nothing you type is lost. There are no tracking or advertising cookies.
       </p>
 

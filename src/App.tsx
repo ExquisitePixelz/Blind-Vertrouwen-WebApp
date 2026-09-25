@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useMatch } from 'react-router'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { checkAccess, INVITE_ONLY, signOutWith } from './lib/access'
+import { consumeMailToken } from './lib/emailAuth'
 import { MeContext, type Me } from './lib/me'
 import { flushAllPending, setPendingOwner } from './lib/saver'
 import { must, supabase } from './lib/supabase'
@@ -16,6 +17,7 @@ import { LoginPage } from './pages/LoginPage'
 import { PietyPage } from './pages/PietyPage'
 import { PlayersPage } from './pages/PlayersPage'
 import { PrivacyPage } from './pages/PrivacyPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { useRememberCampaign } from './lib/campaigns'
 
@@ -32,6 +34,19 @@ function Screens() {
   const session = useSession()
   const onInvite = useMatch('/invite/:code')
   const onPrivacy = useMatch('/privacy')
+  const onReset = useMatch('/reset-password')
+  // Opened from a verification mail (1.7): log in with its token first.
+  const [confirming, setConfirming] = useState(() => !onReset && new URLSearchParams(window.location.search).has('token_hash'))
+  const [authNotice, setAuthNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!confirming) return
+    consumeMailToken()
+      .catch((e) => setAuthNotice(e instanceof Error ? e.message : String(e)))
+      .finally(() => setConfirming(false))
+    // Once, on the page the mail opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
   const userId = session?.user.id
@@ -86,14 +101,10 @@ function Screens() {
   }, [userId])
 
   if (onPrivacy) return <PrivacyPage />
+  if (onReset) return <ResetPasswordPage />
+  if (confirming) return <main className="page center muted">Confirming your email…</main>
   if (session === undefined) return null
-  if (!session) {
-    return (
-      <LoginPage
-        message={onInvite ? 'You have been invited to a Theros campaign. Log in with Google to join.' : undefined}
-      />
-    )
-  }
+  if (!session) return <LoginPage inviteCode={onInvite?.params.code} notice={authNotice} />
   if (error) return <main className="page center error">{error}</main>
   if (!me) return null
 

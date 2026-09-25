@@ -33,6 +33,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_EMAIL_LOGIN: ${{ vars.VITE_EMAIL_LOGIN }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

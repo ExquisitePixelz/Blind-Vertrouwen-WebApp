@@ -415,6 +415,8 @@ The website checks the form before sending: a valid-looking email (trimmed, lowe
 
 **Sending mail: Resend** (owner decision, 2026-09-25), connected to Supabase as custom SMTP. Free for 3,000 mails a month. The sender is `noreply@yannickmul.nl`; the owner adds Resend's DNS records at Strato so mails do not land in spam. Supabase's built-in sender cannot be used: it only sends to the project team's own addresses.
 
+**As built (2026-09-25):** the email forms appear only when the `VITE_EMAIL_LOGIN` variable is `true` (GitHub Actions variable and `.env.local`), so the site shows Google only until the owner has set up Resend and the Supabase settings (README). The hook lives in the `private` schema. Mail links use `{{ .RedirectTo }}?token_hash=…` templates and `verifyOtp`, so they work on any device. The form checks are unit-tested (`tests/validate.test.ts`).
+
 **Not in 4.7:** changing email or password from Settings (use Forgot password), login with a username, magic links, other providers.
 
 ---

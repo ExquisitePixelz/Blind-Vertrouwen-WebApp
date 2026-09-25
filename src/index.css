@@ -913,3 +913,60 @@ button.row-button {
   padding-top: 0.4rem;
   padding-bottom: 0.4rem;
 }
+
+/* ---------- Email login (1.7) ---------- */
+
+.login {
+  max-width: 24rem;
+  padding-top: calc(10vh + env(safe-area-inset-top));
+}
+
+.or {
+  margin: 1.25rem 0 0.75rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.auth-field input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid #3a3a42;
+  border-radius: 8px;
+}
+
+.auth-field input:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.auth-form button[type='submit'] {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+button.link.forgot {
+  align-self: flex-end;
+  margin-top: -0.25rem;
+}
+
+.login-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 1.25rem;
+}
