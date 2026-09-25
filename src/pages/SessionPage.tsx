@@ -5,6 +5,7 @@ import { ConfirmDialog, Dialog, NumberDialog, PickDialog, PromptDialog } from '.
 import { FactRow } from '../components/FactRow'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
+import { byName } from '../lib/gods'
 import { useMe } from '../lib/me'
 import { useRowSaver } from '../lib/saver'
 import { SESSION_COLUMNS, type Session } from '../lib/sessions'
@@ -125,6 +126,8 @@ function NoteTaker() {
         onBlur={() => void saver.flush()}
       />
 
+      <Attendance campaignId={campaignId} sessionId={s.id} />
+
       {open === 'menu' && (
         <PickDialog<Open>
           title={`Session #${s.number}`}
@@ -181,6 +184,66 @@ function NoteTaker() {
         />
       )}
     </main>
+  )
+}
+
+/**
+ * Attendance (1.4): a checkbox per character in the campaign, sorted by name.
+ * Each tap saves at once; unticking removes the row.
+ */
+function Attendance({ campaignId, sessionId }: { campaignId: string; sessionId: string }) {
+  const [error, setError] = useState<string | null>(null)
+  const data = useLoad(async () => {
+    const [characters, rows] = await Promise.all([
+      supabase.from('characters').select('id, name').eq('campaign_id', campaignId).is('deleted_at', null).then(must),
+      supabase.from('session_attendance').select('character_id').eq('session_id', sessionId).then(must),
+    ])
+    return {
+      characters: (characters as { id: string; name: string }[]).sort(byName),
+      present: new Set((rows as { character_id: string }[]).map((r) => r.character_id)),
+    }
+  }, [campaignId, sessionId])
+
+  async function toggle(characterId: string, present: boolean) {
+    setError(null)
+    const update = (on: boolean) =>
+      data.mutate((d) => {
+        if (!d) return d
+        const next = new Set(d.present)
+        if (on) next.add(characterId)
+        else next.delete(characterId)
+        return { ...d, present: next }
+      })
+    update(present)
+    const result = present
+      ? await supabase.from('session_attendance').upsert({ session_id: sessionId, character_id: characterId })
+      : await supabase.from('session_attendance').delete().eq('session_id', sessionId).eq('character_id', characterId)
+    if (result.error) {
+      update(!present)
+      setError(`Could not save attendance: ${result.error.message}`)
+    }
+  }
+
+  return (
+    <section>
+      <h2>Attendance</h2>
+      {(error || data.error) && <p className="error">{error ?? data.error}</p>}
+      {data.data?.characters.length === 0 && <p className="muted">No characters in this campaign yet.</p>}
+      {!!data.data?.characters.length && (
+        <div className="card">
+          {data.data.characters.map((c) => (
+            <label key={c.id} className="check-row">
+              <input
+                type="checkbox"
+                checked={data.data!.present.has(c.id)}
+                onChange={(e) => void toggle(c.id, e.target.checked)}
+              />
+              <span>{c.name}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 
