@@ -1167,3 +1167,148 @@ button.dash-button {
   margin-right: auto;
   align-self: center;
 }
+
+/* ---------- Quest Journal (1.9) ---------- */
+
+.quest-group h2 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+details.quest-group summary {
+  cursor: pointer;
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+}
+
+details.quest-group summary::marker {
+  content: '';
+}
+
+details.quest-group summary h2::before {
+  content: '▸ ';
+}
+
+details.quest-group[open] summary h2::before {
+  content: '▾ ';
+}
+
+.quest-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+
+.quest-title {
+  font-size: 1.05rem;
+}
+
+.quest-card.completed .quest-title,
+.quest-heading.completed {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.quest-card.failed .quest-title,
+.quest-heading.failed {
+  color: var(--muted);
+}
+
+.quest-next {
+  color: var(--text);
+}
+
+.quest-head {
+  margin: 0.75rem 0 1rem;
+}
+
+.quest-heading {
+  margin: 0.35rem 0 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.notice.quest-hidden {
+  max-width: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.objective {
+  cursor: default;
+}
+
+.objective-text {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  min-height: var(--tap);
+  padding: 0.4rem 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  border-radius: 0;
+}
+
+.objective-done {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.objective-mark {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 2px solid var(--muted);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.objective-mark.done {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--bg);
+}
+
+.check-row.objective > span:last-child {
+  padding: 0.6rem 0;
+}
+
+.objectives-optional {
+  margin: 0.9rem 0 0.4rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reward-row {
+  align-items: center;
+  text-align: left;
+}
+
+.reward-row > :first-child {
+  flex-shrink: 1;
+}
+
+.reward-row .chip {
+  flex-shrink: 0;
+}
+
+.part-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

@@ -85,6 +85,9 @@ function Dashboard({ campaign }: { campaign: Campaign }) {
         <Link className="dash-button" to={`${base}/characters`}>
           Characters
         </Link>
+        <Link className="dash-button" to={`${base}/quests`}>
+          Quest Journal
+        </Link>
         <Link className="dash-button" to="/gods">
           Gods
         </Link>

@@ -18,6 +18,8 @@ import { LoginPage } from './pages/LoginPage'
 import { PietyPage } from './pages/PietyPage'
 import { PlayersPage } from './pages/PlayersPage'
 import { PrivacyPage } from './pages/PrivacyPage'
+import { QuestPage } from './pages/QuestPage'
+import { QuestsPage } from './pages/QuestsPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SessionPage } from './pages/SessionPage'
 import { SessionsPage } from './pages/SessionsPage'
@@ -127,6 +129,8 @@ function Screens() {
         <Route path="/c/:campaignId/characters/:characterId" element={<CharacterPage />} />
         <Route path="/c/:campaignId/piety" element={<PietyPage />} />
         <Route path="/c/:campaignId/players" element={<PlayersPage />} />
+        <Route path="/c/:campaignId/quests" element={<QuestsPage />} />
+        <Route path="/c/:campaignId/quests/:questId" element={<QuestPage />} />
         <Route path="/c/:campaignId/sessions" element={<SessionsPage />} />
         <Route path="/c/:campaignId/sessions/:sessionId" element={<SessionPage />} />
         <Route path="/settings" element={<SettingsPage />} />
