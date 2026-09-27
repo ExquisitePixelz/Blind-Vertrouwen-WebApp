@@ -11,6 +11,7 @@ import { useRowSaver } from '../lib/saver'
 import { NEUTRAL, standing } from '../lib/standing'
 import { supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX, NOTES_MAX } from '../lib/limits'
 
 type TextField = 'name' | 'epithet' | 'alignment' | 'domains' | 'symbol'
 
@@ -154,6 +155,7 @@ export function GodPage() {
         <textarea
           className="text-input notes"
           value={god.notes}
+          maxLength={NOTES_MAX}
           placeholder={`Your notes on ${god.name}… Players can read these.`}
           onChange={(e) => saver.change({ notes: e.target.value })}
           onBlur={() => void saver.flush()}
@@ -169,6 +171,7 @@ export function GodPage() {
           title={editing.label}
           initial={god[editing.field]}
           allowEmpty={editing.field !== 'name'}
+          maxLength={editing.field === 'name' ? NAME_MAX : undefined}
           onClose={() => setEditing(null)}
           onSubmit={(value) => saver.change({ [editing.field]: value }, true)}
         />

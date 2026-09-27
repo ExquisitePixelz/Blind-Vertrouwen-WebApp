@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import Markdown from 'react-markdown'
+import { NOTES_MAX } from '../lib/limits'
 
 type NotesMode = 'edit' | 'preview'
 
@@ -63,6 +64,7 @@ export function MarkdownNotes({
           <textarea
             className={`text-input notes${tall ? ' session-notes' : ''}`}
             value={notes}
+            maxLength={NOTES_MAX}
             placeholder={placeholder}
             onChange={(e) => onChange(e.target.value)}
             onBlur={onBlur}

@@ -5,6 +5,7 @@ import { createCampaign, loadCampaigns, useRememberCampaign } from '../lib/campa
 import { useMe } from '../lib/me'
 import { supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX } from '../lib/limits'
 
 type Mode = 'menu' | 'switch' | 'create'
 
@@ -83,6 +84,7 @@ function AccountMenu({ mode, setMode }: { mode: Mode; setMode: (mode: Mode | nul
     return (
       <PromptDialog
         title="New campaign"
+        maxLength={NAME_MAX}
         submitLabel="Create"
         onClose={close}
         onSubmit={async (name) => open(await createCampaign(me.worldId, name))}

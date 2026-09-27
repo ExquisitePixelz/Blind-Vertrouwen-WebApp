@@ -25,6 +25,7 @@ import { useMe } from '../lib/me'
 import { useRowSaver, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX } from '../lib/limits'
 
 type NumberField = 'ac' | 'hp_temp' | 'speed' | 'passive_perception' | Ability
 
@@ -266,6 +267,7 @@ export function CharacterPage() {
           title={open.label}
           initial={c[open.field]}
           allowEmpty={open.field !== 'name'}
+          maxLength={open.field === 'name' || open.field === 'player' ? NAME_MAX : undefined}
           onClose={close}
           onSubmit={(value) => save({ [open.field]: value })}
         />

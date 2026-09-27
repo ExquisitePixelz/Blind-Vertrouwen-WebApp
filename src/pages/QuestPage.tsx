@@ -28,6 +28,7 @@ import {
 import { useRowSaver } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX } from '../lib/limits'
 
 type Open = 'menu' | 'title' | 'kind' | 'character' | 'status' | 'giver' | 'location' | 'reveal' | 'delete'
 
@@ -142,7 +143,7 @@ export function QuestPage() {
           ]}
         />
       )}
-      {open === 'title' && <PromptDialog title="Title" initial={q.title} onClose={close} onSubmit={(title) => tap({ title })} />}
+      {open === 'title' && <PromptDialog title="Title" initial={q.title} maxLength={NAME_MAX} onClose={close} onSubmit={(title) => tap({ title })} />}
       {open === 'giver' && (
         <PromptDialog title="Quest giver" initial={q.giver} allowEmpty onClose={close} onSubmit={(giver) => tap({ giver })} />
       )}

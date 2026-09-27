@@ -19,6 +19,7 @@ import {
 import { useRowSaver } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX, NOTES_MAX } from '../lib/limits'
 
 /**
  * A character's inventory (1.8): only its player and the DM see it. Items
@@ -103,6 +104,7 @@ export function Inventory({
       {adding && (
         <PromptDialog
           title="New item"
+          maxLength={NAME_MAX}
           submitLabel="Add"
           onClose={() => setAdding(false)}
           onSubmit={async (name) => {
@@ -158,7 +160,7 @@ function ItemEditor({
   const tap = (patch: Partial<Item>) => saver.change(patch, true)
 
   if (sub === 'name') {
-    return <PromptDialog title="Name" initial={i.name} onClose={back} onSubmit={(name) => tap({ name })} />
+    return <PromptDialog title="Name" initial={i.name} maxLength={NAME_MAX} onClose={back} onSubmit={(name) => tap({ name })} />
   }
   if (sub === 'quantity') {
     return (
@@ -215,6 +217,7 @@ function ItemEditor({
         className="text-input notes item-description"
         aria-label="Description"
         value={i.description}
+        maxLength={NOTES_MAX}
         placeholder="Description…"
         onChange={(e) => saver.change({ description: e.target.value })}
         onBlur={() => void saver.flush()}

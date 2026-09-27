@@ -7,6 +7,7 @@ import { DEFAULT_SUBTITLE, type Campaign } from '../lib/campaigns'
 import { useMe, useUpdateMe } from '../lib/me'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX } from '../lib/limits'
 
 type Editing = 'display_name' | 'name' | 'subtitle' | 'delete'
 
@@ -80,6 +81,7 @@ export function SettingsPage() {
       {editing === 'display_name' && (
         <PromptDialog
           title="Display name"
+          maxLength={NAME_MAX}
           initial={me.name}
           onClose={close}
           onSubmit={async (display_name) => {
@@ -89,7 +91,7 @@ export function SettingsPage() {
         />
       )}
       {editing === 'name' && c && (
-        <PromptDialog title="Campaign name" initial={c.name} onClose={close} onSubmit={(name) => saveCampaign({ name })} />
+        <PromptDialog title="Campaign name" initial={c.name} maxLength={NAME_MAX} onClose={close} onSubmit={(name) => saveCampaign({ name })} />
       )}
       {editing === 'subtitle' && c && (
         <PromptDialog

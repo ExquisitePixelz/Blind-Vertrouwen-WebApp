@@ -7,6 +7,7 @@ import { useMe } from '../lib/me'
 import { useNewSession } from '../lib/sessions'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX } from '../lib/limits'
 
 /**
  * The home page (ARCHITECTURE.md 1.5). Opens on the last campaign chosen on
@@ -142,6 +143,7 @@ function CampaignPicker({ campaigns }: { campaigns: Campaign[] }) {
       {creating && (
         <PromptDialog
           title="New campaign"
+          maxLength={NAME_MAX}
           submitLabel="Create"
           onClose={() => setCreating(false)}
           onSubmit={async (name) => remember(await createCampaign(me.worldId, name))}

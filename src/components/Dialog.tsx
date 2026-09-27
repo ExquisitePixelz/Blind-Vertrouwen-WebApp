@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { LINE_MAX } from '../lib/limits'
 
 /**
  * A modal dialog. Cancel, Escape, or tapping outside closes it without
@@ -37,6 +38,7 @@ export function PromptDialog({
   initial = '',
   allowEmpty = false,
   submitLabel = 'OK',
+  maxLength = LINE_MAX,
   onSubmit,
   onClose,
 }: {
@@ -44,6 +46,8 @@ export function PromptDialog({
   initial?: string
   allowEmpty?: boolean
   submitLabel?: string
+  /** At most this many characters (src/lib/limits.ts). */
+  maxLength?: number
   onSubmit: (value: string) => Promise<void> | void
   onClose: () => void
 }) {
@@ -72,6 +76,7 @@ export function PromptDialog({
         <input
           className="text-input"
           value={value}
+          maxLength={maxLength}
           onChange={(e) => setValue(e.target.value)}
           onFocus={(e) => e.target.select()}
           autoFocus

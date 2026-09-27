@@ -5,6 +5,7 @@ import { TopBar } from '../components/TopBar'
 import { byName, loadGods } from '../lib/gods'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX } from '../lib/limits'
 
 type ListRow = {
   id: string
@@ -103,7 +104,7 @@ function NewCharacterDialog({ campaignId, onClose }: { campaignId: string; onClo
       >
         <label className="field">
           <span className="muted small">Name</span>
-          <input className="text-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <input className="text-input" value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} autoFocus />
         </label>
         <label className="field">
           <span className="muted small">God</span>

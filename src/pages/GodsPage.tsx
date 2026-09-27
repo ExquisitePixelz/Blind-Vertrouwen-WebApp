@@ -7,6 +7,7 @@ import { useMe } from '../lib/me'
 import { NEUTRAL, standing } from '../lib/standing'
 import { supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX } from '../lib/limits'
 
 /** God list (1.3 C5). Everyone in a campaign reads; the DM can add gods. */
 export function GodsPage() {
@@ -51,6 +52,7 @@ export function GodsPage() {
       {creating && (
         <PromptDialog
           title="New god"
+          maxLength={NAME_MAX}
           submitLabel="Create"
           onClose={() => setCreating(false)}
           onSubmit={async (name) => {

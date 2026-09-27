@@ -9,6 +9,7 @@ import { caption, clampPiety, segments } from '../lib/piety'
 import { useRowSaver } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX, NOTES_MAX } from '../lib/limits'
 
 type Track = {
   id: string
@@ -303,11 +304,11 @@ function CustomSourceDialog({
       >
         <label className="field">
           <span className="muted small">Name, e.g. Oracle</span>
-          <input className="text-input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <input className="text-input" value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} autoFocus />
         </label>
         <label className="field">
           <span className="muted small">How it works</span>
-          <textarea className="text-input notes" value={rules} onChange={(e) => setRules(e.target.value)} />
+          <textarea className="text-input notes" value={rules} maxLength={NOTES_MAX} onChange={(e) => setRules(e.target.value)} />
         </label>
         {error && <p className="error">{error}</p>}
         <div className="dialog-actions">

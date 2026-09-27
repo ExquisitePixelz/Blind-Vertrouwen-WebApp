@@ -17,6 +17,7 @@ import {
 } from '../lib/quests'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { NAME_MAX } from '../lib/limits'
 
 /**
  * The Quest Journal (ARCHITECTURE.md 1.9): everyone in the campaign reads
@@ -145,7 +146,7 @@ function NewQuest({ campaignId, characters, onClose }: { campaignId: string; cha
   }
   if (busy) return null
   if (title === null) {
-    return <PromptDialog title="New quest" submitLabel="Next" onClose={closed} onSubmit={(t) => next(() => setTitle(t))} />
+    return <PromptDialog title="New quest" submitLabel="Next" maxLength={NAME_MAX} onClose={closed} onSubmit={(t) => next(() => setTitle(t))} />
   }
   if (kind === null) {
     return (

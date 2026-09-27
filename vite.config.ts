@@ -1,7 +1,7 @@
 import { copyFileSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import react from '@vitejs/plugin-react'
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // GitHub Pages answers unknown paths with 404.html. Copying index.html there
@@ -17,10 +17,42 @@ function spaFallback(): Plugin {
   }
 }
 
+// Content Security Policy (ARCHITECTURE.md, Phase 4 known gap 2): the page
+// may only run its own scripts and Google's sign-in script, and only talk to
+// itself, Supabase and Google sign-in. If a script were ever injected, it
+// could not load code or send data anywhere else. GitHub Pages cannot send
+// headers, so it is a <meta> tag, added to the build only: the dev server
+// needs inline scripts. 'unsafe-inline' styles are needed for style={{}}
+// attributes and Google's button; styles cannot run code.
+function contentSecurityPolicy(supabaseUrl: string | undefined): Plugin {
+  return {
+    name: 'content-security-policy',
+    apply: 'build',
+    transformIndexHtml() {
+      if (!supabaseUrl) throw new Error('VITE_SUPABASE_URL is needed for the Content Security Policy.')
+      const policy = [
+        "default-src 'self'",
+        "script-src 'self' https://accounts.google.com/gsi/client",
+        "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
+        `connect-src 'self' ${new URL(supabaseUrl).origin} https://accounts.google.com/gsi/`,
+        'frame-src https://accounts.google.com/gsi/',
+        "img-src 'self' data: https://*.googleusercontent.com",
+        "font-src 'self'",
+        "worker-src 'self'",
+        "manifest-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join('; ')
+      return [{ tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content: policy }, injectTo: 'head-prepend' }]
+    },
+  }
+}
+
 // The app's version (ARCHITECTURE.md 3.9) lives in package.json only.
 const { version } = JSON.parse(readFileSync(resolve(import.meta.dirname, 'package.json'), 'utf8')) as { version: string }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   define: { __APP_VERSION__: JSON.stringify(version) },
   plugins: [
     react(),
@@ -49,6 +81,7 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/auth\//],
       },
     }),
+    contentSecurityPolicy(loadEnv(mode, import.meta.dirname).VITE_SUPABASE_URL),
     spaFallback(),
   ],
-})
+}))
