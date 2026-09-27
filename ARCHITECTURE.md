@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -480,6 +480,62 @@ Players get a place on their own character sheet for their story, their private 
 
 **Not in Phase 6 (roadmap):** item effects and the automatic sheet (6.1), items shared with or given to other players, a party stash, item pictures, secret item rules (3.3), encumbrance rules, spell components, a shop.
 
+### 1.9 Phase 7: Quest Journal *(put in scope by the owner, 2026-09-27; replaces the sketch in 6.2)*
+
+A **Quest Journal** that everyone in the campaign reads. The point is that the group talks about what to do next: the quests keep them focused as a party while they decide together. **Only the DM creates, edits, reveals and changes quests.** Players read. Campaign content.
+
+**Where:** a **Quest Journal** button on the dashboard for everyone, directly **below Characters** (1.5). The list is `/c/:campaignId/quests` and one quest is `/c/:campaignId/quests/:questId`.
+
+**Three kinds of quest** (owner decision, 2026-09-27):
+- **Main quest:** moves the main story forward. Shown in gold.
+- **Side quest:** a short, just-for-fun quest that fits the place the party is in.
+- **Character quest:** moves one character's own story forward. It is linked to that character and shows their name. **Everyone in the campaign sees it**, so the group can decide to help that character.
+
+**Hidden until revealed, then never hidden again** (owner decision, 2026-09-27):
+- A new quest starts **hidden** (audience `dm`). The DM can write it ahead of time. "Draft" is not a status: a hidden quest has a normal status and the DM edits it like any other quest.
+- **Reveal** (with a confirm dialog) makes it visible to the campaign (audience `members`). **A revealed quest can never be hidden again.** The database refuses it, even for the DM.
+- The DM can always edit a quest, hidden or revealed.
+
+**Status** (DM only, any change in any direction, at any time):
+- **Inactive:** known to the party, not being pursued. The party can leave it for as long as they like. New quests start here.
+- **Active:** the party is working on it.
+- **Completed:** done, shown crossed off.
+- **Failed:** failed or given up.
+
+**A quest shows:**
+- the **title** and a **kind** chip (Main / Side / Character, with the character's name)
+- a **description** in markdown, with **Edit / Preview** for the DM, as in the notes (`MarkdownNotes`, 1.8). Players see the rendered text.
+- **Quest giver** and **Location** (free text; links to lore entries later)
+- **Objectives** and **Rewards** (below)
+
+**Objectives, revealed one step at a time** (owner decision, 2026-09-27):
+- The main objectives are an **ordered list**. Players see every objective that is ticked off, plus the **first one that is not**. The rest stays hidden until the step before it is ticked off. Un-ticking a step hides the later steps that are not ticked off.
+- **Optional objectives** can be added at any time, also while the quest is running. They always sit **below** the main objectives, marked "Optional". Players see them as soon as they are added.
+- The DM sees every objective, and the ones players cannot see yet are marked "Hidden".
+- The DM ticks objectives off, adds them, edits their text, moves them up or down within their group, and deletes them (confirm; soft delete).
+- **The database decides what players see**, not the website: hidden steps never reach a player's phone (priority 2).
+
+**Rewards, each visible or hidden** (owner decision, 2026-09-27):
+- A quest has a list of rewards, one line of text each (e.g. "150 gp", "A favour from the harbourmaster").
+- The DM marks each one **visible** or **hidden**, and can change it at any time. For example, the gold is visible but a special item stays hidden.
+- Players see the visible rewards, plus one muted line **"+ a hidden reward"** (or "+ 2 hidden rewards") when there are hidden ones. The text of a hidden reward never reaches their phone.
+
+**The list:**
+- Grouped into **Active**, **Inactive**, **Completed** and **Failed**, in that order. Within each group Main quests come first, then Side, then Character, then newest first. Completed and Failed start folded shut.
+- Each card shows the kind chip, the title, the giver and location, and the current objective.
+- The DM also sees a **Hidden** group at the top, and a **+** button for **New quest**. That asks for the title and the kind (and the character, for a Character quest), then opens the quest.
+- With no quests: "No quests yet."
+
+**Editing (DM):** the quest page is the editor, like the character sheet. The description saves through the save hook (3.4). Title, kind, giver, location, objectives and rewards are tappable rows with a text prompt. The **…** menu has **Reveal** (only while hidden) and **Delete** (confirm; soft delete, e.g. for a quest created by mistake).
+
+**Not tied to sessions** (owner decision, 2026-09-27): no "given in #53" / "completed in #57" for now.
+
+**No voting in the app for now** (owner decision, 2026-09-27): the owner will think about how the group should choose. Voting goes to the roadmap (6.2).
+
+**Removed players and deleted characters:** quests are the DM's content, so nothing changes when a player leaves. If a character is deleted, its Character quest stays and shows "Character quest" without a name. If the account is deleted, the link is cleared.
+
+**Not in Phase 7 (roadmap, 6.2):** voting, session links, secret DM notes per quest, links to lore entries, rewards that become inventory items, quest pictures.
+
 ---
 
 ## 2. Priorities
@@ -648,6 +704,7 @@ Detailed columns for characters and gods come from the specification in section 
 | `sessions`, `session_attendance` | Campaign | DM-only session notes (Phase 5, below). |
 | `character_private` | Campaign | A character's private notes and coins, audience `owner` (Phase 6, below). |
 | `inventory_items` | Campaign | A character's items, audience `owner` (Phase 6, below). |
+| `quests`, `quest_objectives`, `quest_rewards` | Campaign | The Quest Journal (Phase 7, below). |
 
 **`piety_tracks` columns:**
 - `character_id`
@@ -684,6 +741,13 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 - On both, `owner_id` is set by the database to the character's owner, and follows it if the character changes owner. Players cannot change `owner_id`, `audience`, `campaign_id`, `character_id` or `deleted_at`.
 - Permission test: other players and non-members cannot read or write either table; a player cannot add items to someone else's character; the owner and the DM can; players cannot insert or delete the private row; deleting a character hides them; deleting an account removes them.
 
+**Phase 7 (section 1.9):** only the DM writes these three tables; there are no player write policies at all.
+- `quests`: the standard columns with `campaign_id`, plus `kind` (`main` / `side` / `character`), `character_id` (only for `character`; must be in the same campaign; cleared if the character is removed for good), `title` (not empty), `description` (long text), `giver`, `location` (text), and `status` (`inactive` / `active` / `completed` / `failed`, default `inactive`). `audience` is `dm` (hidden, the default) or `members` (revealed). The database refuses a change from `members` back to `dm`, even from the DM.
+- `quest_objectives`: the standard columns (`campaign_id` copied from the quest by the database, audience `members`), plus `quest_id`, `text` (not empty), `done`, `optional`, `sort_order`. Players read an objective only when its quest is readable **and** it is optional, ticked off, or the first main objective not yet ticked off (by `sort_order`). A helper, `private.objective_visible`, decides.
+- `quest_rewards`: the standard columns (`campaign_id` from the quest), plus `quest_id`, `text` (not empty), `sort_order`. `audience` is `members` (visible) or `dm` (hidden), and the DM may switch it both ways. Players read visible rewards of readable quests.
+- `hidden_reward_counts(campaign)`: returns, per readable quest, how many rewards are hidden, without their text, for the "+ a hidden reward" line.
+- Permission test: players and non-members cannot create, edit, reveal, delete or change the status of quests, objectives or rewards; hidden quests, their objectives and rewards are invisible to players; players see only the objectives they should; hidden rewards are counted but their text is not readable; a revealed quest cannot be hidden again; a Character quest cannot point to a character in another campaign.
+
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
 
 **As built (Phase 2, 2026-09-24).** Schema: `supabase/migrations/`. Permission test: `tests/permissions.test.ts`.
@@ -714,7 +778,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 3. Only then does the agent push website code that uses the change. Pushing it earlier breaks the live site.
 4. The agent checks new screens in the Claude app's browser pane (local copy at `localhost:5173`, which talks to the real database). The owner logs in there; the agent cannot log in for them.
 
-### Where we are *(updated 2026-09-25)*
+### Where we are *(updated 2026-09-27)*
 
 | Step | Status |
 |---|---|
@@ -727,8 +791,8 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Extras (2026-09-25): footer on every page, terms page, version number (3.9), rename to DnD Companion App | **Built**, version `0.5.2-alpha` |
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
-| 1. Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
-| 2. Quest Journal (6.2) | Owner decides when |
+| Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **In progress** (started 2026-09-27) |
+| Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
 A roadmap item becomes buildable only when the owner says to start it. At that point, write it up as its own scope section (like 1.4 and 1.5) and phase, and add its build steps below.
@@ -841,6 +905,15 @@ One step per commit. **Do not add anything that is not in section 1.4.**
 
 One step per commit. **Do not add anything that is not in section 1.8.**
 
+### Phase 7: Quest Journal (section 1.9)
+1. Migration: `quests`, `quest_objectives`, `quest_rewards` with RLS, `private.objective_visible`, `hidden_reward_counts`, the never-hide-again rule, and new cases in the permission test. Pushed alone first; the owner runs `db push`.
+2. Quest Journal button on the dashboard (below Characters), the quest list grouped by status, and New quest for the DM.
+3. Quest page: title, kind, giver, location, description (markdown, autosave), status, and the **…** menu (Reveal, Delete).
+4. Objectives: main steps revealed one at a time, optional ones below, tick off, add, edit, move, delete.
+5. Rewards: visible and hidden, with the "+ a hidden reward" line for players. Version `0.7.0-alpha`.
+
+One step per commit. **Do not add anything that is not in section 1.9.**
+
 ---
 
 ## 6. Roadmap input (unordered; the owner decides what and when)
@@ -891,24 +964,12 @@ A pure function calculates the sheet from base values, effects and overrides. Te
 5. **Spells.** Spell list, known and prepared spells, and slots per level.
 6. **Theros.** Supernatural gifts, and piety boons that apply at milestones (links to the milestone bar in 1.1).
 
-### 6.2 Quest Journal *(owner idea, 2026-09-24; roadmap)*
+### 6.2 Quest Journal *(owner idea, 2026-09-24; the first version is Phase 7, section 1.9)*
 
-The DM offers the party several quests; the players vote on what they want to do. **Only the DM creates, edits, reveals and crosses off quests.** Campaign content.
-
-**Decisions (owner, 2026-09-24):**
-- **Statuses:** Offered (to pick from), Active (being pursued), Completed (crossed off), Failed/abandoned. Only the DM changes status.
-- **Voting:** each player can vote for any number of **Offered** quests, one vote per player per quest, and take it back. Everyone in the campaign sees the tally and who voted. The DM decides and sets a quest to Active. Voting closes when a quest leaves Offered.
-- **Draft quests:** the DM can write quests ahead. A draft has audience `dm` and becomes `members` when the DM reveals it.
-- **A quest card shows:** title, description, quest giver and location (free text; links to lore entries later), reward, an **objectives checklist** the DM ticks off, and session links ("given in #53", "completed in #57").
-
-**Data sketch:**
-- `quests`: `campaign_id`, `title`, `description`, `giver`, `location`, `reward`, `status`, `given_session_number`, `completed_session_number`, the standard columns, audience `dm` (draft) or `members` (revealed). DM writes; members read revealed quests.
-- `quest_objectives`: `quest_id`, `text`, `done`, `sort_order`. DM writes; readable when the quest is readable.
-- `quest_votes`: `quest_id`, `user_id`, unique per pair. A player inserts and deletes **only their own** vote, and only while the quest is Offered (enforced by the database). Members read all votes.
-- **Session numbers are stored as numbers, not links to `sessions` rows.** Sessions are DM-only (1.4), so players could not follow a link to one.
-- Permission tests: players cannot create, edit or change the status of quests; drafts are invisible to players; a player cannot vote for someone else or on a quest that is not Offered.
-
-**Later:** secret DM notes per quest (the separate-secret-row pattern in 3.3), links to lore entries (6, NPC / lore notes), and rewards that become inventory items.
+Built in Phase 7 without voting and without session links. Still on the roadmap:
+- **Voting or another way for the group to choose** *(the owner is still thinking about how; 2026-09-27)*. The 2026-09-24 idea was one vote per player per Inactive quest, visible to everyone, with the DM deciding. It would need a `quest_votes` table (`quest_id`, `user_id`, unique per pair; players insert and delete only their own).
+- **Session links** ("given in #53", "completed in #57"), stored as numbers rather than links to `sessions` rows, because sessions are DM-only (1.4).
+- Secret DM notes per quest (the separate-secret-row pattern in 3.3), links to lore entries (6, NPC / lore notes), rewards that become inventory items, and quest pictures.
 
 ---
 
@@ -927,6 +988,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
    - Phones that installed the app: on iPhone, remove and re-add it to pick up the new name.
 
 **Resolved:**
+- **Quest Journal (Phase 7):** visible to everyone, button below Characters; Main, Side and Character quests (Character quests visible to everyone); hidden until revealed, never hidden again; statuses Inactive, Active, Completed, Failed; objectives revealed one step at a time with optional ones below; each reward visible or hidden, with a "+ a hidden reward" line; no voting and no session links for now (owner decisions, 2026-09-27). See section 1.9.
 - **Player features (Phase 6):** on the character sheet; a Backstory everyone in the campaign reads plus Private notes for the player and DM; items with name, quantity, weight, description, Equipped and Attuned, and a carried-weight total; a coin row without electrum (owner decisions, 2026-09-25). See section 1.8.
 - **App name:** the web app is **DnD Companion App** (owner, 2026-09-25); the Unity app keeps its name.
 - **Footer, terms page, version number:** see 3.9 (owner, 2026-09-25).
