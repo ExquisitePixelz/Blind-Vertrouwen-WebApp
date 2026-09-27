@@ -943,6 +943,227 @@ describe('player features (Phase 6)', () => {
   })
 })
 
+describe('quest journal (Phase 7)', () => {
+  type Versioned = { id: string; version: number }
+  let quest: Versioned
+  const players = () => [playerA, playerB, outsider]
+  const questRows = (user: { db: SupabaseClient }) => user.db.from('quests').select('id').eq('id', quest.id)
+  const objectiveTexts = async (user: { db: SupabaseClient }) =>
+    (
+      ok(
+        await user.db.from('quest_objectives').select('text').eq('quest_id', quest.id).order('sort_order'),
+      ) as { text: string }[]
+    ).map((o) => o.text)
+  const current = async (table: string, id: string) =>
+    ok(await admin.from(table).select('version').eq('id', id).single()).version as number
+  const dmUpdate = async (table: string, id: string, patch: Record<string, unknown>) =>
+    ok(await dm.db.from(table).update({ ...patch, version: await current(table, id) }).eq('id', id).select().single())
+
+  before(async () => {
+    quest = ok(
+      await dm.db
+        .from('quests')
+        .insert({ campaign_id: campaignId, kind: 'main', title: 'The Silent Oracle' })
+        .select()
+        .single(),
+    )
+  })
+
+  test('A new quest is hidden: players see neither it nor its objectives and rewards', async () => {
+    const row = ok(await dm.db.from('quests').select('audience, status').eq('id', quest.id).single())
+    assert.equal(row.audience, 'dm')
+    assert.equal(row.status, 'inactive')
+    ok(await dm.db.from('quest_objectives').insert({ quest_id: quest.id, text: 'Reach Meletis' }))
+    ok(await dm.db.from('quest_rewards').insert({ quest_id: quest.id, text: '150 gp' }))
+    ok(await dm.db.from('quest_rewards').insert({ quest_id: quest.id, text: 'Oracle’s Eye', audience: 'dm' }))
+    for (const user of players()) {
+      assert.equal(ok(await questRows(user)).length, 0, 'reads a hidden quest')
+      assert.deepEqual(await objectiveTexts(user), [], 'reads objectives of a hidden quest')
+      assert.equal(ok(await user.db.from('quest_rewards').select('id').eq('quest_id', quest.id)).length, 0)
+    }
+    const counts = ok(await playerA.db.rpc('hidden_reward_counts', { p_campaign_id: campaignId })) as { quest_id: string }[]
+    assert.equal(counts.filter((c) => c.quest_id === quest.id).length, 0, 'counts rewards of a hidden quest')
+  })
+
+  test('Players and non-members cannot create, edit, reveal or delete quests, objectives or rewards', async () => {
+    for (const user of players()) {
+      refused(
+        await user.db.from('quests').insert({ campaign_id: campaignId, title: 'Mine', audience: 'members' }),
+        'player creates a quest',
+      )
+      refused(await user.db.from('quest_objectives').insert({ quest_id: quest.id, text: 'Skip ahead' }), 'objective')
+      refused(await user.db.from('quest_rewards').insert({ quest_id: quest.id, text: '1,000,000 gp' }), 'reward')
+    }
+    await dmUpdate('quests', quest.id, { audience: 'members' })
+    const objective = ok(await admin.from('quest_objectives').select('id, version').eq('quest_id', quest.id).single())
+    const reward = ok(await admin.from('quest_rewards').select('id, version').eq('text', '150 gp').single())
+    const version = await current('quests', quest.id)
+    for (const user of players()) {
+      noEffect(
+        await user.db.from('quests').update({ status: 'completed', version }).eq('id', quest.id).select(),
+        'player changes the status',
+      )
+      noEffect(
+        await user.db
+          .from('quests')
+          .update({ deleted_at: new Date().toISOString(), version })
+          .eq('id', quest.id)
+          .select(),
+        'player deletes a quest',
+      )
+      noEffect(await user.db.from('quests').delete().eq('id', quest.id).select(), 'player hard-deletes a quest')
+      noEffect(
+        await user.db
+          .from('quest_objectives')
+          .update({ done: true, version: objective.version })
+          .eq('id', objective.id)
+          .select(),
+        'player ticks an objective',
+      )
+      noEffect(
+        await user.db
+          .from('quest_rewards')
+          .update({ text: 'More gold', version: reward.version })
+          .eq('id', reward.id)
+          .select(),
+        'player edits a reward',
+      )
+    }
+    const row = ok(await admin.from('quests').select('status, deleted_at').eq('id', quest.id).single())
+    assert.equal(row.status, 'inactive')
+    assert.equal(row.deleted_at, null)
+  })
+
+  test('A revealed quest is read by the campaign, not by outsiders, and can never be hidden again', async () => {
+    assert.equal(ok(await questRows(playerA)).length, 1)
+    assert.equal(ok(await questRows(playerB)).length, 1)
+    assert.equal(ok(await questRows(outsider)).length, 0)
+    refused(
+      await dm.db
+        .from('quests')
+        .update({ audience: 'dm', version: await current('quests', quest.id) })
+        .eq('id', quest.id)
+        .select(),
+      'DM hides a revealed quest',
+    )
+    const updated = await dmUpdate('quests', quest.id, { status: 'active', title: 'The Silent Oracle (edited)' })
+    assert.equal(updated.status, 'active')
+    assert.equal(updated.audience, 'members')
+  })
+
+  test('Main objectives are revealed one step at a time; optional ones straight away', async () => {
+    ok(await dm.db.from('quest_objectives').insert({ quest_id: quest.id, text: 'Find the oracle' }))
+    ok(await dm.db.from('quest_objectives').insert({ quest_id: quest.id, text: 'Ask the question' }))
+    ok(await dm.db.from('quest_objectives').insert({ quest_id: quest.id, text: 'Bring a gift', optional: true }))
+    assert.deepEqual(await objectiveTexts(dm), ['Reach Meletis', 'Find the oracle', 'Ask the question', 'Bring a gift'])
+    assert.deepEqual(await objectiveTexts(playerA), ['Reach Meletis', 'Bring a gift'])
+    assert.deepEqual(await objectiveTexts(outsider), [])
+
+    const first = ok(await dm.db.from('quest_objectives').select('id').eq('text', 'Reach Meletis').single())
+    await dmUpdate('quest_objectives', first.id, { done: true })
+    assert.deepEqual(await objectiveTexts(playerB), ['Reach Meletis', 'Find the oracle', 'Bring a gift'])
+
+    await dmUpdate('quest_objectives', first.id, { done: false })
+    assert.deepEqual(await objectiveTexts(playerB), ['Reach Meletis', 'Bring a gift'], 'un-ticking hides later steps')
+
+    await dmUpdate('quest_objectives', first.id, { done: true })
+    const second = ok(await dm.db.from('quest_objectives').select('id').eq('text', 'Find the oracle').single())
+    await dmUpdate('quest_objectives', second.id, { deleted_at: new Date().toISOString() })
+    assert.deepEqual(
+      await objectiveTexts(playerA),
+      ['Reach Meletis', 'Ask the question', 'Bring a gift'],
+      'a deleted step does not block the next one',
+    )
+  })
+
+  test('Hidden rewards are counted for players, but their text never reaches them', async () => {
+    const visible = (user: { db: SupabaseClient }) =>
+      user.db.from('quest_rewards').select('text').eq('quest_id', quest.id)
+    assert.deepEqual(ok(await visible(playerA)), [{ text: '150 gp' }])
+    assert.equal(ok(await visible(outsider)).length, 0)
+    const hiddenFor = async (user: { db: SupabaseClient }) =>
+      (
+        (ok(await user.db.rpc('hidden_reward_counts', { p_campaign_id: campaignId })) as {
+          quest_id: string
+          hidden: number
+        }[]).find((c) => c.quest_id === quest.id)?.hidden ?? 0
+      )
+    assert.equal(await hiddenFor(playerA), 1)
+    assert.equal(await hiddenFor(dm), 1)
+    assert.equal(await hiddenFor(outsider), 0)
+
+    const eye = ok(await dm.db.from('quest_rewards').select('id').eq('text', 'Oracle’s Eye').single())
+    await dmUpdate('quest_rewards', eye.id, { audience: 'members' })
+    assert.equal(ok(await visible(playerB)).length, 2, 'the DM reveals a reward')
+    assert.equal(await hiddenFor(playerB), 0)
+    await dmUpdate('quest_rewards', eye.id, { audience: 'dm' })
+    assert.equal(ok(await visible(playerB)).length, 1, 'and can hide it again')
+  })
+
+  test('A character quest points to a live character in the same campaign', async () => {
+    const hero = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Questing' }))
+    const stranger = ok(await dm.db.rpc('create_character', { p_campaign_id: otherCampaignId, p_name: 'Elsewhere' }))
+    refused(
+      await dm.db
+        .from('quests')
+        .insert({ campaign_id: campaignId, kind: 'character', character_id: stranger.id, title: 'Wrong campaign' }),
+      'character from another campaign',
+    )
+    refused(
+      await dm.db.from('quests').insert({ campaign_id: campaignId, kind: 'side', character_id: hero.id, title: 'Odd' }),
+      'a side quest with a character',
+    )
+    const personal = ok(
+      await dm.db
+        .from('quests')
+        .insert({
+          campaign_id: campaignId,
+          kind: 'character',
+          character_id: hero.id,
+          title: 'Kit’s past',
+          audience: 'members',
+        })
+        .select()
+        .single(),
+    )
+    assert.equal(ok(await playerB.db.from('quests').select('id').eq('id', personal.id)).length, 1, 'everyone reads it')
+  })
+
+  test('Deleting an account clears the link from its character quests', async () => {
+    const quitter = await makeUser('quitter-quests')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: campaignId, user_id: quitter.id }))
+    const character = ok(await quitter.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Vanished' }))
+    const personal = ok(
+      await dm.db
+        .from('quests')
+        .insert({ campaign_id: campaignId, kind: 'character', character_id: character.id, title: 'Lost thread' })
+        .select()
+        .single(),
+    )
+    ok(await quitter.db.rpc('delete_my_account'))
+    const row = ok(await admin.from('quests').select('character_id, deleted_at').eq('id', personal.id).single())
+    assert.equal(row.character_id, null)
+    assert.equal(row.deleted_at, null, 'the quest itself stays')
+  })
+
+  test('A deleted quest disappears for players, with its objectives and rewards', async () => {
+    await dmUpdate('quests', quest.id, { deleted_at: new Date().toISOString() })
+    assert.equal(ok(await questRows(playerA)).length, 0)
+    assert.deepEqual(await objectiveTexts(playerA), [])
+    assert.equal(ok(await playerA.db.from('quest_rewards').select('id').eq('quest_id', quest.id)).length, 0)
+    assert.equal(ok(await questRows(dm)).length, 1, 'the DM still has it')
+  })
+
+  test('Someone not logged in cannot read or write quests', async () => {
+    for (const table of ['quests', 'quest_objectives', 'quest_rewards']) {
+      const result = await anon.from(table).select('*')
+      assert.ok(result.error || result.data.length === 0, `anonymous sees ${table}`)
+    }
+    refused(await anon.from('quests').insert({ campaign_id: campaignId, title: 'Spam' }), 'anonymous insert')
+    refused(await anon.rpc('hidden_reward_counts', { p_campaign_id: campaignId }), 'anonymous hidden_reward_counts')
+  })
+})
+
 async function firstWorldId(): Promise<string> {
   return ok(await dm.db.from('worlds').select('id').limit(1).single()).id
 }
