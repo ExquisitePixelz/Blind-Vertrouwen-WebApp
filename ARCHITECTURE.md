@@ -756,6 +756,8 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 - `hidden_reward_counts(campaign)`: returns, per readable quest, how many rewards are hidden, without their text, for the "+ a hidden reward" line.
 - Permission test: players and non-members cannot create, edit, reveal, delete or change the status of quests, objectives or rewards; hidden quests, their objectives and rewards are invisible to players; players see only the objectives they should; hidden rewards are counted but their text is not readable; a revealed quest cannot be hidden again; a Character quest cannot point to a character in another campaign.
 
+**Text length limits (all tables, 2026-09-27):** names 100 characters, one-line fields 500, notes and descriptions 100,000. Every new text column gets a limit in the migration that creates it.
+
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
 
 **As built (Phase 2, 2026-09-24).** Schema: `supabase/migrations/`. Permission test: `tests/permissions.test.ts`.
@@ -862,11 +864,11 @@ One screen or feature per step. **Do not add anything that is not in section 1.1
 - **Unsent changes in the browser are stored per user** (3.4), so on a shared phone the next person does not see or send them.
 - **Soft delete, and weekly backups** in the private repository (3.2).
 
-**Known gaps (found while planning, 2026-09-27; each fix is an owner decision):**
-1. **No length limits on text.** A member could paste megabytes into a name, a note or an item and fill the free database (500 MB). *Proposed fix:* database limits, e.g. names 100 characters, one-line fields 500, notes and descriptions 100,000, plus the same limits in the website. This fits priorities 2 and 3.
-2. **No Content Security Policy (CSP).** This is a browser safety net: if a script ever got injected, the CSP would stop it from loading code or sending data to other sites. GitHub Pages cannot send headers, but a `<meta http-equiv="Content-Security-Policy">` tag works. It must allow Supabase and Google's sign-in script. *Proposed fix:* add it and test every login again.
-3. **No limit on how many rows a member creates** (characters, items). This is acceptable for a group of friends; a limit would add complexity. *Proposed:* leave it, and check the size of the database now and then in Supabase.
-4. **Clickjacking protection** (`frame-ancestors`, `X-Frame-Options`) needs HTTP headers, which GitHub Pages cannot send. The risk is low, because every important action asks for confirmation. *Proposed:* accept it and note it here.
+**Known gaps (found while planning, 2026-09-27):** the owner chose to fix 1 and 2 before the group test, and to accept 3 and 4 (2026-09-27).
+1. **No length limits on text.** A member could paste megabytes into a name, a note or an item and fill the free database (500 MB). **Fixing (owner, 2026-09-27):** database limits of 100 characters for names, 500 for one-line fields and 100,000 for notes and descriptions (migration `20260927130000_text_limits.sql`), with the same limits in the website (`src/lib/limits.ts`).
+2. **No Content Security Policy (CSP).** This is a browser safety net: if a script ever got injected, the CSP would stop it from loading code or sending data to other sites. GitHub Pages cannot send headers, but a `<meta http-equiv="Content-Security-Policy">` tag works. It must allow Supabase and Google's sign-in script. **Fixing (owner, 2026-09-27):** add it and test every login again.
+3. **No limit on how many rows a member creates** (characters, items). This is acceptable for a group of friends; a limit would add complexity. **Accepted** (owner, 2026-09-27): check the size of the database now and then in Supabase.
+4. **Clickjacking protection** (`frame-ancestors`, `X-Frame-Options`) needs HTTP headers, which GitHub Pages cannot send. The risk is low, because every important action asks for confirmation. **Accepted** (owner, 2026-09-27).
 
 #### Step 1: Preparation (owner, with the agent)
 1. Make a campaign **"Stress test"**, so real campaigns stay clean. Delete it afterwards.
@@ -1093,9 +1095,9 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
    - Redo the WhatsApp login test (3.5) on Android and iPhone with Google's button and with email login.
    - Phones that installed the app: on iPhone, remove and re-add it to pick up the new name.
 
-3. **Security gaps found while planning Phase 4** (2026-09-27), waiting for the owner's decision: text length limits, a Content Security Policy tag, no row-count limits (proposed: accept), no clickjacking headers on GitHub Pages (proposed: accept). See section 5, Phase 4.
 
 **Resolved:**
+- **Security gaps found while planning Phase 4:** text length limits and a Content Security Policy are added; no row-count limits and no clickjacking headers are accepted (owner, 2026-09-27). See section 5, Phase 4.
 - **Quest Journal (Phase 7):** visible to everyone, button below Characters; Main, Side and Character quests (Character quests visible to everyone); hidden until revealed, never hidden again; statuses Inactive, Active, Completed, Failed; objectives revealed one step at a time with optional ones below; each reward visible or hidden, with a "+ a hidden reward" line; no voting and no session links for now (owner decisions, 2026-09-27). See section 1.9.
 - **Player features (Phase 6):** on the character sheet; a Backstory everyone in the campaign reads plus Private notes for the player and DM; items with name, quantity, weight, description, Equipped and Attuned, and a carried-weight total; a coin row without electrum (owner decisions, 2026-09-25). See section 1.8.
 - **App name:** the web app is **DnD Companion App** (owner, 2026-09-25); the Unity app keeps its name.

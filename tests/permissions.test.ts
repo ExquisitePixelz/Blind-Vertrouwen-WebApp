@@ -1164,6 +1164,65 @@ describe('quest journal (Phase 7)', () => {
   })
 })
 
+describe('text length limits (Phase 4)', () => {
+  const long = (n: number) => 'x'.repeat(n)
+
+  test('Notes and descriptions stop at 100,000 characters', async () => {
+    const hero = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Wordy' }))
+    refused(
+      await playerA.db.from('characters').update({ backstory: long(100_001), version: hero.version }).eq('id', hero.id).select(),
+      'backstory over the limit',
+    )
+    const saved = ok(
+      await playerA.db.from('characters').update({ backstory: long(100_000), version: hero.version }).eq('id', hero.id).select().single(),
+    )
+    assert.equal(saved.backstory.length, 100_000)
+
+    const privateRow = ok(await playerA.db.from('character_private').select('id, version').eq('character_id', hero.id).single())
+    refused(
+      await playerA.db
+        .from('character_private')
+        .update({ notes: long(100_001), version: privateRow.version })
+        .eq('id', privateRow.id)
+        .select(),
+      'private notes over the limit',
+    )
+    refused(
+      await playerA.db
+        .from('inventory_items')
+        .insert({ character_id: hero.id, campaign_id: campaignId, name: 'Scroll', description: long(100_001) }),
+      'item description over the limit',
+    )
+    const session = ok(await dm.db.rpc('create_session', { p_campaign_id: campaignId }))
+    refused(
+      await dm.db.from('sessions').update({ notes: long(100_001), version: session.version }).eq('id', session.id).select(),
+      'even the DM: session notes over the limit',
+    )
+  })
+
+  test('Names stop at 100 characters and one-line fields at 500', async () => {
+    refused(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: long(101) }), 'character name')
+    const hero = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: long(100) }))
+    refused(
+      await playerA.db.from('characters').update({ class_level: long(501), version: hero.version }).eq('id', hero.id).select(),
+      'class and level',
+    )
+    refused(
+      await playerA.db.from('inventory_items').insert({ character_id: hero.id, campaign_id: campaignId, name: long(101) }),
+      'item name',
+    )
+    refused(
+      await playerA.db.from('profiles').update({ display_name: long(101) }).eq('id', playerA.id).select(),
+      'display name',
+    )
+    refused(await dm.db.from('quests').insert({ campaign_id: campaignId, title: long(101) }), 'quest title')
+    const quest = ok(await dm.db.from('quests').insert({ campaign_id: campaignId, title: 'Limits' }).select().single())
+    refused(await dm.db.from('quest_objectives').insert({ quest_id: quest.id, text: long(501) }), 'objective')
+    refused(await dm.db.from('quest_rewards').insert({ quest_id: quest.id, text: long(501) }), 'reward')
+    ok(await dm.db.from('quest_rewards').insert({ quest_id: quest.id, text: long(500) }))
+  })
+})
+
 async function firstWorldId(): Promise<string> {
   return ok(await dm.db.from('worlds').select('id').limit(1).single()).id
 }
