@@ -928,7 +928,7 @@ The DM, meanwhile, tests the DM-only parts on a second device: sessions, attenda
 **Stop here. Version 1 is complete** once Phase 4 is done. Work continues only from the owner's roadmap.
 
 #### Phase 4 checklist for players
-*(Short enough to send in a chat; the owner also has it as ready-to-paste messages.)*
+*(Short enough to send in a chat, as plain text without checkboxes or emoji. The script-injection tests are left to the agent, step 3.)*
 
 **Login and joining**
 - Join through the invite link: once with Google, once with email and password
@@ -947,9 +947,8 @@ The DM, meanwhile, tests the DM-only parts on a second device: sessions, attenda
 - Paste a very long text (a few pages) into your backstory
 
 **Strange input**
-- Names that are empty, only spaces, 300 characters long, emoji 🐉, other alphabets (Ελληνικά)
+- Names that are empty, only spaces, 300 characters long, emoji, other alphabets (Ελληνικά)
 - Very large numbers, 0, and a weight with a comma (0,5) and a dot (0.5)
-- Type `<script>alert(1)</script>` and `[click](javascript:alert(1))` into your backstory: no pop-up may appear
 
 **Navigation**
 - Refresh on every screen; use your phone's back button everywhere
