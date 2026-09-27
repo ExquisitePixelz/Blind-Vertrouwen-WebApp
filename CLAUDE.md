@@ -9,4 +9,4 @@ Read ARCHITECTURE.md before doing any work. It is the plan and decision record f
 - Bump the version in package.json when a phase or fix is finished (ARCHITECTURE.md 3.9).
 - Never commit secrets: no Supabase service-role key, database password or data exports.
 
-Current phase: Phase 7, the Quest Journal (ARCHITECTURE.md 1.9 and section 5). Phases 4.5 to 6 are built. Phase 4 is skipped for now.
+Current phase: none. Phases 4.5 to 7 are built (Phase 7: Quest Journal). Phase 4 is written out in depth and waits for the owner (section 5). The owner picks what comes next.

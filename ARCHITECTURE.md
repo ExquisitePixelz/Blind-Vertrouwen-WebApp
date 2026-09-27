@@ -534,6 +534,14 @@ A **Quest Journal** that everyone in the campaign reads. The point is that the g
 
 **Removed players and deleted characters:** quests are the DM's content, so nothing changes when a player leaves. If a character is deleted, its Character quest stays and shows "Character quest" without a name. If the account is deleted, the link is cleared.
 
+**As built (2026-09-27):**
+- **Database:** one migration (`20260927120000_quest_journal.sql`). Only "dm all" policies write; players only read. `private.quest_guard` refuses hiding a revealed quest, moving a quest to another campaign, and a character from another campaign. `private.quest_part_guard` copies `campaign_id` from the quest and puts a new objective or reward last.
+- **Screens:** `/c/:id/quests` and `/c/:id/quests/:questId`. The quest page is the DM's editor; for players it is read-only.
+- **Saving:** the quest itself uses the save hook (3.4). Objectives and rewards are saved the moment the DM taps OK or a checkbox, with the conflict guard; they are short, deliberate changes, not typing. On a conflict the list reloads and shows a message.
+- **New reward:** after the text, the DM picks "Yes, show it" or "No, keep it hidden", so a secret reward is never visible for a moment.
+- **Deleting a quest** is allowed, also after it was revealed (e.g. created by mistake): a soft delete, not hiding it.
+- The grouping, step-by-step visibility and hidden-reward text are unit-tested (`tests/quests.test.ts`).
+
 **Not in Phase 7 (roadmap, 6.2):** voting, session links, secret DM notes per quest, links to lore entries, rewards that become inventory items, quest pictures.
 
 ---
@@ -661,7 +669,7 @@ Realtime is added later together with the features that need it, such as live co
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
 ### 3.9 Version number. *Decided (owner, 2026-09-25)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.6.0-alpha` (2026-09-25: Phase 6).*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.7.0-alpha` (2026-09-27: Phase 7, Quest Journal).*
 - **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …); a fix between phases adds 1 to the last number (`0.5.1-alpha`).
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.
@@ -791,7 +799,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Extras (2026-09-25): footer on every page, terms page, version number (3.9), rename to DnD Companion App | **Built**, version `0.5.2-alpha` |
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
-| Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **In progress** (started 2026-09-27) |
+| Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
