@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -783,7 +783,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Step | Status |
 |---|---|
 | Phases 0–3: version 1 (login, database and security, campaigns, gods, characters, piety) | **Done** |
-| Phase 4: stress test and share | **Skipped for now** (owner decision). Its saving tests still apply once the group tries the app together. |
+| Phase 4: stress test, security check and share | **Written out in depth** (2026-09-27): preparation, accounts and settings, a security test by the agent, a group test with a player checklist, fixes. Owner decides when. Four known gaps are listed there for the owner to decide on. |
 | Phase 4.5: look and navigation (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Built** (2026-09-25). Google's button is set up and tested by the owner. Still open: brand verification, the WhatsApp retest (section 8). |
 | Phase 4.6: invite-only access, remove player, delete my account (1.6) | **Built** (2026-09-25) |
 | Phase 4.7: email and password login (1.7): sign-up through invite links, verification mail, forgot password, Resend | **Built and tested by the owner** (2026-09-25) |
@@ -839,28 +839,127 @@ A roadmap item becomes buildable only when the owner says to start it. At that p
 
 One screen or feature per step. **Do not add anything that is not in section 1.1.**
 
-### Phase 4: Stress test and share
-*Skipped for now (owner decision, 2026-09-24). Work moved on to Phase 5.*
+### Phase 4: Stress test, security check and share *(written out in depth 2026-09-27; the owner decides when)*
 
-Done as one group session with several people and devices at once.
+*Skipped on 2026-09-24 and planned in full on 2026-09-27 at the owner's request. Security matters a lot to the owner, so this phase has a real security part, not just a quick check.*
 
-1. Try to break it:
-   - Close the tab mid-edit.
-   - Lose the connection mid-edit.
-   - DM and player editing the same character.
-   - A player trying to edit someone else's character.
-   - The site on an iPhone and an Android phone.
-   - **Saving (section 3.4, moved here from Phase 3 step 5):**
-     - Type in a field and close the tab within a second, then reopen it. The change must be there.
-     - Turn on flight mode, make changes, and check the indicator shows "Not saved yet". Turn flight mode off: the changes are sent.
-     - Make a change offline, close the app, go back online and reopen it. The change is sent on that visit.
-     - DM and player edit the same character at the same time. The second save shows the conflict warning; both "Keep mine" and "Use their version" work.
-     - Tap − / + and Damage quickly, many times. The final value is right after a refresh.
-     - On a shared phone, log out and log in as someone else. The first person's unsent changes do not appear.
-2. Check performance with Lighthouse (mobile).
-3. Share the link with the group, ask them to add it to their home screen, and gather feedback.
+**Goal:** find what breaks before the group depends on the app, and be as sure as is realistically possible that nobody can read or change what they should not. **Nothing is ever "absolutely" secure**, so the aim has three layers: no known holes, several locks behind each other (defence in depth), and fast recovery if something still goes wrong (backups, soft delete).
 
-**Stop here. Version 1 is complete.** Work continues only from the owner's roadmap.
+**What already protects the app (built):**
+- **Row-level security on all 16 tables.** The database itself decides who reads and writes each row. Hiding a button in the website is never the lock (3.3, priority 2).
+- **An automated permission test** (83 cases, `tests/permissions.test.ts`) runs on every push against a throwaway database. It logs in as the DM, two players and an outsider, and tries forbidden things.
+- **Only the public key is in the website.** The secret key and the database password are only in Supabase and in the private backup repository (3.2, 3.8).
+- **Passwords are handled by Supabase Auth** (bcrypt), never by our code (1.7). Invite-only access (1.6), and sign-up only with a valid invite (1.7).
+- **Markdown is rendered without raw HTML** (`skipHtml`). `react-markdown` removes `javascript:` links by default.
+- **Unsent changes in the browser are stored per user** (3.4), so on a shared phone the next person does not see or send them.
+- **Soft delete, and weekly backups** in the private repository (3.2).
+
+**Known gaps (found while planning, 2026-09-27; each fix is an owner decision):**
+1. **No length limits on text.** A member could paste megabytes into a name, a note or an item and fill the free database (500 MB). *Proposed fix:* database limits, e.g. names 100 characters, one-line fields 500, notes and descriptions 100,000, plus the same limits in the website. This fits priorities 2 and 3.
+2. **No Content Security Policy (CSP).** This is a browser safety net: if a script ever got injected, the CSP would stop it from loading code or sending data to other sites. GitHub Pages cannot send headers, but a `<meta http-equiv="Content-Security-Policy">` tag works. It must allow Supabase and Google's sign-in script. *Proposed fix:* add it and test every login again.
+3. **No limit on how many rows a member creates** (characters, items). This is acceptable for a group of friends; a limit would add complexity. *Proposed:* leave it, and check the size of the database now and then in Supabase.
+4. **Clickjacking protection** (`frame-ancestors`, `X-Frame-Options`) needs HTTP headers, which GitHub Pages cannot send. The risk is low, because every important action asks for confirmation. *Proposed:* accept it and note it here.
+
+#### Step 1: Preparation (owner, with the agent)
+1. Make a campaign **"Stress test"**, so real campaigns stay clean. Delete it afterwards.
+2. Start the backup workflow in the private repository by hand (Actions → Run workflow), so there is a fresh backup from just before the test.
+3. **Restore test:** the agent explains how to load that backup into a throwaway database, to prove it can be restored. A backup that was never restored is not yet a backup.
+4. The owner makes a **test player account** with a second email address through an invite link. The agent uses it in the browser pane for the security test in step 3.
+5. Invite 3–5 friends into "Stress test", on as many kinds of device as possible: Android + Chrome, iPhone + Safari, a laptop, one very small phone. At least one person uses Google login and one email login.
+
+#### Step 2: Accounts and settings check (owner, with the agent's step-by-step help)
+These are the locks outside the code. Most real break-ins happen here, not in the app.
+1. **Two-factor authentication (2FA)** on every account that controls the app: the owner's Google account (it is the DM!), GitHub, Supabase, Resend, Strato and Google Cloud. Whoever gets into the DM's account can see and change everything.
+2. **GitHub, both repositories:** turn on *secret scanning*, *push protection* and *Dependabot alerts* (free for public repositories). Check that `theros-backups` is **private** and that only the owner has access.
+3. **Supabase dashboard:**
+   - Run *Advisors → Security Advisor*. It must show no errors.
+   - Under *Authentication*: Confirm email on; minimum password length 8; the redirect URLs contain only `https://dnd.yannickmul.nl` and the local address; anonymous sign-ins off; the sign-up hook on.
+   - Check *leaked password protection* (it may only be on paid plans; check the current plans).
+4. **Google Cloud OAuth client:** allowed origins only `https://dnd.yannickmul.nl` and the local address.
+5. **Invite links:** revoke every link once everyone has joined (Players screen).
+6. **Supabase organisation:** only the owner is a member.
+
+#### Step 3: Security test by the agent
+1. **Code review:** a full security review of the repository (Claude Code's `/security-review`), and reading every RLS policy and database function again against 3.3.
+2. **Attack from a logged-in player account.** The agent uses the test player account in the browser pane and calls the database directly (around the website, as an attacker would), trying for example to:
+   - read DM session notes, hidden quests, hidden objectives and rewards, other players' private notes, coins and items, invite codes
+   - change another player's character, their own piety score, a god, a quest's status, their own `owner_id` or campaign
+   - add themselves to another campaign, create an invite, delete something directly instead of through a function
+   - read other campaigns' characters, or other users' email addresses
+   Everything must be refused. Anything that gets through is fixed first and gets its own case in the permission test.
+3. **Logged out:** the same without logging in. Nothing may be readable.
+4. **Script injection:** put `<script>alert(1)</script>`, `<img src=x onerror=alert(1)>` and `[click](javascript:alert(1))` in every text field (names, notes, backstory, items, quests). No pop-up may appear anywhere, for the DM or for players.
+5. **Extra automatic check:** a permission-test case that fails if any table ever lacks row-level security, so a future table cannot forget it.
+6. **Dependencies:** `npm audit` and the Dependabot list, with no known serious problems left.
+
+#### Step 4: Group test (one session, everyone together, about an hour)
+Everyone uses the "Stress test" campaign. The full list for players is in **"Phase 4 checklist for players"** below. The main areas:
+- **Login and joining:** Google, email sign-up through an invite, wrong password, forgot password, the confirmation mail opened on another device, an old or revoked invite link, links opened from WhatsApp and Telegram.
+- **Saving (priority 1):** the saving tests from Phase 3 step 5 (closing the tab straight after typing, flight mode, locking the phone, the same character on two devices, the conflict warning, tapping fast), also on the newer text fields (backstory, private notes, quest description) and with very long texts.
+- **Strange input:** empty names, spaces only, very long names, emoji, other alphabets, very large numbers, weights with a comma or a dot.
+- **Navigation:** back, refresh on every screen, a shared link to a character, links to things you may not see or that were deleted, the app from the home screen.
+- **Phones:** a small screen, landscape, a larger text size in the phone settings, the keyboard covering fields, notches.
+- **Privacy in practice:** players try to find anything they should not see (DM sessions, hidden quests, someone else's private notes, coins or inventory).
+- **Quest Journal:** a hidden quest is invisible, the next objective appears once the DM ticks off the current one, hidden rewards show only "+ a hidden reward".
+- **Accounts:** the DM removes a player, a player deletes their account, rejoining with a new invite.
+
+The DM, meanwhile, tests the DM-only parts on a second device: sessions, attendance, Players, invites, piety scores, gods, quests.
+
+**Reporting bugs:** one message per problem in the group chat with: what you did, what you expected, what happened, your phone and browser, the time, and a screenshot. **Never send passwords or login links.**
+
+#### Step 5: Speed and installing
+1. Lighthouse (mobile) in Chrome: performance, accessibility and best practices.
+2. Everyone adds the app to their home screen, and checks that the "New version" message appears after an update.
+
+#### Step 6: Fix round and retest
+1. The agent sorts the reports by the priorities in section 2 and fixes them one by one, with a test where possible. Security and lost-text bugs first.
+2. What went wrong is retested, and the permission test is run again.
+3. The owner deletes the "Stress test" campaign and revokes the invites.
+4. What was learned goes into this section under *As built*.
+
+**Stop here. Version 1 is complete** once Phase 4 is done. Work continues only from the owner's roadmap.
+
+#### Phase 4 checklist for players
+*(Short enough to send in a chat; the owner also has it as ready-to-paste messages.)*
+
+**Login and joining**
+- Join through the invite link: once with Google, once with email and password
+- Log in with a wrong password; use "Forgot password?"
+- Open the confirmation mail on another device than the one you signed up on
+- Try an old or revoked invite link
+- Open the link from WhatsApp and from Telegram
+- Log out and log in as someone else on the same phone: none of the first person's changes may appear
+
+**Saving (most important)**
+- Type in a field and close the app within 1 second; reopen: the text must be there
+- Flight mode on, change something ("Not saved yet"), flight mode off: it is sent
+- Lock your phone or switch apps while typing
+- Open the same character on two devices and change both: a warning must appear
+- Tap − / + and Damage very fast, then refresh: is the number right?
+- Paste a very long text (a few pages) into your backstory
+
+**Strange input**
+- Names that are empty, only spaces, 300 characters long, emoji 🐉, other alphabets (Ελληνικά)
+- Very large numbers, 0, and a weight with a comma (0,5) and a dot (0.5)
+- Type `<script>alert(1)</script>` and `[click](javascript:alert(1))` into your backstory: no pop-up may appear
+
+**Navigation**
+- Refresh on every screen; use your phone's back button everywhere
+- Share a link to your character and have someone open it
+- Open a link to something that was deleted
+- Use the app from your home screen
+
+**Privacy: try to see what you are not allowed to**
+- Someone else's private notes, coins or inventory
+- The DM's sessions (type `/sessions` after the campaign address)
+- Hidden quests, the next objectives, hidden rewards
+- Change someone else's character, or your own piety score
+
+**Phone**
+- A small screen, landscape, and a larger text size in your phone settings
+- Does the keyboard cover the field you are typing in?
+
+**Report each problem** in the chat: what you did, what you expected, what happened, your phone and browser, the time, and a screenshot. Never send passwords.
 
 ### Phase 4.5: Look and navigation (section 1.5)
 1. Migration: `profiles.last_campaign_id` and `campaigns.subtitle`, with permission-test cases (a player can set only their own `last_campaign_id`; only the DM changes campaign names).
@@ -986,6 +1085,8 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
    - Supabase → Authentication → Emails: sender name `DnD Companion App`, and the new name in the Confirm signup and Reset password templates (README has the texts).
    - Redo the WhatsApp login test (3.5) on Android and iPhone with Google's button and with email login.
    - Phones that installed the app: on iPhone, remove and re-add it to pick up the new name.
+
+3. **Security gaps found while planning Phase 4** (2026-09-27), waiting for the owner's decision: text length limits, a Content Security Policy tag, no row-count limits (proposed: accept), no clickjacking headers on GitHub Pages (proposed: accept). See section 5, Phase 4.
 
 **Resolved:**
 - **Quest Journal (Phase 7):** visible to everyone, button below Characters; Main, Side and Character quests (Character quests visible to everyone); hidden until revealed, never hidden again; statuses Inactive, Active, Completed, Failed; objectives revealed one step at a time with optional ones below; each reward visible or hidden, with a "+ a hidden reward" line; no voting and no session links for now (owner decisions, 2026-09-27). See section 1.9.
