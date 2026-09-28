@@ -1,4 +1,6 @@
-// Private notes, coins and inventory (ARCHITECTURE.md 1.8).
+// Private notes, coins and inventory (ARCHITECTURE.md 1.8, 1.10).
+
+import type { ArmorKey, Bonus } from './sheet.ts'
 
 export type CharacterPrivate = {
   id: string
@@ -35,9 +37,13 @@ export type Item = {
   description: string
   equipped: boolean
   attuned: boolean
+  attunement_required: boolean
+  armor: ArmorKey | null
+  effects: Bonus[]
 }
 
-export const ITEM_COLUMNS = 'id, version, character_id, name, quantity, weight, description, equipped, attuned'
+export const ITEM_COLUMNS = 
+  'id, version, character_id, name, quantity, weight, description, equipped, attuned, attunement_required, armor, effects'
 
 export const MAX_QUANTITY = 9999
 export const MAX_WEIGHT = 99999.99
@@ -83,4 +89,6 @@ export function carriedWeight(items: Pick<Item, 'quantity' | 'weight'>[], coins:
 /** Carrying capacity: STR × 15 lb (PHB). */
 export const carryingCapacity = (strength: number) => strength * 15
 
-export const attunedCount = (items: Pick<Item, 'attuned'>[]) => items.filter((i) => i.attuned).length
+/** Only items that require attunement count toward the limit of 3 (1.10). */
+export const attunedCount = (items: Pick<Item, 'attuned' | 'attunement_required'>[]) =>
+  items.filter((i) => i.attuned && i.attunement_required).length

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ConfirmDialog, Dialog, NumberDialog, PromptDialog } from './Dialog'
+import { ConfirmDialog, Dialog, NumberDialog, PickDialog, PromptDialog } from './Dialog'
+import { BonusDialog } from './ModifierDialogs'
 import { FactRow } from './FactRow'
 import { ConflictBanner, SaveIndicator } from './SaveState'
 import {
@@ -16,7 +17,10 @@ import {
   type Coin,
   type Item,
 } from '../lib/inventory'
+import { changeList, ListChangedError } from '../lib/listChange'
 import { useRowSaver } from '../lib/saver'
+import { formatModifier } from '../lib/character'
+import { ARMOR, armorInfo, MAX_ITEM_BONUSES, targetLabel, type ArmorKey, type Bonus } from '../lib/sheet'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX, NOTES_MAX } from '../lib/limits'
@@ -31,11 +35,13 @@ export function Inventory({
   campaignId,
   strength,
   coins,
+  onItemsChanged,
 }: {
   characterId: string
   campaignId: string
   strength: number
   coins: Pick<CharacterPrivate, Coin>
+  onItemsChanged: () => void
 }) {
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
@@ -48,7 +54,12 @@ export function Inventory({
   }, [characterId])
 
   const list = items.data ?? []
-  const replace = (saved: Item) => items.mutate((all) => all?.map((i) => (i.id === saved.id ? saved : i)).sort(byItemName))
+  const replace = (saved: Item) => {
+    const before = items.data?.find((i) => i.id === saved.id)
+    items.mutate((all) => all?.map((i) => (i.id === saved.id ? saved : i)).sort(byItemName))
+    // Only what changes the sheet reloads it, not typing in the description.
+    if (!before || addsKey(before) !== addsKey(saved)) onItemsChanged()
+  }
   const carried = carriedWeight(list, coins)
   const capacity = carryingCapacity(strength)
   const attuned = attunedCount(list)
@@ -77,10 +88,10 @@ export function Inventory({
                   </span>
                   {rowWeight > 0 && <span className="muted small nowrap">{formatWeight(rowWeight)} lb</span>}
                 </div>
-                {(item.equipped || item.attuned) && (
+                {(item.equipped || (item.attuned && item.attunement_required)) && (
                   <div className="item-chips">
                     {item.equipped && <span className="chip">Equipped</span>}
-                    {item.attuned && <span className="chip gold">Attuned</span>}
+                    {item.attuned && item.attunement_required && <span className="chip gold">Attuned</span>}
                   </div>
                 )}
               </button>
@@ -116,6 +127,7 @@ export function Inventory({
                 .single(),
             ) as Item
             items.mutate((all) => [...(all ?? []), created].sort(byItemName))
+            onItemsChanged()
             setEditing(created.id)
           }}
         />
@@ -125,7 +137,10 @@ export function Inventory({
           item={current}
           onSaved={replace}
           onReload={items.reload}
-          onDeleted={() => items.mutate((all) => all?.filter((i) => i.id !== current.id))}
+          onDeleted={() => {
+            items.mutate((all) => all?.filter((i) => i.id !== current.id))
+            onItemsChanged()
+          }}
           onClose={() => setEditing(null)}
         />
       )}
@@ -133,7 +148,11 @@ export function Inventory({
   )
 }
 
-type Sub = 'name' | 'quantity' | 'weight' | 'delete'
+type Sub = 'name' | 'quantity' | 'weight' | 'delete' | 'armor' | { bonus: number | null }
+
+/** The fields of an item that change what it adds to the sheet (and its name, shown there). */
+const addsKey = (i: Item) =>
+  JSON.stringify([i.name, i.quantity, i.equipped, i.attuned, i.attunement_required, i.armor, i.effects])
 
 /**
  * One item. Taps save at once, the description 1 s after typing stops
@@ -159,6 +178,66 @@ function ItemEditor({
   const back = () => setSub(null)
   const tap = (patch: Partial<Item>) => saver.change(patch, true)
 
+  /** Bonuses are saved one change at a time on the latest list (1.10, "Saving"). */
+  async function changeBonuses(change: (latest: Bonus[]) => Bonus[]) {
+    await saver.settle()
+    try {
+      onSaved(await changeList<Item, Bonus[]>('inventory_items', i.id, 'effects', change))
+    } catch (e) {
+      if (e instanceof ListChangedError) onReload()
+      throw e
+    }
+  }
+  const same = (latest: Bonus[], index: number) => {
+    if (JSON.stringify(latest[index]) !== JSON.stringify(i.effects[index])) {
+      throw new ListChangedError('Someone else changed the bonuses. They are reloaded; please try again.')
+    }
+  }
+
+  if (sub === 'armor') {
+    return (
+      <PickDialog<ArmorKey | null>
+        title="Armor"
+        onClose={back}
+        onPick={(armor) => tap({ armor })}
+        options={[
+          { value: null, label: `None${i.armor === null ? ' •' : ''}` },
+          ...ARMOR.map((a) => ({
+            value: a.key,
+            label: `${a.label}, ${armorText(a.key)}${a.key === i.armor ? ' •' : ''}`,
+          })),
+        ]}
+      />
+    )
+  }
+  if (typeof sub === 'object' && sub) {
+    const index = sub.bonus
+    return (
+      <BonusDialog
+        initial={index === null ? null : i.effects[index]}
+        onClose={back}
+        onSave={(target, value) =>
+          changeBonuses((latest) => {
+            if (index === null) {
+              if (latest.length >= MAX_ITEM_BONUSES) throw new ListChangedError('An item has at most 5 bonuses.')
+              return [...latest, { target, value }]
+            }
+            same(latest, index)
+            return latest.map((b, n) => (n === index ? { target, value } : b))
+          })
+        }
+        onDelete={
+          index === null
+            ? undefined
+            : () =>
+                changeBonuses((latest) => {
+                  same(latest, index)
+                  return latest.filter((_, n) => n !== index)
+                })
+        }
+      />
+    )
+  }
   if (sub === 'name') {
     return <PromptDialog title="Name" initial={i.name} maxLength={NAME_MAX} onClose={back} onSubmit={(name) => tap({ name })} />
   }
@@ -209,10 +288,42 @@ function ItemEditor({
           <span>Equipped</span>
         </label>
         <label className="check-row">
-          <input type="checkbox" checked={i.attuned} onChange={(e) => tap({ attuned: e.target.checked })} />
-          <span>Attuned</span>
+          <input
+            type="checkbox"
+            checked={i.attunement_required}
+            // Without the need, Attuned means nothing, so it is cleared too.
+            onChange={(e) => tap(e.target.checked ? { attunement_required: true } : { attunement_required: false, attuned: false })}
+          />
+          <span>Requires attunement</span>
         </label>
+        {i.attunement_required && (
+          <label className="check-row">
+            <input type="checkbox" checked={i.attuned} onChange={(e) => tap({ attuned: e.target.checked })} />
+            <span>Attuned</span>
+          </label>
+        )}
+        <FactRow
+          label="Armor"
+          value={i.armor ? `${armorInfo(i.armor).label}, ${armorText(i.armor)}` : 'None'}
+          muted={!i.armor}
+          onClick={() => setSub('armor')}
+        />
+        {i.effects.map((b, n) => (
+          <FactRow key={n} label={n === 0 ? 'Bonuses' : ''} value={`${targetLabel(b.target)} ${formatModifier(b.value)}`} onClick={() => setSub({ bonus: n })} />
+        ))}
+        <div className="fact-row">
+          <span className="muted">{i.effects.length ? '' : 'Bonuses'}</span>
+          <button
+            type="button"
+            className="small-button secondary"
+            disabled={i.effects.length >= MAX_ITEM_BONUSES}
+            onClick={() => setSub({ bonus: null })}
+          >
+            Add bonus
+          </button>
+        </div>
       </div>
+      <p className="muted small">Armor and bonuses count while the item is equipped (and attuned, when it requires it).</p>
       <textarea
         className="text-input notes item-description"
         aria-label="Description"
@@ -233,6 +344,14 @@ function ItemEditor({
       </div>
     </Dialog>
   )
+}
+
+/** "AC 18", "AC 12 + DEX", "AC 14 + DEX (max 2)" or "AC +2". */
+function armorText(key: ArmorKey) {
+  const a = armorInfo(key)
+  if (a.type === 'shield') return `AC +${a.base}`
+  if (a.type === 'heavy') return `AC ${a.base}`
+  return `AC ${a.base} + DEX${a.type === 'medium' ? ' (max 2)' : ''}`
 }
 
 /** Weight per item in lb: a decimal, with a comma or a dot. */

@@ -18,11 +18,15 @@ export function PrivateSections({
   campaignId,
   strength,
   onStatus,
+  onItemsChanged,
 }: {
   characterId: string
   campaignId: string
+  /** The final STR score, for the carrying capacity (1.10). */
   strength: number
   onStatus: (status: SaveStatus) => void
+  /** An item was added, changed or deleted: the sheet reloads what items add. */
+  onItemsChanged: () => void
 }) {
   const [coin, setCoin] = useState<{ field: Coin; label: string } | null>(null)
 
@@ -75,7 +79,13 @@ export function PrivateSections({
         </div>
       </section>
 
-      <Inventory characterId={characterId} campaignId={campaignId} strength={strength} coins={p} />
+      <Inventory
+        characterId={characterId}
+        campaignId={campaignId}
+        strength={strength}
+        coins={p}
+        onItemsChanged={onItemsChanged}
+      />
 
       {coin && (
         <NumberDialog

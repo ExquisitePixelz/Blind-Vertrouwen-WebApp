@@ -58,7 +58,16 @@ test('carried weight: quantity × weight, plus 50 coins to the pound', () => {
 })
 
 test('attunement count and item order', () => {
-  assert.equal(attunedCount([{ attuned: true }, { attuned: false }, { attuned: true }]), 2)
+  assert.equal(
+    attunedCount([
+      { attuned: true, attunement_required: true },
+      { attuned: false, attunement_required: true },
+      { attuned: true, attunement_required: true },
+      { attuned: true, attunement_required: false },
+    ]),
+    2,
+    'only items that require attunement count',
+  )
   const names = ['rope', 'Arrows', 'bedroll', 'Zither'].map((name) => ({ name }) as Item)
   assert.deepEqual(names.sort(byItemName).map((i) => i.name), ['Arrows', 'bedroll', 'rope', 'Zither'])
 })
