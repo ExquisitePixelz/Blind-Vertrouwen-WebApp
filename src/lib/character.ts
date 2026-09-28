@@ -1,6 +1,6 @@
 // Character fields and rules (ARCHITECTURE.md 1.3 B1 and B2, 1.10).
 
-import type { ClassEntry } from './sheet.ts'
+import type { ClassEntry, Modifier, Proficiencies, UnarmoredAc } from './sheet.ts'
 
 export type Character = {
   id: string
@@ -12,12 +12,10 @@ export type Character = {
   classes: ClassEntry[]
   race: string
   background: string
-  ac: number
   hp_max: number
   hp_cur: number
   hp_temp: number
   speed: number
-  passive_perception: number
   strength: number
   dexterity: number
   constitution: number
@@ -25,11 +23,18 @@ export type Character = {
   wisdom: number
   charisma: number
   backstory: string
+  unarmored_ac: UnarmoredAc
+  modifiers: Modifier[]
+  proficiencies: Proficiencies
+  death_saves_success: number
+  death_saves_failure: number
+  inspiration: boolean
 }
 
 export const CHARACTER_COLUMNS =
-  'id, version, campaign_id, owner_id, name, player, classes, race, background, ac, hp_max, hp_cur, hp_temp, speed, ' +
-  'passive_perception, strength, dexterity, constitution, intelligence, wisdom, charisma, backstory'
+  'id, version, campaign_id, owner_id, name, player, classes, race, background, hp_max, hp_cur, hp_temp, speed, ' +
+  'strength, dexterity, constitution, intelligence, wisdom, charisma, backstory, ' +
+  'unarmored_ac, modifiers, proficiencies, death_saves_success, death_saves_failure, inspiration'
 
 export type Ability = 'strength' | 'dexterity' | 'constitution' | 'intelligence' | 'wisdom' | 'charisma'
 

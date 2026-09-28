@@ -6,31 +6,35 @@ import { byName, loadGods } from '../lib/gods'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
-import { formatClasses, type ClassEntry } from '../lib/sheet'
+import { buildSheet, formatClasses, type EffectItem, type SheetInput } from '../lib/sheet'
 
-type ListRow = {
+type ListRow = SheetInput & {
   id: string
   name: string
   player: string
-  classes: ClassEntry[]
   hp_cur: number
   hp_max: number
-  ac: number
 }
+
+/** Everything the list needs, including what AC is calculated from (1.10). */
+const LIST_COLUMNS =
+  'id, name, player, classes, hp_cur, hp_max, strength, dexterity, constitution, intelligence, wisdom, charisma, speed, modifiers, proficiencies, unarmored_ac'
 
 /** Character list (1.3 B3). */
 export function CharactersPage() {
   const { campaignId = '' } = useParams()
   const [creating, setCreating] = useState(false)
   const characters = useLoad(async () => {
-    const rows = must(
-      await supabase
-        .from('characters')
-        .select('id, name, player, classes, hp_cur, hp_max, ac')
-        .eq('campaign_id', campaignId)
-        .is('deleted_at', null),
-    ) as ListRow[]
-    return rows.sort(byName)
+    const [rows, effects] = await Promise.all([
+      supabase.from('characters').select(LIST_COLUMNS).eq('campaign_id', campaignId).is('deleted_at', null).then(must),
+      supabase.from('character_effects').select('character_id, items').eq('campaign_id', campaignId).then(must),
+    ])
+    const items = new Map(
+      (effects as { character_id: string; items: EffectItem[] }[]).map((e) => [e.character_id, e.items]),
+    )
+    return (rows as unknown as ListRow[])
+      .map((c) => ({ ...c, ac: buildSheet(c, items.get(c.id) ?? []).ac.value }))
+      .sort(byName)
   }, [campaignId])
 
   return (
