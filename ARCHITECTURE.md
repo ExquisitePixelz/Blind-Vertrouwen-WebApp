@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out: the automatic character sheet (section 1.10), the first part of the character builder (6.1). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -679,6 +679,13 @@ Other players see all of it read-only, including the breakdown lines, but nothin
 
 The permission test gains the cases in section 4.
 
+**As built (2026-09-28):**
+- **Database:** two migrations. `20260928120000_automatic_sheet.sql` adds the fields, `character_effects` and the checks; `20260928130000_drop_old_character_fields.sql` removes `class_level`, `ac` and `passive_perception`. The JSON checks are small `immutable` functions in `private` (`valid_classes`, `valid_modifiers`, `valid_proficiencies`, `valid_item_effects`), called by CHECK constraints. The class conversion checks itself with `assert`s inside the migration before it touches data. On the live database, "Barbarian" became one entry at level 1. When old class text passes 20 levels, the later entries are lowered and any that would drop below 1 are left out.
+- **Rules:** `src/lib/sheet.ts` (unit-tested in `tests/sheet.test.ts`) builds the whole sheet from the character, the `character_effects` list and, for the owner and the DM, the item names.
+- **Screens:** the sheet follows the order above. The dialog for a number (`StatDialog`) shows `{name} {total} = {parts}`, the modifiers, and the item bonuses, which are changed in the inventory. The AC dialog has the Unarmored AC choice. Long-press is `Press` (500 ms, with a finger or a mouse button; the phone's own long-press menu is blocked there). A modifier's value has a ± button, because phone number pads often have no minus key. The Characters list calculates AC from the same rules.
+- **Saving lists:** `src/lib/listChange.ts` reads the latest list, applies one change and saves it with the conflict guard, trying again up to 3 times. A change that no longer fits (the entry was changed or removed by someone else) is cancelled with a message, and the sheet reloads.
+- **Order of work:** steps 4 to 8 went live together, because the owner was the only one testing. Step 9 went live the same day at the owner's request, instead of a few days later.
+
 ---
 
 ## 2. Priorities
@@ -804,7 +811,7 @@ Realtime is added later together with the features that need it, such as live co
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
 ### 3.9 Version number. *Decided (owner, 2026-09-25)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.7.1-alpha` (2026-09-27: text length limits and the Content Security Policy).*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.8.0-alpha` (2026-09-28: Phase 8, the automatic character sheet).*
 - **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …); a fix between phases adds 1 to the last number (`0.5.1-alpha`).
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.
@@ -979,7 +986,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
-| Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Written out** (2026-09-28), not built. Owner decides when. |
+| Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
@@ -1034,8 +1041,8 @@ One screen or feature per step. **Do not add anything that is not in section 1.1
 **Goal:** find what breaks before the group depends on the app, and be as sure as is realistically possible that nobody can read or change what they should not. **Nothing is ever "absolutely" secure**, so the aim has three layers: no known holes, several locks behind each other (defence in depth), and fast recovery if something still goes wrong (backups, soft delete).
 
 **What already protects the app (built):**
-- **Row-level security on all 16 tables.** The database itself decides who reads and writes each row. Hiding a button in the website is never the lock (3.3, priority 2).
-- **An automated permission test** (83 cases, `tests/permissions.test.ts`) runs on every push against a throwaway database. It logs in as the DM, two players and an outsider, and tries forbidden things.
+- **Row-level security on all 17 tables.** The database itself decides who reads and writes each row. Hiding a button in the website is never the lock (3.3, priority 2).
+- **An automated permission test** (115 cases, `tests/permissions.test.ts`) runs on every push against a throwaway database. It logs in as the DM, two players and an outsider, and tries forbidden things.
 - **Only the public key is in the website.** The secret key and the database password are only in Supabase and in the private backup repository (3.2, 3.8).
 - **Passwords are handled by Supabase Auth** (bcrypt), never by our code (1.7). Invite-only access (1.6), and sign-up only with a valid invite (1.7).
 - **Markdown is rendered without raw HTML** (`skipHtml`). `react-markdown` removes `javascript:` links by default.
