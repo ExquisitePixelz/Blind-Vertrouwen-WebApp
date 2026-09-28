@@ -36,7 +36,7 @@ test('set current and max HP', () => {
 })
 
 test('field limits', () => {
-  assert.equal(clampField('ac', -2), 0)
+  assert.equal(clampField('speed', -2), 0)
   assert.equal(clampField('strength', 0), 1)
   assert.equal(clampField('strength', 45), 30)
   assert.equal(clampField('hp_temp', 999), 999)

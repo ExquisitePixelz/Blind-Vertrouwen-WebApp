@@ -209,7 +209,7 @@ describe('reading and editing characters', () => {
     const updated = ok(
       await playerA.db
         .from('characters')
-        .update({ hp_cur: 7, class_level: 'Rogue 3', version: characterA.version, updated_at: '2000-01-01T00:00:00Z' })
+        .update({ hp_cur: 7, race: 'Tiefling', version: characterA.version, updated_at: '2000-01-01T00:00:00Z' })
         .eq('id', characterA.id)
         .select()
         .single(),
@@ -371,9 +371,9 @@ describe('the DM can do everything', () => {
   test("The DM can edit any character", async () => {
     const current = ok(await dm.db.from('characters').select('version').eq('id', characterB.id).single())
     const updated = ok(
-      await dm.db.from('characters').update({ ac: 15, version: current.version }).eq('id', characterB.id).select().single(),
+      await dm.db.from('characters').update({ speed: 35, version: current.version }).eq('id', characterB.id).select().single(),
     )
-    assert.equal(updated.ac, 15)
+    assert.equal(updated.speed, 35)
   })
 })
 
@@ -1455,8 +1455,8 @@ describe('text length limits (Phase 4)', () => {
     refused(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: long(101) }), 'character name')
     const hero = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: long(100) }))
     refused(
-      await playerA.db.from('characters').update({ class_level: long(501), version: hero.version }).eq('id', hero.id).select(),
-      'class and level',
+      await playerA.db.from('characters').update({ player: long(101), version: hero.version }).eq('id', hero.id).select(),
+      'player',
     )
     refused(
       await playerA.db.from('inventory_items').insert({ character_id: hero.id, campaign_id: campaignId, name: long(101) }),

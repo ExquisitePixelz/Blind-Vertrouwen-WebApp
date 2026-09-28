@@ -81,10 +81,8 @@ export function setMaxHp(c: Hp, value: number): Pick<Character, 'hp_max' | 'hp_c
 
 /** The minimum (and maximum) each plain number field allows. */
 export const LIMITS = {
-  ac: { min: 0 },
   hp_temp: { min: 0 },
   speed: { min: 0 },
-  passive_perception: { min: 0 },
   strength: { min: 1, max: 30 },
   dexterity: { min: 1, max: 30 },
   constitution: { min: 1, max: 30 },
