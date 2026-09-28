@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { ClassDialog } from '../components/ClassDialog'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
@@ -21,11 +22,13 @@ import {
   type Character,
 } from '../lib/character'
 import { loadGods } from '../lib/gods'
+import { changeList, ListChangedError } from '../lib/listChange'
 import { useMe } from '../lib/me'
 import { useRowSaver, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
+import { canAddClass, formatClasses, MAX_LEVEL, maxLevelFor, totalLevel, type ClassEntry } from '../lib/sheet'
 
 type NumberField = 'ac' | 'hp_temp' | 'speed' | 'passive_perception' | Ability
 
@@ -35,7 +38,9 @@ type Open =
   | { kind: 'heal' }
   | { kind: 'max' }
   | { kind: 'number'; field: NumberField; label: string }
-  | { kind: 'text'; field: 'name' | 'player' | 'class_level'; label: string }
+  | { kind: 'text'; field: 'name' | 'player' | 'race' | 'background'; label: string }
+  | { kind: 'class'; index: number | null }
+  | { kind: 'removeClass'; index: number }
   | { kind: 'menu' }
   | { kind: 'delete' }
 
@@ -109,6 +114,32 @@ export function CharacterPage() {
   const tap = (next: Open) => (canEdit ? () => setOpen(next) : undefined)
   const save = (patch: Partial<Character>) => saver.change(patch, true)
   const bar = hpBar(c)
+  const level = totalLevel(c.classes)
+
+  /**
+   * Class entries are saved one change at a time (1.10, "Saving"): send what
+   * is still waiting, then apply the change to the latest list. `shown` is
+   * the entry as this screen showed it; if someone else changed it since,
+   * the change is cancelled and the sheet reloads.
+   */
+  async function changeClasses(change: (classes: ClassEntry[]) => ClassEntry[], index?: number) {
+    const shown = index === undefined ? undefined : c!.classes[index]
+    await saver.settle()
+    try {
+      const saved = await changeList<Character, ClassEntry[]>('characters', c!.id, 'classes', (latest) => {
+        if (shown && JSON.stringify(latest[index!]) !== JSON.stringify(shown)) {
+          throw new ListChangedError('Someone else changed the classes. They are reloaded; please try again.')
+        }
+        const next = change(latest)
+        if (totalLevel(next) > MAX_LEVEL) throw new ListChangedError('The total level would pass 20.')
+        return next
+      })
+      character.mutate(() => saved)
+    } catch (e) {
+      if (e instanceof ListChangedError) character.reload()
+      throw e
+    }
+  }
 
   return (
     <main className="page">
@@ -135,10 +166,35 @@ export function CharacterPage() {
           value={c.player}
           onClick={tap({ kind: 'text', field: 'player', label: 'Player' })}
         />
+        {c.classes.map((entry, index) => (
+          <FactRow
+            key={index}
+            label={index === 0 ? 'Class' : ''}
+            value={formatClasses([entry])}
+            onClick={tap({ kind: 'class', index })}
+          />
+        ))}
+        <div className="fact-row">
+          <span className="muted">Level</span>
+          <span>
+            {level}
+            {canEdit && (
+              <button
+                type="button"
+                className="small-button secondary fact-button"
+                disabled={!canAddClass(c.classes)}
+                onClick={() => setOpen({ kind: 'class', index: null })}
+              >
+                Add class
+              </button>
+            )}
+          </span>
+        </div>
+        <FactRow label="Race" value={c.race} onClick={tap({ kind: 'text', field: 'race', label: 'Race' })} />
         <FactRow
-          label="Class & level"
-          value={c.class_level}
-          onClick={tap({ kind: 'text', field: 'class_level', label: 'Class & level' })}
+          label="Background"
+          value={c.background}
+          onClick={tap({ kind: 'text', field: 'background', label: 'Background' })}
         />
         <FactRow label="Devoted to" value={devotion.data || 'None'} muted={!devotion.data} />
       </div>
@@ -267,9 +323,42 @@ export function CharacterPage() {
           title={open.label}
           initial={c[open.field]}
           allowEmpty={open.field !== 'name'}
-          maxLength={open.field === 'name' || open.field === 'player' ? NAME_MAX : undefined}
+          maxLength={NAME_MAX}
           onClose={close}
           onSubmit={(value) => save({ [open.field]: value })}
+        />
+      )}
+      {open?.kind === 'class' && (open.index === null || c.classes[open.index]) && (
+        <ClassDialog
+          entry={open.index === null ? null : c.classes[open.index]}
+          maxLevel={
+            open.index === null ? MAX_LEVEL - level : maxLevelFor(c.classes, open.index)
+          }
+          onClose={close}
+          onRemove={
+            open.index !== null && c.classes.length > 1
+              ? () => setOpen({ kind: 'removeClass', index: open.index! })
+              : undefined
+          }
+          onSave={(entry) =>
+            open.index === null
+              ? changeClasses((latest) => [...latest, entry])
+              : changeClasses((latest) => latest.map((e, i) => (i === open.index ? entry : e)), open.index)
+          }
+        />
+      )}
+      {open?.kind === 'removeClass' && c.classes[open.index] && (
+        <ConfirmDialog
+          title="Remove class"
+          message={`${formatClasses([c.classes[open.index]])} will be removed from ${c.name}.`}
+          confirmLabel="Remove"
+          onClose={close}
+          onConfirm={() =>
+            changeClasses((latest) => {
+              if (latest.length <= 1) throw new ListChangedError('The last class cannot be removed.')
+              return latest.filter((_, i) => i !== open.index)
+            }, open.index)
+          }
         />
       )}
       {open?.kind === 'menu' && (

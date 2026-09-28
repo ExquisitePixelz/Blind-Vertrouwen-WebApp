@@ -438,6 +438,16 @@ button.fact-row:active {
   background: #25252b;
 }
 
+/* A small button at the end of a fact row, e.g. Add class (1.10). */
+.fact-button {
+  margin-left: 0.75rem;
+}
+
+/* A button pushed to the left of the dialog actions, e.g. Remove. */
+.dialog-left {
+  margin-right: auto;
+}
+
 /* ---------- Standing bar (1.3 A6) ---------- */
 
 .standing {

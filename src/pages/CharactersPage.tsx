@@ -6,12 +6,13 @@ import { byName, loadGods } from '../lib/gods'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
+import { formatClasses, type ClassEntry } from '../lib/sheet'
 
 type ListRow = {
   id: string
   name: string
   player: string
-  class_level: string
+  classes: ClassEntry[]
   hp_cur: number
   hp_max: number
   ac: number
@@ -25,7 +26,7 @@ export function CharactersPage() {
     const rows = must(
       await supabase
         .from('characters')
-        .select('id, name, player, class_level, hp_cur, hp_max, ac')
+        .select('id, name, player, classes, hp_cur, hp_max, ac')
         .eq('campaign_id', campaignId)
         .is('deleted_at', null),
     ) as ListRow[]
@@ -43,7 +44,7 @@ export function CharactersPage() {
       {characters.data?.length === 0 && <p className="muted">No characters yet. Tap + to add one.</p>}
       <ul className="list">
         {characters.data?.map((c) => {
-          const second = [c.class_level, c.player].filter(Boolean).join(' · ')
+          const second = [formatClasses(c.classes), c.player].filter(Boolean).join(' · ')
           return (
             <li key={c.id}>
               <Link to={`/c/${campaignId}/characters/${c.id}`} className="row">
