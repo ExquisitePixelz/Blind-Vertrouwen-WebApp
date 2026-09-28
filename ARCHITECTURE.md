@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out: the automatic character sheet (section 1.10), the first part of the character builder (6.1). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -130,21 +130,21 @@ Values are always clamped to 1–7.
 |---|---|---|---|
 | `name` | text | (entered at creation) | Required, trimmed, cannot be empty. |
 | `player` | text | `""` | Free text, may be empty. **Keep it as free text on the web** (owner decision, 2026-09-24). It is a display label only; ownership and permissions come from `owner_id`, never from this field. |
-| `classLevel` | text | `""` | One free-text field such as "Fighter 3". It is not split into class and level. May be empty. |
-| `ac` | integer | 10 | Minimum 0. |
+| `classLevel` | text | `""` | One free-text field such as "Fighter 3". It is not split into class and level. May be empty. **⚠ Plan difference (Phase 8, 1.10):** the web app replaces it with `classes`, a list of class name and level entries. |
+| `ac` | integer | 10 | Minimum 0. **⚠ Plan difference (Phase 8, 1.10):** the web app calculates AC from armor and never lets it be typed in. |
 | `hpMax` | integer | 10 | Minimum 1. |
 | `hpCur` | integer | 10 | Kept between 0 and `hpMax`. |
 | `hpTemp` | integer | 0 | Minimum 0, no maximum. |
 | `speed` | integer (feet) | 30 | Minimum 0. Shown as "30 ft". |
-| `passivePerception` | integer | 10 | Minimum 0. Entered by hand, **not** calculated. |
+| `passivePerception` | integer | 10 | Minimum 0. Entered by hand, **not** calculated. **⚠ Plan difference (Phase 8, 1.10):** the web app calculates it (10 + Perception) and never lets it be typed in. |
 | `abilities` | 6 integers: STR, DEX, CON, INT, WIS, CHA | 10 each | Each clamped to 1–30. |
 | `devotedGodId` | god reference or empty | empty ("None") | Which god the Piety screen shows for this character. **⚠ Plan difference:** the web plan replaces this with `piety_tracks` (see B5). |
 
-No other fields exist: no skills, saving throws, proficiency bonus, spells, conditions, inventory or notes.
+No other fields exist: no skills, saving throws, proficiency bonus, spells, conditions, inventory or notes. *(In the Unity app. The web app added notes and inventory in Phase 6, section 1.8, and adds skills, saving throws and the proficiency bonus in Phase 8, section 1.10.)*
 
 **B2. Calculations**
 - **Ability modifier** = `floor((score − 10) / 2)`. It is shown as `+2`, `+0` or `−1`, using a true minus sign (U+2212) for negatives.
-- **Initiative** = the DEX modifier. It is read-only and cannot be edited.
+- **Initiative** = the DEX modifier. It is read-only and cannot be edited. *(Web, Phase 8: the modifier of the final DEX score, after custom modifiers and items, 1.10.)*
 - **HP bar fill** = `clamp(hpCur / hpMax, 0, 1)`. It is green (`#6FA86A`), and turns red (`#D2574C`) at 25% or less.
 - **Damage X** (X at least 0):
   1. Temp HP absorbs first: `absorbed = min(hpTemp, X)` and `hpTemp −= absorbed`.
@@ -152,7 +152,7 @@ No other fields exist: no skills, saving throws, proficiency bonus, spells, cond
 - **Heal X** (X at least 0): `hpCur = min(hpMax, hpCur + X)`. Healing never changes temp HP.
 - **Set current HP to X**: `hpCur = clamp(X, 0, hpMax)`.
 - **Set max HP to X**: `hpMax = max(1, X)`, then `hpCur = min(hpCur, hpMax)`. Raising max HP does **not** raise current HP.
-- There are no death saves or unconscious state. 0 HP is just a number.
+- There are no death saves or unconscious state. 0 HP is just a number. *(Web, Phase 8: death save circles, not tied to HP, 1.10.)*
 
 **B3. Screens**
 
@@ -161,7 +161,7 @@ No other fields exist: no skills, saving throws, proficiency bonus, spells, cond
 - Each row shows:
   - **name** in bold
   - on the right, muted: `HP {hpCur}/{hpMax}   AC {ac}`
-  - a second line with `classLevel · player`, leaving out whichever is empty, and leaving out the line if both are empty
+  - a second line with `classLevel · player`, leaving out whichever is empty, and leaving out the line if both are empty *(web, Phase 8: the class list, such as "Fighter 3 / Wizard 2", and the calculated AC, 1.10)*
 - Tapping a row opens the character sheet.
 - With no characters, it shows the message "No characters yet. Tap + to add one."
 - **+** opens a prompt titled "New character" asking only for the name. It creates the character with every default from B1 and opens its sheet.
@@ -180,6 +180,8 @@ No other fields exist: no skills, saving throws, proficiency bonus, spells, cond
 4. **Tile row:** Speed ("30 ft"), Passive Perception (labelled "Passive Perc."), and Initiative (read-only, shown greyed).
 5. **Two tile rows of three abilities:** STR/DEX/CON, then INT/WIS/CHA. Each tile shows the label, the score large, and the modifier in gold below it. Tapping a tile opens a keypad with **Set**.
 
+*Web, Phase 8: the sheet gains the class list, race, background, death saves, inspiration, the proficiency bonus, saving throws and skills. The full order is in 1.10.*
+
 The **…** menu has:
 - **Rename**: text prompt. The name cannot be empty.
 - **Delete character**: a confirm dialog saying "{name}, their stats and piety history will be removed." Deleting removes the character **and all of its piety history**, then returns to the list.
@@ -187,6 +189,7 @@ The **…** menu has:
 **B4. Permissions on the web** (from plan 3.3). These are not in Unity, which has only the DM.
 - Players edit only their own characters and see everyone else's sheets read-only. On a read-only sheet, nothing is tappable.
 - The DM edits everything.
+- *Phase 8 (1.10):* the breakdown lines under totals are shown to everyone; the dialogs behind them open only for the owner and the DM.
 
 **B5. How piety works in the Unity app** (for reference; the web plan's model replaces it)
 - **Model:** each character has a list of `{godId, value}` scores, one per god, 0–50, clamped. `devotedGodId` picks which one the Piety overview shows.
@@ -468,7 +471,7 @@ Players get a place on their own character sheet for their story, their private 
 
 **Why a separate private row.** RLS works on whole rows (3.3), so private notes and coins cannot be columns on `characters`, which every player in the campaign reads. They go in their own one-per-character row with audience `owner`. Inventory items are rows with audience `owner` too.
 
-**Ready for item effects (6.1 part 2).** Equipped and Attuned are what effects will hang on. The effects themselves come later as their own table (or a link to a library item); no speculative columns now.
+**Ready for item effects (6.1 part 2).** Equipped and Attuned are what effects will hang on. The effects themselves come later as their own table (or a link to a library item); no speculative columns now. *Changed 2026-09-28 (Phase 8, 1.10): the effects are a short list on the item row itself (up to 5 bonuses and an armor type), not a separate table. They are typed in per item and there is no library yet, so a list on the row gets the item's privacy and saving for free. The Attuned box now shows only for items that require attunement, and `Attuned n / 3` counts only those.*
 
 **Removed players and deleted accounts.** Same as characters (1.6): a removed player's notes, coins and items stay, visible only to the DM. Deleting an account removes them for good. Deleting a character soft-deletes them with it.
 
@@ -543,6 +546,138 @@ A **Quest Journal** that everyone in the campaign reads. The point is that the g
 - The grouping, step-by-step visibility and hidden-reward text are unit-tested (`tests/quests.test.ts`).
 
 **Not in Phase 7 (roadmap, 6.2):** voting, session links, secret DM notes per quest, links to lore entries, rewards that become inventory items, quest pictures.
+
+### 1.10 Phase 8: Automatic character sheet *(put in scope by the owner, 2026-09-28; part 1 of the character builder in 6.1, with small slices of parts 2 to 4)*
+
+The character sheet **calculates** the proficiency bonus, saving throws, skills, AC and Passive Perception, and shows how each total is made. The ruleset is 2014 (5e classic), as decided in 6.1. There is **no content library yet**: race, class and background are text the player types, and they change no numbers. Bonuses from a race, class or feat are added by hand as **custom modifiers**. Items add their armor and bonuses automatically once they are equipped (and attuned, when they need it).
+
+**Who edits:** the character's owner and the DM, as in B4. Everything new on the sheet is read by the whole campaign, like the rest of the character. The items themselves stay private (1.8); other players see only what they add (below).
+
+**AC and Passive Perception are never typed in** (owner decision, 2026-09-28). Both are always calculated, for the owner and the DM too. Custom modifiers are the only way to adjust them.
+
+**Class, race and background** (owner decisions, 2026-09-28)
+- **Class** is a list of entries. Each entry is a class name (free text, may be empty, up to 100 characters) and a level (a whole number, 1 to 20). A new character starts with one entry: no name, level 1.
+- **Add class** adds an entry at level 1. It is greyed out once the total level is 20. Tapping an entry opens a dialog with **Name**, **Level** and **Remove**. The last entry cannot be removed.
+- **Total level** is the sum of the entries, **at most 20** (the database refuses more). The sheet shows it as "Level 5".
+- Wherever a class is shown (the sheet, the Characters list) it reads like "Fighter 3 / Wizard 2". An entry without a name shows as "Level 3".
+- **Race** and **background** are free text (up to 100 characters, may be empty), in tappable rows with a text prompt. They change no numbers.
+- This **replaces** the free-text `classLevel` (B1).
+
+**Proficiency bonus** is read-only: `2 + floor((total level − 1) / 4)`, so +2 at levels 1–4, rising to +6 at levels 17–20. It is shown above the abilities.
+
+**Ability scores.** The six base scores stay as they are (1 to 30), set with the keypad. Custom modifiers and item bonuses on an ability **add to the score**, so an elf's +2 DEX, entered by hand, changes the DEX modifier. The final score is kept between 1 and 30; when that cuts it off, the breakdown says "max 30" or "min 1". **Everything uses the final score:** the ability modifier, saving throws, skills, AC, initiative and carrying capacity (1.8). The tile shows the final score, with its modifier in gold.
+
+**Saving throws.** Six rows, each with a **Proficient** box. Total = ability modifier + proficiency bonus (when ticked) + custom modifiers and item bonuses on that save or on all saves.
+
+**Skills.** Eighteen rows in alphabetical order, each with a **Proficient** box, an **Expertise** box, and its ability in muted text. Total = ability modifier + proficiency bonus (proficient) or twice the proficiency bonus (expertise) + custom modifiers and item bonuses on that skill.
+- Ticking Expertise also ticks Proficient. Un-ticking Proficient clears Expertise.
+- **Expertise is for skills only**, not for saving throws (owner decision, 2026-09-28).
+
+| Skill (key) | Ability | Skill (key) | Ability |
+|---|---|---|---|
+| Acrobatics (`acrobatics`) | DEX | Medicine (`medicine`) | WIS |
+| Animal Handling (`animal_handling`) | WIS | Nature (`nature`) | INT |
+| Arcana (`arcana`) | INT | Perception (`perception`) | WIS |
+| Athletics (`athletics`) | STR | Performance (`performance`) | CHA |
+| Deception (`deception`) | CHA | Persuasion (`persuasion`) | CHA |
+| History (`history`) | INT | Religion (`religion`) | INT |
+| Insight (`insight`) | WIS | Sleight of Hand (`sleight_of_hand`) | DEX |
+| Intimidation (`intimidation`) | CHA | Stealth (`stealth`) | DEX |
+| Investigation (`investigation`) | INT | Survival (`survival`) | WIS |
+
+**AC** (owner decisions, 2026-09-28)
+- **With armor:** the equipped body armor gives the base (table below). Light armor adds the full DEX modifier, medium armor at most +2, heavy armor none.
+- **Without armor:** the **Unarmored AC** choice in the AC dialog:
+  - **Normal:** `10 + DEX` (the default)
+  - **Barbarian:** `10 + DEX + CON`
+  - **Monk:** `10 + DEX + WIS`, only without a shield; with a shield it counts as Normal
+  - **13 + DEX:** for Mage Armor, Draconic Resilience or natural armor
+- **Shield:** +2 while a shield is equipped.
+- Then custom modifiers and item bonuses on AC are added. AC is never below 0.
+- **More than one body armor or shield equipped:** the one that gives the highest AC counts, and the sheet shows a red line, like `Attuned 4 / 3`.
+- **Not yet** (6.1): heavy armor's Strength requirement and Stealth disadvantage, and bonuses that only work without armor (Bracers of Defense).
+
+**Armor table** (SRD 5.1, the free 2014 rules; shipping it is allowed with the credit line on the terms page, see 6.1):
+
+| Armor | Key | Type | AC |
+|---|---|---|---|
+| Padded | `padded` | Light | 11 + DEX |
+| Leather | `leather` | Light | 11 + DEX |
+| Studded leather | `studded_leather` | Light | 12 + DEX |
+| Hide | `hide` | Medium | 12 + DEX (max 2) |
+| Chain shirt | `chain_shirt` | Medium | 13 + DEX (max 2) |
+| Scale mail | `scale_mail` | Medium | 14 + DEX (max 2) |
+| Breastplate | `breastplate` | Medium | 14 + DEX (max 2) |
+| Half plate | `half_plate` | Medium | 15 + DEX (max 2) |
+| Ring mail | `ring_mail` | Heavy | 14 |
+| Chain mail | `chain_mail` | Heavy | 16 |
+| Splint | `splint` | Heavy | 17 |
+| Plate | `plate` | Heavy | 18 |
+| Shield | `shield` | Shield | +2 |
+
+The credit line (check the current wording on Wizards of the Coast's SRD page when building): *"This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode."*
+
+**Passive Perception** = `10 + the Perception skill total` + custom modifiers and item bonuses on Passive Perception (for example +5 for the Observant feat). Never below 0.
+
+**Speed** = the base speed (keypad, as today) + custom modifiers and item bonuses. Never below 0. **Initiative** stays read-only: the modifier of the final DEX score.
+
+**Custom modifiers** (owner decision, 2026-09-28)
+- **Long-press** (about half a second, with a finger or a mouse button) on an ability, speed, a saving throw, a skill, AC or Passive Perception opens that number's dialog.
+- Abilities and speed keep a normal tap for the keypad, which sets the base value. Saving throws, skills, AC and Passive Perception have nothing to type, so a normal tap opens the dialog too.
+- The dialog shows the calculation at the top (for example `Stealth +6 = DEX +3 + Proficiency +2 + Lucky charm +1`) and a list of that number's modifiers. Tap a modifier to edit or delete it. **Add modifier** adds one. On a saving throw, a new modifier can be for **this save** or for **all saving throws**.
+- A modifier is a **label** (free text, up to 100 characters, may be empty) and a **value** (a whole number, −30 to +30). A character holds at most 100.
+- Under a total, one muted line shows its breakdown whenever something beyond the plain calculation is in it (custom modifiers, item bonuses, armor or a shield), for example `AC 19 = Chain mail 16 + Shield 2 + Ring of Protection 1`.
+
+**Items** (a slice of 6.1 part 2, owner decisions, 2026-09-28). The item editor (1.8) gets:
+- **Requires attunement** (on/off). The **Attuned** box only shows when it is on. Items that are attuned today get it switched on by the migration.
+- **Armor:** a pick list from the armor table, "None" by default.
+- **Bonuses:** up to 5. Each is a target (any number a custom modifier can go on, including "all saving throws") and a whole number (−30 to +30). For example, a Cloak of Protection: AC +1 and all saving throws +1. Magic armor is an armor type plus a bonus, such as Plate with AC +1.
+
+An item **counts** while it is equipped, not deleted, has a quantity above 0 and, when it requires attunement, is attuned. It counts once, whatever its quantity. Every attuned item counts; the limit of 3 stays a red reminder (1.8), and `Attuned n / 3` counts only items that require attunement. Adding items to the inventory stays manual.
+
+**Who sees what items add** (owner decision, 2026-09-28). Items are private (1.8), but every player reads the sheet, and everyone should see the same AC. So the database keeps a small row per character that lists, for every item that counts, its armor type and bonuses, without its name. **Nobody but the database writes it.** Other players see `Armor 16`, `Shield 2` and `Item +1`; the owner and the DM see the item names, because they can read the items.
+
+**Death saves and inspiration** (owner decision, 2026-09-28)
+- **Death saves:** a row of 3 success circles and a row of 3 failure circles, always shown below the hit points. Tapping a circle fills or empties it. They are not tied to HP, and nothing clears them by itself.
+- **Inspiration:** an on/off toggle next to the death saves.
+
+**Order on the web sheet**, top to bottom (replaces B3's list for the web):
+1. Identity card: Player, Class (the entries and Add class), Race, Background, Devoted to.
+2. Hit points card, with Damage and Heal.
+3. Death saves and Inspiration.
+4. Tiles: Max HP, Temp HP, AC.
+5. Tiles: Speed, Passive Perc., Initiative.
+6. Proficiency bonus, then the six abilities.
+7. Saving throws.
+8. Skills.
+9. Backstory and the private sections (1.8).
+
+Other players see all of it read-only, including the breakdown lines, but nothing opens for them (B4).
+
+**Existing characters** (owner decision, 2026-09-28): AC and Passive Perception are **recalculated as soon as this goes live**. A character wearing armor drops to `10 + DEX` until the armor is in the inventory and equipped, so the owner tells the players beforehand. The old class text becomes the class list (section 4). On 2026-09-28 the live characters had "" and "Barbarian", so both start at level 1 and the players set their levels.
+
+**Saving**
+- Numbers and boxes that stand alone (ability scores, speed, death saves, inspiration, race, background) use the normal save hook and conflict guard (3.4).
+- Modifiers, proficiency ticks, class entries and item bonuses are **lists** in one field, so they are saved as **single changes**, like the objectives in Phase 7. The website first sends anything still waiting, then reads the latest list, applies the one change (add, edit, delete, tick) and saves it with the conflict guard. If someone else saved in between, it reads the list again and applies the change again. Two people changing different entries never overwrite each other (3.4: never overwrite silently). If the change cannot be sent (offline), the website says so, and the dialog stays open or the tick box goes back.
+- The database checks the shape and size of every new field (section 4), for every caller, the DM included.
+
+**Not in Phase 8 (roadmap, 6.1):**
+- content from 5e: races, classes, backgrounds, feats and what they grant, including class saving throw and skill proficiencies
+- conditions ("no armor"), "set" and "at least" effects (Belt of Giant Strength), heavy armor's Strength requirement and Stealth disadvantage
+- modifiers on maximum HP and on initiative
+- spells, hit dice, passive Investigation and Insight, Jack of All Trades
+- a library of items
+
+**Tests.** `tests/sheet.test.ts` covers:
+- the proficiency bonus at every level
+- final ability scores, including the 1 and 30 limits
+- saves and skills with and without proficiency and expertise, and "all saving throws"
+- AC for each armor type (with low and high DEX), the shield, the four unarmored choices (Monk with a shield), two armors equipped, and the 0 minimum
+- Passive Perception
+- which items count
+- how the class list is shown
+
+The permission test gains the cases in section 4.
 
 ---
 
@@ -713,6 +848,7 @@ Detailed columns for characters and gods come from the specification in section 
 | `character_private` | Campaign | A character's private notes and coins, audience `owner` (Phase 6, below). |
 | `inventory_items` | Campaign | A character's items, audience `owner` (Phase 6, below). |
 | `quests`, `quest_objectives`, `quest_rewards` | Campaign | The Quest Journal (Phase 7, below). |
+| `character_effects` | Campaign | What a character's counting items add (armor and bonuses), without item names. Read by the campaign, written only by the database (Phase 8, below). |
 
 **`piety_tracks` columns:**
 - `character_id`
@@ -756,6 +892,47 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 - `hidden_reward_counts(campaign)`: returns, per readable quest, how many rewards are hidden, without their text, for the "+ a hidden reward" line.
 - Permission test: players and non-members cannot create, edit, reveal, delete or change the status of quests, objectives or rewards; hidden quests, their objectives and rewards are invisible to players; players see only the objectives they should; hidden rewards are counted but their text is not readable; a revealed quest cannot be hidden again; a Character quest cannot point to a character in another campaign.
 
+**Phase 8 (section 1.10).** One migration (`20260928120000_automatic_sheet.sql`), and a last one that removes the old columns.
+- `characters` gets:
+  - `classes`: a JSON list of `{name, level}`, default `[{"name": "", "level": 1}]`
+  - `race` and `background`: text, default empty, up to 100 characters
+  - `unarmored_ac`: `normal` / `barbarian` / `monk` / `base13`, default `normal`
+  - `modifiers`: a JSON list of `{id, target, label, value}`, default empty
+  - `proficiencies`: JSON `{"saves": [ability keys], "skills": {skill key: "proficient" or "expertise"}}`, default `{"saves": [], "skills": {}}`
+  - `death_saves_success` and `death_saves_failure`: 0 to 3, default 0; `inspiration`: default false
+- **Removed by the last migration:** `class_level`, `ac` and `passive_perception`, once the website no longer reads them (section 5, Phase 8 step 9).
+- `inventory_items` gets:
+  - `attunement_required`: default false; the migration sets it to true where `attuned` is true
+  - `armor`: a key from the armor table in 1.10, or empty
+  - `effects`: a JSON list of `{target, value}`, at most 5, default empty
+- **Keys and targets.** Abilities are `strength` … `charisma` (as the columns); skill keys are in the table in 1.10. A target is one of `ability.<ability>`, `save.<ability>`, `save.all`, `skill.<skill>`, `ac`, `speed` or `passive_perception`.
+- **Shape and size checks** are CHECK constraints, so they hold for every caller, the DM included. They call small `immutable` validator functions in `private`, with `search_path = ''`:
+  - every list is a JSON array, and every entry a JSON object with exactly the keys above and no others
+  - numbers are JSON whole numbers, never text or fractions: levels 1 to 20, values −30 to +30
+  - `classes`: 1 to 10 entries, total level at most 20, names up to 100 characters
+  - `modifiers`: at most 100; `id` a UUID, `target` from the list, `label` up to 100 characters
+  - `proficiencies`: only `saves` (distinct ability keys) and `skills` (known skill keys, each `proficient` or `expertise`)
+  - item `effects`: at most 5, targets from the list; `armor` and `unarmored_ac` from their lists
+  - a size cap as a backstop: 64 KB for `modifiers`, 8 KB for each of the others
+- `character_effects` holds what the counting items add (1.10), for everyone in the campaign to read:
+  - The standard columns with `campaign_id`, audience `members` (the only one allowed), plus `character_id` (unique: one row per character) and `items`, a list of `{item_id, armor, effects}` for every item that counts.
+  - **Why a separate row:** RLS works on whole rows (3.3), and items have audience `owner`. Keeping this list on `characters` would let the trigger below change the character's `version` (3.4), so everyone editing that character, including the player who just equipped an item, would get a false conflict.
+  - A foreign key `(character_id, campaign_id)` to `characters`, `on delete cascade on update cascade` (like `character_private`), so the row follows a character to another campaign and disappears with a deleted account.
+  - **Reading:** "dm read" and "members read" policies, for select only. "members read" also requires `exists (select 1 from public.characters c where c.id = character_id)`. That goes through the characters policies, so a character players cannot see (audience `owner` or `dm`) hides its effects too, as quests hide their objectives (Phase 7).
+  - **Nobody writes it through the API, the DM included:** `insert`, `update` and `delete` are revoked from `authenticated`.
+  - **Written by** `private.rebuild_effects(character)`, `security definer set search_path = ''`, with every name schema-qualified. An after-trigger on `inventory_items` calls it on insert, on delete, and on updates of `equipped`, `attuned`, `attunement_required`, `quantity`, `armor`, `effects`, `audience`, `deleted_at` or `character_id`, for both the old and the new character.
+  - It counts items that are not deleted, have audience `owner` or `members` (never `dm`), have a quantity above 0, are equipped, are attuned when they require it, and have armor or bonuses.
+  - It only updates the existing row, and only when the list changed. It never inserts, so a character that is being deleted cannot get a new row.
+  - Created for every new character by `private.character_after_insert` and backfilled for existing characters (deleted ones get a deleted row). Soft-deleted by `delete_character`. Its `owner_id` follows the character (`private.character_owner_changed`).
+- **Migration of `class_level`:** each part between "/" becomes an entry. A number at the end of a part is its level, kept between 1 and 20 (read as a decimal first, so a huge number cannot break the migration); otherwise the level is 1. Names are cut at 100 characters. If the total would pass 20, the last entries are lowered until it is 20. The backfills change every character's and item's `version`, so the owner runs `db push` when nobody has a sheet open.
+- **Permission test, new cases:**
+  - Other players read `character_effects`; nobody writes it, not even the DM; non-members read nothing.
+  - The effects of a character players cannot see are invisible to them. An item with audience `dm` never appears in them.
+  - Equipping, attuning, deleting or changing the quantity of an item updates the effects; typing its description does not. An item that requires attunement counts only when it is equipped and attuned.
+  - Deleting a character hides its effects. `delete_my_account` still works for a player with an equipped item that counts, and leaves no effects row.
+  - A player cannot change another character's new fields.
+  - Refused: an unknown target or key, a value out of range, text or a fraction instead of a whole number, an extra key, something that is not a list, a 101st modifier, a 6th item bonus, 0 or 11 class entries, a level of 21, a total level of 21, a death save count of 4, an unknown armor type or unarmored choice.
+
 **Text length limits (all tables, 2026-09-27):** names 100 characters, one-line fields 500, notes and descriptions 100,000. Every new text column gets a limit in the migration that creates it.
 
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
@@ -788,7 +965,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 3. Only then does the agent push website code that uses the change. Pushing it earlier breaks the live site.
 4. The agent checks new screens in the Claude app's browser pane (local copy at `localhost:5173`, which talks to the real database). The owner logs in there; the agent cannot log in for them.
 
-### Where we are *(updated 2026-09-27)*
+### Where we are *(updated 2026-09-28)*
 
 | Step | Status |
 |---|---|
@@ -802,7 +979,8 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
-| Character builder and rules engine (6.1), part by part, starting with the automatic sheet | Owner decides when |
+| Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Written out** (2026-09-28), not built. Owner decides when. |
+| Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
 A roadmap item becomes buildable only when the owner says to start it. At that point, write it up as its own scope section (like 1.4 and 1.5) and phase, and add its build steps below.
@@ -866,7 +1044,7 @@ One screen or feature per step. **Do not add anything that is not in section 1.1
 
 **Known gaps (found while planning, 2026-09-27):** the owner chose to fix 1 and 2 before the group test, and to accept 3 and 4 (2026-09-27).
 1. **No length limits on text.** A member could paste megabytes into a name, a note or an item and fill the free database (500 MB). **Fixed (2026-09-27, `0.7.1-alpha`):** database limits of 100 characters for names, 500 for one-line fields and 100,000 for notes and descriptions (migration `20260927130000_text_limits.sql`), with the same limits in the website (`src/lib/limits.ts`).
-2. **No Content Security Policy (CSP).** This is a browser safety net: if a script ever got injected, the CSP would stop it from loading code or sending data to other sites. GitHub Pages cannot send headers, but a `<meta http-equiv="Content-Security-Policy">` tag works. It must allow Supabase and Google's sign-in script. **Fixed (2026-09-27, `0.7.1-alpha`):** added to the build only by a small Vite plugin (`vite.config.ts`), because the dev server needs inline scripts. It allows scripts from the site itself and Google's sign-in script, connections to the site, Supabase and Google sign-in, and Google's button frame. Checked in the browser: an injected inline script, a script from another site and sending data to another site were all blocked, while the app, Google's script and Google's button kept working. Styles allow 'unsafe-inline' (needed for the bars and Google's button; styles cannot run code). Still to do in the group test: log in with Google and with email on the live site.
+2. **No Content Security Policy (CSP).** This is a browser safety net: if a script ever got injected, the CSP would stop it from loading code or sending data to other sites. GitHub Pages cannot send headers, but a `<meta http-equiv="Content-Security-Policy">` tag works. It must allow Supabase and Google's sign-in script. **Fixed (2026-09-27, `0.7.1-alpha`):** added to the build only by a small Vite plugin (`vite.config.ts`), because the dev server needs inline scripts. It allows scripts from the site itself and Google's sign-in script, connections to the site, Supabase and Google sign-in, and Google's button frame. Checked in the browser: an injected inline script, a script from another site and sending data to another site were all blocked, while the app, Google's script and Google's button kept working. Styles allow 'unsafe-inline' (needed for the bars and Google's button; styles cannot run code). Logging in with Google and with email on the live site works with the CSP (checked by the owner, 2026-09-28).
 3. **No limit on how many rows a member creates** (characters, items). This is acceptable for a group of friends; a limit would add complexity. **Accepted** (owner, 2026-09-27): check the size of the database now and then in Supabase.
 4. **Clickjacking protection** (`frame-ancestors`, `X-Frame-Options`) needs HTTP headers, which GitHub Pages cannot send. The risk is low, because every important action asks for confirmation. **Accepted** (owner, 2026-09-27).
 
@@ -1022,6 +1200,30 @@ One step per commit. **Do not add anything that is not in section 1.8.**
 
 One step per commit. **Do not add anything that is not in section 1.9.**
 
+### Phase 8: Automatic character sheet (section 1.10)
+1. **Migration**, with its new permission-test cases (section 4):
+   - the new columns on `characters` and `inventory_items`, with their checks
+   - `class_level` converted into `classes`, and `attunement_required` backfilled
+   - `character_effects` with its policies, trigger and backfill
+   
+   Steps 2 and 3 are committed locally *before* this is pushed, so the new class list goes live right after the owner's `db push`. That keeps the time short in which the old "Class & level" field is still in use. Pushed alone first; the owner runs `db push` when nobody has a sheet open.
+2. `src/lib/sheet.ts` with `tests/sheet.test.ts`: proficiency bonus, final scores, totals with their breakdown, the skill and armor tables, AC, which items count.
+3. Class list, race and background on the sheet and in the Characters list. The website stops reading `class_level`.
+4. Ability tiles with final scores and the proficiency bonus, then saving throws and skills with their tick boxes. Initiative and carrying capacity use the final scores.
+5. Long-press dialog with custom modifiers, and the breakdown lines.
+6. Death saves and inspiration.
+7. Item editor: Requires attunement (the Attuned box only then), Armor and Bonuses. The sheet reads `character_effects`, for everyone. The SRD credit line goes on the terms page.
+8. AC and Passive Perception calculated, with the Unarmored AC choice in the AC dialog; the Characters list calculates AC too. The website stops reading `ac` and `passive_perception`. **Before this goes live**, the owner tells the players:
+   - their AC and Passive Perception will be recalculated
+   - they should add and equip their armor, and set their class levels
+   - a Barbarian or Monk picks their Unarmored AC
+9. **After step 8 has been live for a few days**, the last migration removes `class_level`, `ac` and `passive_perception`. This is the reverse of the usual order: the website stopped using them first, so only phones still on a cached old version can still ask for them, and they reload on "New version".
+   - The permission tests that use those columns change in the same commit.
+   - Version `0.8.0-alpha`; update 3.9 and the table and test counts in Phase 4.
+   - Fill in "As built" in 1.10.
+
+One step per commit. **Do not add anything that is not in section 1.10.**
+
 ---
 
 ## 6. Roadmap input (unordered; the owner decides what and when)
@@ -1054,7 +1256,7 @@ Build characters from 5e races, classes, subclasses, feats, spells and items, wi
 **Decisions (owner, 2026-09-24):**
 - **Ruleset: 2014 (5e classic)**, matching *Mythic Odysseys of Theros*. The free content base is **SRD 5.1**.
 - **Content: the app ships only the SRD** (CC-BY-4.0, with the required attribution). Everything else (other subclasses, Xanathar's, Tasha's, Theros races, subclasses and supernatural gifts) is copyrighted and **must never be in the public repository**. The DM enters it through an in-app editor. It is stored in the database as world content (audience `members`, or `dm` while hidden).
-- **Automatic, with overrides.** Every total is calculated and shows its sources (for example `AC 17 = 10 + DEX 3 + Bracers 2 + Shield 2`). The owner of the character and the DM can override any total by hand. Existing hand-entered characters keep working.
+- **Automatic, with overrides.** Every total is calculated and shows its sources (for example `AC 17 = 10 + DEX 3 + Bracers 2 + Shield 2`). The owner of the character and the DM can override any total by hand. Existing hand-entered characters keep working. *Changed 2026-09-28 (owner, Phase 8, 1.10): no total is typed in by hand. AC comes from armor or an Unarmored AC choice, and everything else is adjusted with custom modifiers. Existing AC and Passive Perception are recalculated as soon as Phase 8 goes live.*
 - **Players build and level their own characters** and add custom modifiers to them. The DM can edit everything.
 
 **Core design: base values plus effects.** A character stores base values and choices. Race, class features, feats, items and custom modifiers each carry **effects** stored as data, for example:
@@ -1065,10 +1267,10 @@ Build characters from 5e races, classes, subclasses, feats, spells and items, wi
 A pure function calculates the sheet from base values, effects and overrides. Test it well with unit tests: it is the part most likely to be subtly wrong.
 
 **Parts, in suggested order:**
-1. **Automatic sheet.** Proficiency bonus from level, saving throws, the 18 skills with proficiency and expertise, and hand-entered custom modifiers. No content library needed.
-2. **Items with effects.** Builds on the inventory (next after Phase 5). Equip and attune; effects then apply. **Design the inventory table with this in mind.**
-3. **Content library.** The SRD 5.1 imported (for example from the 5e-srd-api or Open5e data), plus the DM's editor for races, classes, subclasses, feats, items and spells.
-4. **Character builder.** Race, class and subclass choices level by level, including multiclassing. This replaces the free-text `classLevel` with structured class levels.
+1. **Automatic sheet.** Proficiency bonus from level, saving throws, the 18 skills with proficiency and expertise, and hand-entered custom modifiers. No content library needed. *Written out as Phase 8 (section 1.10).*
+2. **Items with effects.** Builds on the inventory (next after Phase 5). Equip and attune; effects then apply. **Design the inventory table with this in mind.** *Phase 8 takes a first slice: an armor type and up to 5 add-only bonuses per item, applied when equipped (and attuned, when required). Conditions, "set" effects and items from a library stay here.*
+3. **Content library.** The SRD 5.1 imported (for example from the 5e-srd-api or Open5e data), plus the DM's editor for races, classes, subclasses, feats, items and spells. *Phase 8 already ships the SRD armor table (12 armors and the shield) as fixed data.*
+4. **Character builder.** Race, class and subclass choices level by level, including multiclassing. This replaces the free-text `classLevel` with structured class levels. *Phase 8 already has the class list (a name and a level per entry, at most 20 levels in total) and the Unarmored AC choice; this part makes the entries structured, with subclasses and class features.*
 5. **Spells.** Spell list, known and prepared spells, and slots per level.
 6. **Theros.** Supernatural gifts, and piety boons that apply at milestones (links to the milestone bar in 1.1).
 
@@ -1097,6 +1299,17 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 
 
 **Resolved:**
+- **Automatic character sheet (Phase 8)** (owner decisions, 2026-09-28; see section 1.10):
+  - class as a list of name and level entries with an Add class button, no separate level field, at most 20 levels in total
+  - race and background as free text that changes no numbers
+  - custom modifiers by long-press on abilities, speed, saves, skills, AC and Passive Perception
+  - equipped items apply their bonuses automatically (up to 5 per item, including "all saving throws"), and need attunement only when the item requires it
+  - AC and Passive Perception always calculated and never typed in, by nobody, not even the DM; AC comes from armor picked from the SRD list, or from an Unarmored AC choice
+  - existing AC and Passive Perception recalculated at once
+  - other players see item bonuses as "Item +1", without the item's name
+  - proficiency and expertise boxes (expertise for skills only), death save circles and an inspiration toggle
+  - players and the DM both edit
+  - left out for now: an edit icon next to every number, and a Reset button for death saves
 - **Security gaps found while planning Phase 4:** text length limits and a Content Security Policy are added; no row-count limits and no clickjacking headers are accepted (owner, 2026-09-27). See section 5, Phase 4.
 - **Quest Journal (Phase 7):** visible to everyone, button below Characters; Main, Side and Character quests (Character quests visible to everyone); hidden until revealed, never hidden again; statuses Inactive, Active, Completed, Failed; objectives revealed one step at a time with optional ones below; each reward visible or hidden, with a "+ a hidden reward" line; no voting and no session links for now (owner decisions, 2026-09-27). See section 1.9.
 - **Player features (Phase 6):** on the character sheet; a Backstory everyone in the campaign reads plus Private notes for the player and DM; items with name, quantity, weight, description, Equipped and Attuned, and a carried-weight total; a coin row without electrum (owner decisions, 2026-09-25). See section 1.8.
