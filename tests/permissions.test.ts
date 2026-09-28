@@ -1164,6 +1164,257 @@ describe('quest journal (Phase 7)', () => {
   })
 })
 
+describe('automatic character sheet (Phase 8)', () => {
+  type Row = { id: string; version: number }
+  let hero: Row
+  const effectsOf = (user: { db: SupabaseClient }, characterId: string) =>
+    user.db.from('character_effects').select('*').eq('character_id', characterId)
+  /** The effects row as the database stores it. */
+  const stored = async (characterId: string) =>
+    ok(await admin.from('character_effects').select('items, version').eq('character_id', characterId).single()) as {
+      items: { item_id: string; armor: string | null; effects: { target: string; value: number }[] }[]
+      version: number
+    }
+  const counted = async (characterId: string) => (await stored(characterId)).items.map((i) => i.item_id).sort()
+  const addItem = async (user: { db: SupabaseClient }, characterId: string, fields: Record<string, unknown>) =>
+    ok(
+      await user.db
+        .from('inventory_items')
+        .insert({ character_id: characterId, campaign_id: campaignId, ...fields })
+        .select()
+        .single(),
+    ) as Row
+  const editItem = async (user: { db: SupabaseClient }, item: Row, fields: Record<string, unknown>) =>
+    ok(await user.db.from('inventory_items').update({ ...fields, version: item.version }).eq('id', item.id).select().single()) as Row
+
+  before(async () => {
+    hero = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Rhea' }))
+  })
+
+  test('A new character gets the new fields and an effects row the campaign reads', async () => {
+    const row = ok(await playerB.db.from('characters').select('*').eq('id', hero.id).single())
+    assert.deepEqual(row.classes, [{ name: '', level: 1 }])
+    assert.equal(row.race, '')
+    assert.equal(row.background, '')
+    assert.equal(row.unarmored_ac, 'normal')
+    assert.deepEqual(row.modifiers, [])
+    assert.deepEqual(row.proficiencies, { saves: [], skills: {} })
+    assert.equal(row.death_saves_success, 0)
+    assert.equal(row.death_saves_failure, 0)
+    assert.equal(row.inspiration, false)
+
+    for (const user of [playerA, playerB, dm]) {
+      const effects = ok(await effectsOf(user, hero.id))
+      assert.equal(effects.length, 1)
+      assert.deepEqual(effects[0].items, [])
+      assert.equal(effects[0].audience, 'members')
+      assert.equal(effects[0].owner_id, playerA.id)
+    }
+    assert.equal(ok(await effectsOf(outsider, hero.id)).length, 0, 'a non-member reads the effects')
+    const anonymous = await effectsOf({ db: anon }, hero.id)
+    assert.ok(anonymous.error || anonymous.data.length === 0, 'someone not logged in reads the effects')
+
+    const direct = ok(await playerA.db.from('characters').insert({ campaign_id: campaignId, name: 'Direct 8' }).select().single())
+    assert.equal(ok(await effectsOf(playerA, direct.id)).length, 1, 'a directly inserted character')
+  })
+
+  test('Nobody writes the effects row through the API, not even the DM', async () => {
+    const original = await stored(hero.id)
+    const forged = [{ item_id: randomUUID(), armor: 'plate', effects: [{ target: 'ac', value: 30 }] }]
+    for (const user of [playerA, playerB, dm]) {
+      refused(
+        await user.db.from('character_effects').update({ items: forged, version: original.version }).eq('character_id', hero.id).select(),
+        'updates the effects row',
+      )
+      refused(
+        await user.db.from('character_effects').insert({ character_id: hero.id, campaign_id: campaignId, items: forged }),
+        'inserts an effects row',
+      )
+      refused(await user.db.from('character_effects').delete().eq('character_id', hero.id).select(), 'deletes the effects row')
+    }
+    assert.deepEqual(await stored(hero.id), original)
+  })
+
+  test('Only equipped items that count show up in the effects, without their names', async () => {
+    let cloak = await addItem(playerA, hero.id, {
+      name: 'Cloak of Protection',
+      attunement_required: true,
+      effects: [
+        { target: 'ac', value: 1 },
+        { target: 'save.all', value: 1 },
+      ],
+    })
+    assert.deepEqual(await counted(hero.id), [], 'not equipped')
+    cloak = await editItem(playerA, cloak, { equipped: true })
+    assert.deepEqual(await counted(hero.id), [], 'equipped, but not attuned')
+    cloak = await editItem(playerA, cloak, { attuned: true })
+    assert.deepEqual(await counted(hero.id), [cloak.id], 'equipped and attuned')
+
+    let plate = await addItem(playerA, hero.id, { name: 'Plate of the Sun', armor: 'plate', equipped: true })
+    assert.deepEqual(await counted(hero.id), [cloak.id, plate.id].sort(), 'no attunement needed')
+    ok(await addItem(playerA, hero.id, { name: 'Rope', equipped: true }))
+    assert.equal((await counted(hero.id)).length, 2, 'an item without armor or bonuses')
+
+    const seen = ok(await effectsOf(playerB, hero.id))[0]
+    assert.ok(!JSON.stringify(seen).includes('Cloak') && !JSON.stringify(seen).includes('Sun'), 'item names leak')
+    const cloakSeen = seen.items.find((i: { item_id: string }) => i.item_id === cloak.id)
+    assert.deepEqual(cloakSeen, { item_id: cloak.id, armor: null, effects: [{ target: 'ac', value: 1 }, { target: 'save.all', value: 1 }] })
+    assert.equal(ok(await playerB.db.from('inventory_items').select('id').eq('id', cloak.id)).length, 0, 'B reads the item')
+
+    const { version } = await stored(hero.id)
+    cloak = await editItem(playerA, cloak, { description: 'Grey wool.' })
+    assert.equal((await stored(hero.id)).version, version, 'typing a description rewrites the effects')
+
+    plate = await editItem(playerA, plate, { quantity: 0 })
+    assert.deepEqual(await counted(hero.id), [cloak.id], 'quantity 0')
+    plate = await editItem(playerA, plate, { quantity: 1 })
+    cloak = await editItem(playerA, cloak, { attuned: false })
+    assert.deepEqual(await counted(hero.id), [plate.id], 'no longer attuned')
+    ok(await playerA.db.rpc('delete_item', { p_item_id: plate.id }))
+    assert.deepEqual(await counted(hero.id), [], 'a deleted item')
+  })
+
+  test('An item the DM hides never shows up in the effects', async () => {
+    const secret = await addItem(dm, hero.id, { name: 'Cursed shield', armor: 'shield', equipped: true, audience: 'dm' })
+    assert.equal(ok(await playerA.db.from('inventory_items').select('id').eq('id', secret.id)).length, 0)
+    assert.deepEqual(await counted(hero.id), [])
+  })
+
+  test('A DM who moves an item to another character updates both', async () => {
+    const other = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Rhea’s squire' }))
+    let shield = await addItem(playerA, hero.id, { name: 'Shield', armor: 'shield', equipped: true })
+    assert.deepEqual(await counted(hero.id), [shield.id])
+    shield = await editItem(dm, shield, { character_id: other.id })
+    assert.deepEqual(await counted(hero.id), [])
+    assert.deepEqual(await counted(other.id), [shield.id])
+  })
+
+  test('The effects of a character players cannot see stay hidden', async () => {
+    const own = ok(
+      await playerA.db.from('characters').insert({ campaign_id: campaignId, name: 'Secret twin', audience: 'owner' }).select().single(),
+    )
+    assert.equal(ok(await effectsOf(playerA, own.id)).length, 1)
+    assert.equal(ok(await effectsOf(playerB, own.id)).length, 0)
+    assert.equal(ok(await effectsOf(dm, own.id)).length, 1)
+
+    const npc = ok(await dm.db.from('characters').insert({ campaign_id: campaignId, name: 'Hidden NPC', audience: 'dm' }).select().single())
+    for (const player of [playerA, playerB]) assert.equal(ok(await effectsOf(player, npc.id)).length, 0)
+  })
+
+  test('The owner and the DM edit the new fields; other players cannot', async () => {
+    const changes = {
+      classes: [
+        { name: 'Fighter', level: 15 },
+        { name: 'Wizard', level: 5 },
+      ],
+      race: 'Elf',
+      background: 'Sage',
+      unarmored_ac: 'monk',
+      modifiers: Array.from({ length: 100 }, (_, i) => ({ id: randomUUID(), target: 'ability.dexterity', label: `Bonus ${i}`, value: i % 2 ? -30 : 30 })),
+      proficiencies: { saves: ['dexterity', 'wisdom'], skills: { stealth: 'expertise', perception: 'proficient' } },
+      death_saves_success: 3,
+      inspiration: true,
+    }
+    hero = ok(await playerA.db.from('characters').update({ ...changes, version: hero.version }).eq('id', hero.id).select().single())
+    assert.deepEqual(hero, { ...hero, ...changes })
+
+    noEffect(
+      await playerB.db.from('characters').update({ race: 'Orc', version: hero.version }).eq('id', hero.id).select(),
+      'another player edits the race',
+    )
+    hero = ok(await dm.db.from('characters').update({ death_saves_failure: 2, version: hero.version }).eq('id', hero.id).select().single())
+    assert.equal(ok(await playerB.db.from('characters').select('race').eq('id', hero.id).single()).race, 'Elf')
+  })
+
+  test('The shape and size of the new fields are checked, for the DM too', async () => {
+    const id = randomUUID()
+    const modifier = { id, target: 'skill.stealth', label: 'Lucky charm', value: 1 }
+    const long = 'x'.repeat(101)
+    const bad: [string, Record<string, unknown>][] = [
+      ['no class entries', { classes: [] }],
+      ['11 class entries', { classes: Array.from({ length: 11 }, () => ({ name: '', level: 1 })) }],
+      ['level 21', { classes: [{ name: 'Fighter', level: 21 }] }],
+      ['level 0', { classes: [{ name: 'Fighter', level: 0 }] }],
+      ['total level 21', { classes: [{ name: 'Fighter', level: 15 }, { name: 'Wizard', level: 6 }] }],
+      ['a level as text', { classes: [{ name: 'Fighter', level: '3' }] }],
+      ['a fractional level', { classes: [{ name: 'Fighter', level: 2.5 }] }],
+      ['an extra key on a class', { classes: [{ name: 'Fighter', level: 3, secret: long }] }],
+      ['a missing class name', { classes: [{ level: 3 }] }],
+      ['a class name of 101 characters', { classes: [{ name: long, level: 1 }] }],
+      ['classes that are not a list', { classes: { name: 'Fighter', level: 3 } }],
+      ['classes as a text', { classes: '[{"name": "Fighter", "level": 3}]' }],
+      ['a 101st modifier', { modifiers: Array.from({ length: 101 }, () => ({ ...modifier, id: randomUUID() })) }],
+      ['an unknown target', { modifiers: [{ ...modifier, target: 'skill.flying' }] }],
+      ['a modifier value of 31', { modifiers: [{ ...modifier, value: 31 }] }],
+      ['a modifier value of −31', { modifiers: [{ ...modifier, value: -31 }] }],
+      ['a modifier value as text', { modifiers: [{ ...modifier, value: '1' }] }],
+      ['a fractional modifier value', { modifiers: [{ ...modifier, value: 1.5 }] }],
+      ['an extra key on a modifier', { modifiers: [{ ...modifier, notes: long }] }],
+      ['a modifier id that is not a UUID', { modifiers: [{ ...modifier, id: 'abc' }] }],
+      ['a label of 101 characters', { modifiers: [{ ...modifier, label: long }] }],
+      ['modifiers that are not a list', { modifiers: {} }],
+      ['an unknown saving throw', { proficiencies: { saves: ['luck'], skills: {} } }],
+      ['a saving throw twice', { proficiencies: { saves: ['dexterity', 'dexterity'], skills: {} } }],
+      ['an unknown skill', { proficiencies: { saves: [], skills: { flying: 'proficient' } } }],
+      ['an unknown proficiency', { proficiencies: { saves: [], skills: { stealth: 'master' } } }],
+      ['an extra key on proficiencies', { proficiencies: { saves: [], skills: {}, tools: [] } }],
+      ['missing skills', { proficiencies: { saves: [] } }],
+      ['4 death save successes', { death_saves_success: 4 }],
+      ['−1 death save failures', { death_saves_failure: -1 }],
+      ['an unknown unarmored AC', { unarmored_ac: 'dragon' }],
+      ['a race of 101 characters', { race: long }],
+      ['a background of 101 characters', { background: long }],
+    ]
+    for (const [label, patch] of bad) {
+      refused(await playerA.db.from('characters').update({ ...patch, version: hero.version }).eq('id', hero.id).select(), label)
+    }
+    refused(
+      await dm.db.from('characters').update({ classes: [], version: hero.version }).eq('id', hero.id).select(),
+      'the DM saves no class entries',
+    )
+
+    const badItems: [string, Record<string, unknown>][] = [
+      ['an unknown armor type', { armor: 'mithral' }],
+      ['6 item bonuses', { effects: Array.from({ length: 6 }, () => ({ target: 'ac', value: 1 })) }],
+      ['an item bonus of 31', { effects: [{ target: 'ac', value: 31 }] }],
+      ['an unknown item target', { effects: [{ target: 'fly', value: 1 }] }],
+      ['an extra key on an item bonus', { effects: [{ target: 'ac', value: 1, when: 'no armor' }] }],
+      ['item bonuses that are not a list', { effects: { target: 'ac', value: 1 } }],
+    ]
+    for (const [label, fields] of badItems) {
+      refused(
+        await playerA.db.from('inventory_items').insert({ character_id: hero.id, campaign_id: campaignId, name: 'Odd', ...fields }),
+        label,
+      )
+    }
+    ok(await addItem(playerA, hero.id, { name: 'Belt', effects: Array.from({ length: 5 }, () => ({ target: 'save.all', value: -30 })) }))
+  })
+
+  test('Deleting a character hides its effects; deleting an account removes them, with an item that counts', async () => {
+    ok(await playerA.db.rpc('delete_character', { p_character_id: hero.id }))
+    assert.equal(ok(await effectsOf(playerB, hero.id)).length, 0)
+    const kept = ok(await effectsOf(dm, hero.id))
+    assert.equal(kept.length, 1)
+    assert.ok(kept[0].deleted_at, 'the DM still sees it, marked deleted')
+
+    const quitter = await makeUser('quitter-effects')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: campaignId, user_id: quitter.id }))
+    const character = ok(await quitter.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Armored' }))
+    const shield = await addItem(quitter, character.id, { name: 'Shield', armor: 'shield', equipped: true })
+    assert.deepEqual(await counted(character.id), [shield.id])
+    ok(await quitter.db.rpc('delete_my_account'))
+    assert.equal(ok(await admin.from('character_effects').select('id').eq('character_id', character.id)).length, 0)
+  })
+
+  test('A character moved to another campaign takes its effects row along', async () => {
+    const traveller = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Traveller' }))
+    ok(await dm.db.from('characters').update({ campaign_id: otherCampaignId, version: traveller.version }).eq('id', traveller.id).select())
+    const moved = ok(await effectsOf(dm, traveller.id))[0]
+    assert.equal(moved.campaign_id, otherCampaignId)
+    assert.equal(ok(await effectsOf(playerB, traveller.id)).length, 0, 'the old campaign still reads it')
+  })
+})
+
 describe('text length limits (Phase 4)', () => {
   const long = (n: number) => 'x'.repeat(n)
 
