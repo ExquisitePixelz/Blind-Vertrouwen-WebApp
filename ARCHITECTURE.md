@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -688,6 +688,9 @@ The permission test gains the cases in section 4.
 - **Screens:** the sheet follows the order above. The dialog for a number (`StatDialog`) shows `{name} {total} = {parts}`, the modifiers, and the item bonuses, which are changed in the inventory. The AC dialog has the Unarmored AC choice. Long-press is `Press` (500 ms, with a finger or a mouse button; the phone's own long-press menu is blocked there). A modifier's value has a ± button, because phone number pads often have no minus key. The Characters list calculates AC from the same rules.
 - **Saving lists:** `src/lib/listChange.ts` reads the latest list, applies one change and saves it with the conflict guard, trying again up to 3 times. A change that no longer fits (the entry was changed or removed by someone else) is cancelled with a message, and the sheet reloads.
 - **Order of work:** steps 4 to 8 went live together, because the owner was the only one testing. Step 9 went live the same day at the owner's request, instead of a few days later.
+- **Fixes (2026-09-30, `0.8.1-alpha`):**
+  - The saving throw and skill tick boxes did not save. A list change first waits for other saves, and the box was read only after that wait, when it already showed the stored state again. Each box's new state is now read at the moment it is tapped.
+  - Death saves changed as described above. `withDeathSaves` (`src/lib/character.ts`) adds the reset to every HP change, and `isDead` decides the Dead state. `CharacterName` shows the crossed-out name with the red `Dead` tag on the sheet and in the Characters list. No database change was needed.
 
 ---
 
@@ -975,7 +978,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 3. Only then does the agent push website code that uses the change. Pushing it earlier breaks the live site.
 4. The agent checks new screens in the Claude app's browser pane (local copy at `localhost:5173`, which talks to the real database). The owner logs in there; the agent cannot log in for them.
 
-### Where we are *(updated 2026-09-28)*
+### Where we are *(updated 2026-09-30)*
 
 | Step | Status |
 |---|---|
@@ -989,7 +992,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Then, from the roadmap (section 6), in the owner's current order: | |
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
-| Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
+| Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
@@ -1318,8 +1321,9 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
   - existing AC and Passive Perception recalculated at once
   - other players see item bonuses as "Item +1", without the item's name
   - proficiency and expertise boxes (expertise for skills only), death save circles and an inspiration toggle
+  - death saves shown only at 0 HP and reset by healing; the third success gives 1 HP, the third failure crosses out the name with a Dead tag (owner, 2026-09-30)
   - players and the DM both edit
-  - left out for now: an edit icon next to every number, and a Reset button for death saves
+  - left out for now: an edit icon next to every number, and a Reset button for death saves (healing resets them)
 - **Security gaps found while planning Phase 4:** text length limits and a Content Security Policy are added; no row-count limits and no clickjacking headers are accepted (owner, 2026-09-27). See section 5, Phase 4.
 - **Quest Journal (Phase 7):** visible to everyone, button below Characters; Main, Side and Character quests (Character quests visible to everyone); hidden until revealed, never hidden again; statuses Inactive, Active, Completed, Failed; objectives revealed one step at a time with optional ones below; each reward visible or hidden, with a "+ a hidden reward" line; no voting and no session links for now (owner decisions, 2026-09-27). See section 1.9.
 - **Player features (Phase 6):** on the character sheet; a Backstory everyone in the campaign reads plus Private notes for the player and DM; items with name, quantity, weight, description, Equipped and Attuned, and a carried-weight total; a coin row without electrum (owner decisions, 2026-09-25). See section 1.8.
