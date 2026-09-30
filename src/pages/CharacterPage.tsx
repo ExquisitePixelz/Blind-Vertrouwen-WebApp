@@ -18,7 +18,9 @@ import {
   heal,
   hpBar,
   setCurrentHp,
+  isDead,
   setMaxHp,
+  withDeathSaves,
   type Ability,
   type Character,
 } from '../lib/character'
@@ -156,6 +158,7 @@ export function CharacterPage() {
   const canEdit = me.isDm || c.owner_id === me.userId
   const tap = (next: Open) => (canEdit ? () => setOpen(next) : undefined)
   const save = (patch: Partial<Character>) => saver.change(patch, true)
+  const saveHp = (patch: Partial<Character>) => save(withDeathSaves(c, patch))
   const bar = hpBar(c)
   const level = totalLevel(c.classes)
   const names = itemNames.data ?? new Map<string, string>()
@@ -196,7 +199,11 @@ export function CharacterPage() {
     if (!list.some((m) => m.id === id)) throw new ListChangedError('Someone else removed this modifier.')
   }
 
-  /** A tick box: saved at once; a failure is shown above the lists. */
+  /**
+   * A tick box: saved at once; a failure is shown above the lists. Callers
+   * read the box's new state before calling: the save first waits for other
+   * saves, and by then the box shows the stored state again.
+   */
   const tick = (change: (p: Proficiencies) => Proficiencies) => {
     setNotice(null)
     changeField<Proficiencies>('proficiencies', change).catch((e: unknown) =>
@@ -206,7 +213,7 @@ export function CharacterPage() {
 
   return (
     <main className="page">
-      <TopBar title={c.name} back={`/c/${campaignId}/characters`}>
+      <TopBar title={isDead(c) ? <s aria-label={`${c.name} (dead)`}>{c.name}</s> : c.name} back={`/c/${campaignId}/characters`}>
         {canEdit && (
           <button className="icon secondary" aria-label="More" onClick={() => setOpen({ kind: 'menu' })}>
             …
@@ -285,19 +292,24 @@ export function CharacterPage() {
       </div>
 
       <div className="card death-card">
-        <Pips
-          label="Death save successes"
-          count={c.death_saves_success}
-          canEdit={canEdit}
-          onSet={(n) => save({ death_saves_success: n })}
-        />
-        <Pips
-          label="Death save failures"
-          count={c.death_saves_failure}
-          danger
-          canEdit={canEdit}
-          onSet={(n) => save({ death_saves_failure: n })}
-        />
+        {c.hp_cur === 0 && (
+          <>
+            <Pips
+              label="Death save successes"
+              count={c.death_saves_success}
+              canEdit={canEdit}
+              // The third success brings the character back at 1 HP (owner's rule, 1.10).
+              onSet={(n) => (n === 3 ? saveHp({ hp_cur: 1 }) : save({ death_saves_success: n }))}
+            />
+            <Pips
+              label="Death save failures"
+              count={c.death_saves_failure}
+              danger
+              canEdit={canEdit}
+              onSet={(n) => save({ death_saves_failure: n })}
+            />
+          </>
+        )}
         <label className="check-row">
           <input
             type="checkbox"
@@ -375,7 +387,10 @@ export function CharacterPage() {
                 aria-label={`${label} save proficient`}
                 checked={sheet.saves[field].proficient}
                 disabled={!canEdit}
-                onChange={(e) => tick((p) => tickSave(p, field, e.target.checked))}
+                onChange={(e) => {
+                  const on = e.target.checked
+                  tick((p) => tickSave(p, field, on))
+                }}
               />
             }
           />
@@ -403,14 +418,20 @@ export function CharacterPage() {
                     aria-label={`${label} proficient`}
                     checked={skill.proficiency !== null}
                     disabled={!canEdit}
-                    onChange={(e) => tick((p) => tickSkill(p, key, 'proficient', e.target.checked))}
+                    onChange={(e) => {
+                      const on = e.target.checked
+                      tick((p) => tickSkill(p, key, 'proficient', on))
+                    }}
                   />
                   <input
                     type="checkbox"
                     aria-label={`${label} expertise`}
                     checked={skill.proficiency === 'expertise'}
                     disabled={!canEdit}
-                    onChange={(e) => tick((p) => tickSkill(p, key, 'expertise', e.target.checked))}
+                    onChange={(e) => {
+                      const on = e.target.checked
+                      tick((p) => tickSkill(p, key, 'expertise', on))
+                    }}
                   />
                 </>
               }
@@ -489,9 +510,9 @@ export function CharacterPage() {
           initial={0}
           onClose={close}
           actions={[
-            { label: 'Damage', className: 'danger', onApply: (x) => save(damage(c, x)) },
-            { label: 'Heal', onApply: (x) => save(heal(c, x)) },
-            { label: 'Set', className: 'secondary', onApply: (x) => save(setCurrentHp(c, x)) },
+            { label: 'Damage', className: 'danger', onApply: (x) => saveHp(damage(c, x)) },
+            { label: 'Heal', onApply: (x) => saveHp(heal(c, x)) },
+            { label: 'Set', className: 'secondary', onApply: (x) => saveHp(setCurrentHp(c, x)) },
           ]}
         />
       )}
@@ -500,7 +521,7 @@ export function CharacterPage() {
           title="Damage"
           initial={0}
           onClose={close}
-          actions={[{ label: 'Apply', className: 'danger', onApply: (x) => save(damage(c, x)) }]}
+          actions={[{ label: 'Apply', className: 'danger', onApply: (x) => saveHp(damage(c, x)) }]}
         />
       )}
       {open?.kind === 'heal' && (
@@ -508,7 +529,7 @@ export function CharacterPage() {
           title="Heal"
           initial={0}
           onClose={close}
-          actions={[{ label: 'Apply', onApply: (x) => save(heal(c, x)) }]}
+          actions={[{ label: 'Apply', onApply: (x) => saveHp(heal(c, x)) }]}
         />
       )}
       {open?.kind === 'max' && (
@@ -516,7 +537,7 @@ export function CharacterPage() {
           title="Max HP"
           initial={c.hp_max}
           onClose={close}
-          actions={[{ label: 'Set', onApply: (x) => save(setMaxHp(c, x)) }]}
+          actions={[{ label: 'Set', onApply: (x) => saveHp(setMaxHp(c, x)) }]}
         />
       )}
       {open?.kind === 'number' && (

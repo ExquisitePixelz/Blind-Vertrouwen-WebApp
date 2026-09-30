@@ -152,7 +152,7 @@ No other fields exist: no skills, saving throws, proficiency bonus, spells, cond
 - **Heal X** (X at least 0): `hpCur = min(hpMax, hpCur + X)`. Healing never changes temp HP.
 - **Set current HP to X**: `hpCur = clamp(X, 0, hpMax)`.
 - **Set max HP to X**: `hpMax = max(1, X)`, then `hpCur = min(hpCur, hpMax)`. Raising max HP does **not** raise current HP.
-- There are no death saves or unconscious state. 0 HP is just a number. *(Web, Phase 8: death save circles, not tied to HP, 1.10.)*
+- There are no death saves or unconscious state. 0 HP is just a number. *(Web, Phase 8: death save circles at 0 HP, 1.10.)*
 
 **B3. Screens**
 
@@ -638,13 +638,16 @@ An item **counts** while it is equipped, not deleted, has a quantity above 0 and
 **Who sees what items add** (owner decision, 2026-09-28). Items are private (1.8), but every player reads the sheet, and everyone should see the same AC. So the database keeps a small row per character that lists, for every item that counts, its armor type and bonuses, without its name. **Nobody but the database writes it.** Other players see `Armor 16`, `Shield 2` and `Item +1`; the owner and the DM see the item names, because they can read the items.
 
 **Death saves and inspiration** (owner decision, 2026-09-28)
-- **Death saves:** a row of 3 success circles and a row of 3 failure circles, always shown below the hit points. Tapping a circle fills or empties it. They are not tied to HP, and nothing clears them by itself.
+- **Death saves:** a row of 3 success circles and a row of 3 failure circles below the hit points, shown **only while current HP is 0**. Tapping a circle fills or empties it. *(Changed 2026-09-30, owner: first they were always shown and not tied to HP.)*
+  - **Healing:** as soon as current HP is above 0 (Heal, Set or a change to max HP), both counts go back to 0 (5e: regaining any hit points resets them), and the circles are hidden.
+  - **Third success:** the character gets 1 HP at once, so the counts reset and the circles are hidden. *(Owner's rule; in 5e 2014 the character is stable at 0 HP.)*
+  - **Third failure:** the character is dead. The name is crossed out on the sheet and in the Characters list; nothing else changes. The circles stay, and healing (for example a spell that brings someone back) clears it like any other death saves.
 - **Inspiration:** an on/off toggle next to the death saves.
 
 **Order on the web sheet**, top to bottom (replaces B3's list for the web):
 1. Identity card: Player, Class (the entries and Add class), Race, Background, Devoted to.
 2. Hit points card, with Damage and Heal.
-3. Death saves and Inspiration.
+3. Death saves (at 0 HP only) and Inspiration.
 4. Tiles: Max HP, Temp HP, AC.
 5. Tiles: Speed, Passive Perc., Initiative.
 6. Proficiency bonus, then the six abilities.
@@ -811,7 +814,7 @@ Realtime is added later together with the features that need it, such as live co
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
 ### 3.9 Version number. *Decided (owner, 2026-09-25)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.8.0-alpha` (2026-09-28: Phase 8, the automatic character sheet).*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.8.1-alpha` (2026-09-30: tick boxes for saving throws and skills save again; death saves only at 0 HP).*
 - **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …); a fix between phases adds 1 to the last number (`0.5.1-alpha`).
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.

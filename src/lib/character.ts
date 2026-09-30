@@ -73,6 +73,28 @@ export function setCurrentHp(c: Hp, value: number): Pick<Character, 'hp_cur'> {
   return { hp_cur: clamp(value, 0, c.hp_max) }
 }
 
+type DeathSaves = Pick<Character, 'death_saves_success' | 'death_saves_failure'>
+
+/**
+ * Three failed death saves at 0 HP: the name is crossed out (1.10). Nothing
+ * else changes; some spells still bring a dead character back, and healing
+ * clears it like any other death saves.
+ */
+export const isDead = (c: DeathSaves & Pick<Character, 'hp_cur'>) => c.hp_cur === 0 && c.death_saves_failure >= 3
+
+/**
+ * An HP change, plus the death saves reset to zero once current HP is above 0
+ * (5e: regaining any hit points resets them; ARCHITECTURE.md 1.10).
+ */
+export function withDeathSaves<P extends Partial<Pick<Character, 'hp_cur'>>>(
+  c: DeathSaves,
+  patch: P,
+): P | (P & DeathSaves) {
+  if (patch.hp_cur === undefined || patch.hp_cur <= 0) return patch
+  if (!c.death_saves_success && !c.death_saves_failure) return patch
+  return { ...patch, death_saves_success: 0, death_saves_failure: 0 }
+}
+
 /** Raising max HP does not raise current HP; lowering it caps current HP. */
 export function setMaxHp(c: Hp, value: number): Pick<Character, 'hp_max' | 'hp_cur'> {
   const hp_max = Math.max(1, Math.trunc(value))

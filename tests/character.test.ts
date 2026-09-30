@@ -1,7 +1,18 @@
 // Character rules from ARCHITECTURE.md 1.3 B2. Run with `npm test`.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { clampField, damage, formatModifier, heal, hpBar, modifier, setCurrentHp, setMaxHp } from '../src/lib/character.ts'
+import {
+  clampField,
+  damage,
+  formatModifier,
+  heal,
+  hpBar,
+  isDead,
+  modifier,
+  setCurrentHp,
+  setMaxHp,
+  withDeathSaves,
+} from '../src/lib/character.ts'
 
 test('ability modifier and its formatting', () => {
   assert.equal(modifier(10), 0)
@@ -33,6 +44,20 @@ test('set current and max HP', () => {
   assert.deepEqual(setMaxHp({ hp_max: 20, hp_cur: 18, hp_temp: 0 }, 10), { hp_max: 10, hp_cur: 10 })
   assert.deepEqual(setMaxHp({ hp_max: 20, hp_cur: 18, hp_temp: 0 }, 30), { hp_max: 30, hp_cur: 18 })
   assert.deepEqual(setMaxHp({ hp_max: 20, hp_cur: 18, hp_temp: 0 }, 0), { hp_max: 1, hp_cur: 1 })
+})
+
+test('death saves reset once current HP is above 0', () => {
+  const dying = { death_saves_success: 2, death_saves_failure: 1 }
+  assert.deepEqual(withDeathSaves(dying, { hp_cur: 3 }), { hp_cur: 3, death_saves_success: 0, death_saves_failure: 0 })
+  assert.deepEqual(withDeathSaves(dying, { hp_cur: 0 }), { hp_cur: 0 })
+  assert.deepEqual(withDeathSaves(dying, { hp_max: 10 }), { hp_max: 10 })
+  assert.deepEqual(withDeathSaves({ death_saves_success: 0, death_saves_failure: 0 }, { hp_cur: 3 }), { hp_cur: 3 })
+})
+
+test('dead: three failures at 0 HP', () => {
+  assert.equal(isDead({ hp_cur: 0, death_saves_success: 0, death_saves_failure: 3 }), true)
+  assert.equal(isDead({ hp_cur: 0, death_saves_success: 1, death_saves_failure: 2 }), false)
+  assert.equal(isDead({ hp_cur: 4, death_saves_success: 0, death_saves_failure: 3 }), false)
 })
 
 test('field limits', () => {

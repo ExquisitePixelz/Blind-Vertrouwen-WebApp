@@ -4,6 +4,7 @@ import { Dialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { byName, loadGods } from '../lib/gods'
 import { must, supabase } from '../lib/supabase'
+import { isDead } from '../lib/character'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
 import { buildSheet, formatClasses, type EffectItem, type SheetInput } from '../lib/sheet'
@@ -14,11 +15,13 @@ type ListRow = SheetInput & {
   player: string
   hp_cur: number
   hp_max: number
+  death_saves_success: number
+  death_saves_failure: number
 }
 
 /** Everything the list needs, including what AC is calculated from (1.10). */
 const LIST_COLUMNS =
-  'id, name, player, classes, hp_cur, hp_max, strength, dexterity, constitution, intelligence, wisdom, charisma, speed, modifiers, proficiencies, unarmored_ac'
+  'id, name, player, classes, hp_cur, hp_max, death_saves_success, death_saves_failure, strength, dexterity, constitution, intelligence, wisdom, charisma, speed, modifiers, proficiencies, unarmored_ac'
 
 /** Character list (1.3 B3). */
 export function CharactersPage() {
@@ -53,7 +56,7 @@ export function CharactersPage() {
             <li key={c.id}>
               <Link to={`/c/${campaignId}/characters/${c.id}`} className="row">
                 <div className="row-split">
-                  <strong>{c.name}</strong>
+                  <strong>{isDead(c) ? <s aria-label={`${c.name} (dead)`}>{c.name}</s> : c.name}</strong>
                   <span className="muted small">
                     HP {c.hp_cur}/{c.hp_max}&nbsp;&nbsp; AC {c.ac}
                   </span>

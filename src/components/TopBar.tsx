@@ -7,7 +7,7 @@ import { AccountButton } from './AccountButton'
  * the screen title on the left, the screen's own buttons (`children`) and the
  * account button on the right. The dashboard has neither back nor title.
  */
-export function TopBar({ title, back, children }: { title?: string; back?: string; children?: ReactNode }) {
+export function TopBar({ title, back, children }: { title?: ReactNode; back?: string; children?: ReactNode }) {
   return (
     <header className="top-bar">
       {back && (
