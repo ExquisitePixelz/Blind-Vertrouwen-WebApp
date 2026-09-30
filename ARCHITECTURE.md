@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11), which waits for the owner's go. **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -692,6 +692,69 @@ The permission test gains the cases in section 4.
   - The saving throw and skill tick boxes did not save. A list change first waits for other saves, and the box was read only after that wait, when it already showed the stored state again. Each box's new state is now read at the moment it is tapped.
   - Death saves changed as described above. `withDeathSaves` (`src/lib/character.ts`) adds the reset to every HP change, and `isDead` decides the Dead state. `CharacterName` shows the crossed-out name with the red `Dead` tag on the sheet and in the Characters list. No database change was needed.
 
+### 1.11 Phase 9: Speed, data and battery *(asked for by the owner, 2026-09-30; written out, waits for the owner's go)*
+
+The owner wants the app to load quickly, use little battery, and stay well inside the Supabase free plan. This phase serves priorities 3 and 4 (section 2). It adds **no new features**: every screen looks and works as before. Priority 1 (never lose typing) and 2 (privacy) still come first; nothing here may weaken them.
+
+**Free plan limits** (checked on supabase.com/pricing, 2026-09-30): 500 MB database, 5 GB egress (data sent out) plus 5 GB cached egress a month, 50,000 monthly active users, pause after a week without activity. There is no limit on the number of writes. **The website's own files come from GitHub Pages, not Supabase**, so the size of the app never counts against the Supabase plan; only database requests do.
+
+**Measured on 2026-09-30 (`0.8.1-alpha`)**
+
+*Loading:*
+- The whole app is **one JavaScript file of 709 KB (203 KB compressed)**, plus 17 KB of styles (4 KB compressed). Every first visit downloads all of it, also the login page for someone who never gets past it.
+- What is in it: React 202 KB, our own code 117 KB, the Supabase client 209 KB, markdown (`react-markdown` and its helpers) about 105 KB, the router 37 KB.
+- About 86 KB of the Supabase client is never used: realtime (live updates), file storage, edge functions and iceberg. Section 3.6 keeps realtime out for now.
+- Markdown is needed on only three screens (character sheet, session, quest), yet it is loaded everywhere, the login page and dashboard included.
+- Live site, first visit on a fast desktop connection: ready in 0.41 s. On a phone over 4G it will be slower: the 200 KB download and reading 700 KB of code are the main parts. Later visits load from the service worker (3.7) and are fast. After a **new version**, every phone downloads the whole file again, because it is one file: a change of one line means 200 KB for everyone.
+- The screen is **empty and white** until the code has loaded (`index.html` has no background or text of its own), which makes loading feel slower than it is.
+- Before the first screen can ask for its own data, the app makes three requests one after the other: `check_access`, then `worlds` and `profiles` together, then any leftover saves (3.4).
+
+*Data per screen (Supabase egress):*
+- The **character sheet** makes 7 requests when it opens: the character, piety tracks, all gods, `character_effects`, the item names, `character_private` and the inventory. The inventory is read twice (names for the sheet, full rows for the list). **All 7 are made again every time the user comes back to the tab** (3.6), for example after checking WhatsApp during a session.
+- **Gods are always read with their notes** (up to 100,000 characters each, 15 gods), also where only the names are needed: the character sheet, the Characters list (for New character) and the Gods list.
+- The **Sessions list downloads every session's full notes**, only to show the first line of each. At 50 sessions of a few pages each, that is megabytes per visit, and again on every return to the tab.
+- **Every save returns the whole row** (`.select()` in `src/lib/saver.ts` and `src/lib/listChange.ts`). One tap on Damage sends back the character with its full backstory.
+
+*Battery and phone work:*
+- Already good: no timers, no animations, no realtime connection, the phone's own fonts (no web fonts), tiny icons. The Supabase login check only runs while the tab is visible.
+- While typing in notes, **every key press** redraws the whole screen and writes the local backup copy of the whole text (3.4). With a long backstory this may make typing feel slow on an older phone. Not measured yet.
+
+*Database:* already efficient. Every column the app filters on has an index, and the row-level security helpers look up the logged-in user once per query (`(select auth.uid())`), not once per row.
+
+*Estimate:* a group of 6 with a few sessions a month uses **well under 10% of the 5 GB egress** today, and the database is a few MB of its 500 MB. So there is no risk to the free plan now. The data items below are about staying far from the limits as notes and sessions grow, and about speed on phones. Step 1 replaces this estimate with the real numbers.
+
+**What Phase 9 changes**
+
+*A. Faster loading*
+1. **Split the code per screen.** Each screen, and markdown, becomes its own file that loads when it is first opened (`React.lazy`). The login page and the dashboard no longer carry the character sheet, quests or markdown. React, the router and Supabase go into a shared file of their own, so a new version of the app usually changes only a small file and phones download just that. The service worker still stores every file after the first visit, so later screens open at once.
+2. **Something to see straight away.** `index.html` gets the dark background (1.3 D6) and the app name in its own markup, so there is never a white flash or an empty screen while the code loads. The Content Security Policy already allows inline styles (Phase 4, gap 2).
+3. **Fewer waits at startup.** `check_access` and the `worlds` and `profiles` reads go out together instead of one after the other. If access is refused, the reads are thrown away and the user is signed out as today (1.6).
+
+*B. Less data per screen*
+
+4. **Sessions list reads a short start of the notes**, not the full text: a new column `notes_start`, generated by the database as the first 500 characters of `notes`. The list's first-line text (`notesSnippet`) is made from it, as today. The note taker still reads the full notes.
+5. **Gods only with the columns a screen needs.** Names (and ids) for the character sheet and New character; the Gods list without notes; the god page as today.
+6. **The inventory is read once** on the character sheet, and the sheet takes the item names from it.
+7. **Saves return only what changed**: the version and the saved fields, not the whole row. Before this, check every trigger on the tables involved: a trigger that changes another column than the one saved would be missed, so those tables keep returning the full row.
+
+*C. Battery*
+
+8. **Measure typing first.** Type in a long backstory (a few pages) on the owner's phone with the browser's performance tool. The sheet's calculation (`buildSheet`) is only redone when the character changes (`useMemo`). Anything more (see owner decision 3) only if typing is still slow.
+
+*D. Keep it this way*
+
+9. **Size check in the build.** A small script after `npm run build` fails the Deploy workflow when the files needed for the login page pass a set size (the size after step A plus about 20%). Raising it is a deliberate choice, noted here.
+10. **Owner routine:** once a month, open Supabase → **Usage** and look at egress and database size. The README gets the steps. More than half of either limit is a reason to look again.
+
+**Owner decisions needed before starting** (the agent's advice first)
+1. **Coming back to the tab** (3.6). Today every return reloads the screen. *Advice:* skip the reload when the screen loaded less than 30 seconds ago. Switching to WhatsApp and back then costs nothing; a change by the DM shows up on the next return after that, or when the screen is opened again. *Or:* keep reloading every time.
+2. **The unused parts of Supabase** (3.7). Using only Supabase's own login and database packages (`@supabase/auth-js`, `@supabase/postgrest-js`) instead of the full client would save about 86 KB (about 25 KB compressed). *Advice:* not now. They are official, but a less common setup with fewer examples (priority 5), and Live combat would bring realtime back. Step 1 of section A gets most of the gain without it.
+3. **The local backup while typing** (3.4). Writing it at most a few times a second instead of on every key press saves phone work in long notes, but a crash (not a closed tab, which still saves at once) could lose the last fraction of a second of typing. *Advice:* only if step C8 shows typing is slow; otherwise leave it.
+
+**Not in Phase 9 (roadmap):** a server or CDN in front of GitHub Pages, image compression (no images yet), working offline (section 2), and anything that caches campaign data on the phone (3.4: hidden content must not stay on a phone).
+
+**Tests.** The existing unit and permission tests must stay green. New: the permission test checks that `notes_start` is readable only by the DM (it follows the `sessions` policies) and matches the start of `notes` after a save. Lighthouse (mobile) on the login page and the dashboard, before and after, with the numbers recorded here under *As built*.
+
 ---
 
 ## 2. Priorities
@@ -993,6 +1056,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
+| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **Written out** (2026-09-30). Waits for the owner's go and three owner decisions (1.11). |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
@@ -1109,7 +1173,7 @@ The DM, meanwhile, tests the DM-only parts on a second device: sessions, attenda
 **Reporting bugs:** one message per problem in the group chat with: what you did, what you expected, what happened, your phone and browser, the time, and a screenshot. **Never send passwords or login links.**
 
 #### Step 5: Speed and installing
-1. Lighthouse (mobile) in Chrome: performance, accessibility and best practices.
+1. Lighthouse (mobile) in Chrome: performance, accessibility and best practices. *If Phase 9 (1.11) is done by then, this is a retest against its recorded numbers.*
 2. Everyone adds the app to their home screen, and checks that the "New version" message appears after an update.
 
 #### Step 6: Fix round and retest
@@ -1237,6 +1301,17 @@ One step per commit. **Do not add anything that is not in section 1.9.**
 
 One step per commit. **Do not add anything that is not in section 1.10.**
 
+### Phase 9: Speed, data and battery (section 1.11)
+1. **Baseline.** Lighthouse (mobile) on the live login page and, with the owner logged in in the browser pane, the dashboard and a character sheet. The owner reads Supabase → Usage (egress this month, database size). Record the numbers in 1.11. No code changes.
+2. **Loading (A1–A3):** code split per screen with a shared file for React, the router and Supabase; the dark background and app name in `index.html`; the startup requests together. Check every screen in the browser pane, including a refresh on each and the "New version" message.
+3. **Migration: `sessions.notes_start`**, with its permission-test case. Pushed alone first; the owner runs `db push`.
+4. **Less data (B4–B7):** the Sessions list reads `notes_start`; gods with only the columns each screen needs; the inventory read once; saves return only what changed (after the trigger check). Owner decision 1 (tab return) goes in here if the owner chose it.
+5. **Typing (C8):** measure, add `useMemo` for the sheet, and only with owner decision 3 change the local backup.
+6. **Keep it this way (D9–D10):** the size check in the Deploy workflow and the monthly Usage routine in the README.
+7. **Retest:** Lighthouse and Usage again, numbers next to the baseline in 1.11 under *As built*. Version `0.9.0-alpha`; update 3.9.
+
+One step per commit. **Do not add anything that is not in section 1.11.**
+
 ---
 
 ## 6. Roadmap input (unordered; the owner decides what and when)
@@ -1309,6 +1384,8 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
    - Supabase → Authentication → Emails: sender name `DnD Companion App`, and the new name in the Confirm signup and Reset password templates (README has the texts).
    - Redo the WhatsApp login test (3.5) on Android and iPhone with Google's button and with email login.
    - Phones that installed the app: on iPhone, remove and re-add it to pick up the new name.
+
+3. **Phase 9 (1.11), before it starts** (2026-09-30): the owner decides (1) whether a return to the tab within 30 seconds skips the reload, (2) whether to drop the unused parts of the Supabase client (advice: not now), and (3) whether the local typing backup may be written less often (advice: only if typing is measured slow).
 
 
 **Resolved:**

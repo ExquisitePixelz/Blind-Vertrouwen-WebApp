@@ -9,4 +9,4 @@ Read ARCHITECTURE.md before doing any work. It is the plan and decision record f
 - Bump the version in package.json when a phase or fix is finished (ARCHITECTURE.md 3.9).
 - Never commit secrets: no Supabase service-role key, database password or data exports.
 
-Current phase: none. Phases 4.5 to 8 are built (Phase 8: automatic character sheet). Phase 4 is written out in depth and waits for the owner (section 5). The owner picks what comes next.
+Current phase: none. Phases 4.5 to 8 are built (Phase 8: automatic character sheet). Phase 4 is written out in depth and waits for the owner (section 5). Phase 9 (speed, data and battery, section 1.11) is written out and waits for the owner's go and three decisions. The owner picks what comes next.
