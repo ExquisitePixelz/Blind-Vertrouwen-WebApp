@@ -739,17 +739,17 @@ The owner wants the app to load quickly, use little battery, and stay well insid
 
 *C. Battery*
 
-8. **Measure typing first.** Type in a long backstory (a few pages) on the owner's phone with the browser's performance tool. The sheet's calculation (`buildSheet`) is only redone when the character changes (`useMemo`). Anything more (see owner decision 3) only if typing is still slow.
+8. **Measure typing first.** Type in a long backstory (a few pages) on the owner's phone with the browser's performance tool. The sheet's calculation (`buildSheet`) is only redone when the character changes (`useMemo`). The local backup stays on every key press (owner decision 3); if typing is still slow, the agent reports the numbers to the owner instead of changing more.
 
 *D. Keep it this way*
 
 9. **Size check in the build.** A small script after `npm run build` fails the Deploy workflow when the files needed for the login page pass a set size (the size after step A plus about 20%). Raising it is a deliberate choice, noted here.
 10. **Owner routine:** once a month, open Supabase → **Usage** and look at egress and database size. The README gets the steps. More than half of either limit is a reason to look again.
 
-**Owner decisions needed before starting** (the agent's advice first)
-1. **Coming back to the tab** (3.6). Today every return reloads the screen. *Advice:* skip the reload when the screen loaded less than 30 seconds ago. Switching to WhatsApp and back then costs nothing; a change by the DM shows up on the next return after that, or when the screen is opened again. *Or:* keep reloading every time.
-2. **The unused parts of Supabase** (3.7). Using only Supabase's own login and database packages (`@supabase/auth-js`, `@supabase/postgrest-js`) instead of the full client would save about 86 KB (about 25 KB compressed). *Advice:* not now. They are official, but a less common setup with fewer examples (priority 5), and Live combat would bring realtime back. Step 1 of section A gets most of the gain without it.
-3. **The local backup while typing** (3.4). Writing it at most a few times a second instead of on every key press saves phone work in long notes, but a crash (not a closed tab, which still saves at once) could lose the last fraction of a second of typing. *Advice:* only if step C8 shows typing is slow; otherwise leave it.
+**Owner decisions** (2026-09-30)
+1. **Coming back to the tab** (3.6): **yes.** A return to the tab no longer reloads a screen that loaded less than 30 seconds ago. Switching to WhatsApp and back then costs nothing; a change by the DM shows up on the next return after that, or when the screen is opened again. Done in `useLoad` (`src/lib/useLoad.ts`), so every screen gets it.
+2. **The unused parts of Supabase** (3.7): **no.** The app keeps the full official client. Using only `@supabase/auth-js` and `@supabase/postgrest-js` would save about 86 KB (about 25 KB compressed), but it is a less common setup with fewer examples (priority 5), and Live combat would bring realtime back.
+3. **The local backup while typing** (3.4): **no.** It stays written on every key press, so a crash never loses typing (priority 1). C8 only measures typing and adds `useMemo`.
 
 **Not in Phase 9 (roadmap):** a server or CDN in front of GitHub Pages, image compression (no images yet), working offline (section 2), and anything that caches campaign data on the phone (3.4: hidden content must not stay on a phone).
 
@@ -858,7 +858,7 @@ Saving works like this:
 - If login fails there, the invite page must detect the built-in browser and tell the user to open the link in their normal browser. That is also where "Add to home screen" works.
 
 ### 3.6 No realtime in version 1. *Decided*
-Data refreshes when a screen opens and when the user returns to the tab. Characters are edited by one person, and gods and piety scores change rarely, so live updates are not needed yet. This keeps the app simpler and lighter on battery.
+Data refreshes when a screen opens and when the user returns to the tab. *Changed 2026-09-30 (owner, Phase 9, 1.11): a return within 30 seconds of the last load does not reload.* Characters are edited by one person, and gods and piety scores change rarely, so live updates are not needed yet. This keeps the app simpler and lighter on battery.
 Realtime is added later together with the features that need it, such as live combat.
 
 ### 3.7 Tech stack. *Decided*
@@ -1056,7 +1056,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
-| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **Written out** (2026-09-30). Waits for the owner's go and three owner decisions (1.11). |
+| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **Written out** (2026-09-30), owner decisions taken. Waits for the owner's go. |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
@@ -1305,8 +1305,8 @@ One step per commit. **Do not add anything that is not in section 1.10.**
 1. **Baseline.** Lighthouse (mobile) on the live login page and, with the owner logged in in the browser pane, the dashboard and a character sheet. The owner reads Supabase → Usage (egress this month, database size). Record the numbers in 1.11. No code changes.
 2. **Loading (A1–A3):** code split per screen with a shared file for React, the router and Supabase; the dark background and app name in `index.html`; the startup requests together. Check every screen in the browser pane, including a refresh on each and the "New version" message.
 3. **Migration: `sessions.notes_start`**, with its permission-test case. Pushed alone first; the owner runs `db push`.
-4. **Less data (B4–B7):** the Sessions list reads `notes_start`; gods with only the columns each screen needs; the inventory read once; saves return only what changed (after the trigger check). Owner decision 1 (tab return) goes in here if the owner chose it.
-5. **Typing (C8):** measure, add `useMemo` for the sheet, and only with owner decision 3 change the local backup.
+4. **Less data (B4–B7):** the Sessions list reads `notes_start`; gods with only the columns each screen needs; the inventory read once; saves return only what changed (after the trigger check); no reload on a return to the tab within 30 seconds (owner decision 1).
+5. **Typing (C8):** measure, and add `useMemo` for the sheet. The local backup is not changed (owner decision 3).
 6. **Keep it this way (D9–D10):** the size check in the Deploy workflow and the monthly Usage routine in the README.
 7. **Retest:** Lighthouse and Usage again, numbers next to the baseline in 1.11 under *As built*. Version `0.9.0-alpha`; update 3.9.
 
@@ -1385,10 +1385,10 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
    - Redo the WhatsApp login test (3.5) on Android and iPhone with Google's button and with email login.
    - Phones that installed the app: on iPhone, remove and re-add it to pick up the new name.
 
-3. **Phase 9 (1.11), before it starts** (2026-09-30): the owner decides (1) whether a return to the tab within 30 seconds skips the reload, (2) whether to drop the unused parts of the Supabase client (advice: not now), and (3) whether the local typing backup may be written less often (advice: only if typing is measured slow).
 
 
 **Resolved:**
+- **Phase 9: speed, data and battery** (owner decisions, 2026-09-30; see section 1.11): no reload on a return to the tab within 30 seconds; keep the full Supabase client; keep the local typing backup on every key press.
 - **Automatic character sheet (Phase 8)** (owner decisions, 2026-09-28; see section 1.10):
   - class as a list of name and level entries with an Add class button, no separate level field, at most 20 levels in total
   - race and background as free text that changes no numbers
