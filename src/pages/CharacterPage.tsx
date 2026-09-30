@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { CharacterName } from '../components/CharacterName'
 import { ClassDialog } from '../components/ClassDialog'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
@@ -18,7 +19,6 @@ import {
   heal,
   hpBar,
   setCurrentHp,
-  isDead,
   setMaxHp,
   withDeathSaves,
   type Ability,
@@ -213,7 +213,7 @@ export function CharacterPage() {
 
   return (
     <main className="page">
-      <TopBar title={isDead(c) ? <s aria-label={`${c.name} (dead)`}>{c.name}</s> : c.name} back={`/c/${campaignId}/characters`}>
+      <TopBar title={<CharacterName c={c} />} back={`/c/${campaignId}/characters`}>
         {canEdit && (
           <button className="icon secondary" aria-label="More" onClick={() => setOpen({ kind: 'menu' })}>
             …

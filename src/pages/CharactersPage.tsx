@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
+import { CharacterName } from '../components/CharacterName'
 import { Dialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { byName, loadGods } from '../lib/gods'
 import { must, supabase } from '../lib/supabase'
-import { isDead } from '../lib/character'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
 import { buildSheet, formatClasses, type EffectItem, type SheetInput } from '../lib/sheet'
@@ -56,7 +56,9 @@ export function CharactersPage() {
             <li key={c.id}>
               <Link to={`/c/${campaignId}/characters/${c.id}`} className="row">
                 <div className="row-split">
-                  <strong>{isDead(c) ? <s aria-label={`${c.name} (dead)`}>{c.name}</s> : c.name}</strong>
+                  <strong>
+                    <CharacterName c={c} />
+                  </strong>
                   <span className="muted small">
                     HP {c.hp_cur}/{c.hp_max}&nbsp;&nbsp; AC {c.ac}
                   </span>

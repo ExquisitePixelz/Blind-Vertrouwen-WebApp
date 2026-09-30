@@ -284,6 +284,13 @@ button.popover-item {
   color: var(--gold);
 }
 
+/* After a name: the red of Sworn Enemy (standing.ts). */
+.chip.dead {
+  margin-left: 0.5rem;
+  color: #e0675c;
+  vertical-align: middle;
+}
+
 /* ---------- Lists ---------- */
 
 .list {

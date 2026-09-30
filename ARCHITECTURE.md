@@ -641,7 +641,7 @@ An item **counts** while it is equipped, not deleted, has a quantity above 0 and
 - **Death saves:** a row of 3 success circles and a row of 3 failure circles below the hit points, shown **only while current HP is 0**. Tapping a circle fills or empties it. *(Changed 2026-09-30, owner: first they were always shown and not tied to HP.)*
   - **Healing:** as soon as current HP is above 0 (Heal, Set or a change to max HP), both counts go back to 0 (5e: regaining any hit points resets them), and the circles are hidden.
   - **Third success:** the character gets 1 HP at once, so the counts reset and the circles are hidden. *(Owner's rule; in 5e 2014 the character is stable at 0 HP.)*
-  - **Third failure:** the character is dead. The name is crossed out on the sheet and in the Characters list; nothing else changes. The circles stay, and healing (for example a spell that brings someone back) clears it like any other death saves.
+  - **Third failure:** the character is dead. The name is crossed out, with a red `Dead` tag after it (the chip style and red of Sworn Enemy), on the sheet and in the Characters list; nothing else changes. The circles stay, and healing (for example a spell that brings someone back) clears it like any other death saves.
 - **Inspiration:** an on/off toggle next to the death saves.
 
 **Order on the web sheet**, top to bottom (replaces B3's list for the web):
