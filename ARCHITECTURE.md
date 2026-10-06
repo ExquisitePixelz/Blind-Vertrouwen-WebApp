@@ -766,6 +766,15 @@ The owner wants the app to load quickly, use little battery, and stay well insid
 
 8. **Measure typing first.** Type in a long backstory (a few pages) on the owner's phone with the browser's performance tool. The sheet's calculation (`buildSheet`) is only redone when the character changes (`useMemo`). The local backup stays on every key press (owner decision 3); if typing is still slow, the agent reports the numbers to the owner instead of changing more.
 
+*As built, step 5 (2026-10-07):* measured on the owner's Galaxy A52s 5G (Chrome 154) over USB, typing at the end of a 15,200-character backstory (Kraan, filled with test text and restored afterwards). The trace was recorded by a small script over `adb forward` and Chrome's DevTools protocol, because saving a profile from the remote DevTools window did not work.
+
+| Per key press | Before `useMemo` (119 keys) | After (103 keys) |
+|---|---|---|
+| Main-thread work: median / p90 / max | 8.3 / 11.4 / 22.6 ms | 7.6 / 9.9 / 13.5 ms |
+| Tap to next frame (EventTiming): median / max | 45 / 73 ms | 44 / 54 ms |
+
+No task over 50 ms in either recording; Google's "good" limit for an interaction is 200 ms. Typing is not slow, so nothing more is changed (owner decision 3). `buildSheet` now runs only when the scores, speed, classes, modifiers, proficiencies, Unarmored AC or item effects change.
+
 *D. Keep it this way*
 
 9. **Size check in the build.** A small script after `npm run build` fails the Deploy workflow when the files needed for the login page pass a set size (the size after step A plus about 20%). Raising it is a deliberate choice, noted here.
@@ -1081,7 +1090,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
-| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **In progress** (started 2026-10-06). Steps 1 to 4 done (baseline, loading, `notes_start`, less data). |
+| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **In progress** (started 2026-10-06). Steps 1 to 5 done (baseline, loading, `notes_start`, less data, typing). |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
