@@ -692,7 +692,7 @@ The permission test gains the cases in section 4.
   - The saving throw and skill tick boxes did not save. A list change first waits for other saves, and the box was read only after that wait, when it already showed the stored state again. Each box's new state is now read at the moment it is tapped.
   - Death saves changed as described above. `withDeathSaves` (`src/lib/character.ts`) adds the reset to every HP change, and `isDead` decides the Dead state. `CharacterName` shows the crossed-out name with the red `Dead` tag on the sheet and in the Characters list. No database change was needed.
 
-### 1.11 Phase 9: Speed, data and battery *(asked for by the owner, 2026-09-30; written out, waits for the owner's go)*
+### 1.11 Phase 9: Speed, data and battery *(asked for by the owner, 2026-09-30; started 2026-10-06)*
 
 The owner wants the app to load quickly, use little battery, and stay well inside the Supabase free plan. This phase serves priorities 3 and 4 (section 2). It adds **no new features**: every screen looks and works as before. Priority 1 (never lose typing) and 2 (privacy) still come first; nothing here may weaken them.
 
@@ -722,6 +722,22 @@ The owner wants the app to load quickly, use little battery, and stay well insid
 *Database:* already efficient. Every column the app filters on has an index, and the row-level security helpers look up the logged-in user once per query (`(select auth.uid())`), not once per row.
 
 *Estimate:* a group of 6 with a few sessions a month uses **well under 10% of the 5 GB egress** today, and the database is a few MB of its 500 MB. So there is no risk to the free plan now. The data items below are about staying far from the limits as notes and sessions grow, and about speed on phones. Step 1 replaces this estimate with the real numbers.
+
+**Baseline (step 1, 2026-10-06, `0.8.1-alpha`)**
+
+*How it is measured* (owner, 2026-10-06), the same way again in step 7:
+- **Login page (first visit):** the agent runs Lighthouse 12 from the command line, mobile, performance only, three runs on the live site, empty browser each time. The first run of a series is slower (cold server cache); runs 2 and 3 count.
+- **Dashboard and character sheet (return visit):** the owner runs Lighthouse in Chrome's developer tools, **in an Incognito window** (extensions added up to 950 ms of blocked time in a normal window), logged in, mobile, performance only, with **Clear storage off** (otherwise the test logs out). The app's files then come from the service worker, so this measures the database requests, not the app download. The owner saves each report as JSON in Downloads; reports stay out of the repository (they hold screenshots of campaign content).
+- **Typing (C8):** on the owner's Android phone over USB with Chrome's remote debugging, the agent walking the owner through it.
+
+| Page | Score | First text | Largest item | Blocked | Layout shift | Download |
+|---|---|---|---|---|---|---|
+| Login page (first visit) | 98 | 1.8 s | 1.8 s | 0 ms | 0.045 | 420 KB (the app 209 KB; Google's sign-in button 210 KB with its font) |
+| Dashboard (return) | 100 | 0.0 s | 0.8 s | 10 ms | 0.011 | 4 KB, 5 database requests in 3 waves |
+| Character sheet (return) | 95 | 0.0 s | 1.0 s | 0 ms | 0.137 | 12 KB, 10 database requests in 5 waves |
+
+- Character sheet waves: `check_access` → `worlds` + `profiles` → character, piety, gods (with notes), `character_effects`, item names → `character_private` → the full inventory. The last two wait for the sheet to draw first.
+- **Supabase Usage** (billing period up to 2026-10-06): egress **0.01 GB of 5 GB** (0.2%), database **28 MB of 500 MB** (6%).
 
 **What Phase 9 changes**
 
@@ -1041,7 +1057,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 3. Only then does the agent push website code that uses the change. Pushing it earlier breaks the live site.
 4. The agent checks new screens in the Claude app's browser pane (local copy at `localhost:5173`, which talks to the real database). The owner logs in there; the agent cannot log in for them.
 
-### Where we are *(updated 2026-09-30)*
+### Where we are *(updated 2026-10-06)*
 
 | Step | Status |
 |---|---|
@@ -1056,7 +1072,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
-| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **Written out** (2026-09-30), owner decisions taken. Waits for the owner's go. |
+| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **In progress** (started 2026-10-06). Step 1 (baseline) done. |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
