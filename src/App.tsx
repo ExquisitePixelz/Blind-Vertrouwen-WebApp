@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, startTransition, Suspense, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useMatch } from 'react-router'
 import { Footer } from './components/Footer'
 import { UpdatePrompt } from './components/UpdatePrompt'
@@ -106,13 +106,16 @@ function Screens() {
       setPendingOwner(user.id)
       await flushAllPending()
       if (cancelled) return
-      setMe({
-        userId: user.id,
-        name: profile?.display_name || user.user_metadata.full_name || user.email || '',
-        isDm: worlds[0]?.dm_user_id === user.id,
-        worldId: worlds[0]?.id ?? null,
-        lastCampaignId: profile?.last_campaign_id ?? null,
-      })
+      // A transition, like in useSession: the first screen shows as soon as its file is in.
+      startTransition(() =>
+        setMe({
+          userId: user.id,
+          name: profile?.display_name || user.user_metadata.full_name || user.email || '',
+          isDm: worlds[0]?.dm_user_id === user.id,
+          worldId: worlds[0]?.id ?? null,
+          lastCampaignId: profile?.last_campaign_id ?? null,
+        }),
+      )
     })().catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
     return () => {
       cancelled = true
