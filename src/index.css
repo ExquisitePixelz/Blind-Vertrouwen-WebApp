@@ -1122,6 +1122,14 @@ button.dash-button {
   flex: 1;
 }
 
+/* While the app starts or a screen is still loading, there is no footer yet.
+   Shown at the bottom of a nearly empty page, it would jump away as soon as
+   the screen fills (a layout shift, ARCHITECTURE.md 1.11); appearing later
+   is not a shift. */
+.screen:has(> .loading) + .footer {
+  display: none;
+}
+
 .footer {
   display: flex;
   flex-wrap: wrap;

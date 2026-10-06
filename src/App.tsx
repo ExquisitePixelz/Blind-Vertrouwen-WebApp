@@ -161,7 +161,7 @@ function Screens() {
 
 /** What shows while the app starts: the same as index.html, so nothing flashes (1.11 A2). */
 function Starting() {
-  return <main className="page center muted">DnD Companion App</main>
+  return <main className="page center muted loading">DnD Companion App</main>
 }
 
 /**

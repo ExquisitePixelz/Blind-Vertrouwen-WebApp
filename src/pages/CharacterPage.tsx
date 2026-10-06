@@ -167,7 +167,7 @@ export function CharacterPage() {
       </main>
     )
   if (character.loading && !character.data) return (
-      <main className="page">
+      <main className="page loading">
         <TopBar back={`/c/${campaignId}/characters`} />
       </main>
     )
