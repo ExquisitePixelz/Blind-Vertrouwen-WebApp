@@ -20,10 +20,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the version check compares with the previous push
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
+      # A website change needs a new version number (ARCHITECTURE.md 3.9).
+      - run: node scripts/check-version.mjs
+        env:
+          BEFORE: ${{ github.event.before }}
       - run: npm ci
       - run: npm run lint
       - run: npm test

@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11), which waits for the owner's go. **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -692,7 +692,7 @@ The permission test gains the cases in section 4.
   - The saving throw and skill tick boxes did not save. A list change first waits for other saves, and the box was read only after that wait, when it already showed the stored state again. Each box's new state is now read at the moment it is tapped.
   - Death saves changed as described above. `withDeathSaves` (`src/lib/character.ts`) adds the reset to every HP change, and `isDead` decides the Dead state. `CharacterName` shows the crossed-out name with the red `Dead` tag on the sheet and in the Characters list. No database change was needed.
 
-### 1.11 Phase 9: Speed, data and battery *(asked for by the owner, 2026-09-30; started 2026-10-06)*
+### 1.11 Phase 9: Speed, data and battery *(asked for by the owner, 2026-09-30; built 2026-10-06 to 2026-10-07)*
 
 The owner wants the app to load quickly, use little battery, and stay well inside the Supabase free plan. This phase serves priorities 3 and 4 (section 2). It adds **no new features**: every screen looks and works as before. Priority 1 (never lose typing) and 2 (privacy) still come first; nothing here may weaken them.
 
@@ -781,6 +781,22 @@ No task over 50 ms in either recording; Google's "good" limit for an interaction
 10. **Owner routine:** once a month, open Supabase → **Usage** and look at egress and database size. The README gets the steps. More than half of either limit is a reason to look again.
 
 *As built, step 6 (2026-10-07):* `scripts/check-size.mjs` (`npm run size`) runs in the Deploy workflow after the build. It follows Vite's build manifest (`build.manifest`) from `index.html` and the login screen, and adds up the compressed size of every file a first visit to the login page downloads: **144 KB** now, **limit 173 KB**. The monthly Usage routine is in the README.
+
+**As built: retest (step 7, 2026-10-07, measured the same way as the baseline)**
+
+| Page | Score | First text | Largest item | Blocked | Layout shift | Download |
+|---|---|---|---|---|---|---|
+| Login page (first visit), before → after | 98 → **100** | 1.8 → **0.8–1.1 s** | 1.8 → **1.5–1.6 s** | 0 ms | 0.045 | the app 209 → **152 KB** |
+| Dashboard (return), before → after | 100 → **100** | 0.0 s | 0.8 → **0.8 s** | 10 → **0 ms** | 0.011 → **0.006** | 4 KB, 5 requests in 3 → **2** waves |
+| Character sheet (return), before → after | 95 → **100** | 0.0 s | 1.0 → **1.1 s** | 0 → **10 ms** | 0.137 → **0** | 12 → **10 KB**, 10 → **9** requests in 5 → **3** waves |
+
+- Login page: six runs after the fixes below, all 100. The baseline's slow first run (86) came from GitHub Pages answering slowly; after the fixes, slow answers (about 170 ms for the page) no longer lower the score.
+- The dashboard and character sheet were measured by the owner before the two fixes below; they remove about 300 ms between the startup requests and the screen's own requests, so the real gain is larger than the table shows.
+- **Supabase Usage** unchanged a day later: egress 0.01 GB, database 28 MB.
+
+**Two fixes found by the retest** (part of A1):
+- *React's 300 ms hold-back.* After showing a placeholder, React holds back the content behind it for up to 300 ms, so screens do not flicker. With the start screen as placeholder, the first screen waited about 300 ms before asking for its data (1 s in the browser pane). The login check (`useSession`) and the logged-in user (`setMe`) are now set in a React **transition**: the start screen stays until the screen's file is in, and the screen shows at once (first data request 5 ms after its file instead of about 300 ms).
+- *Login screen in the main file.* Split off, the login screen's 1.4 KB file could only be asked for after the main code, one extra round trip on a phone's first visit. It is back in the main file; the login page needs 144 KB in total (the size check counts it either way).
 
 **Owner decisions** (2026-09-30)
 1. **Coming back to the tab** (3.6): **yes.** A return to the tab no longer reloads a screen that loaded less than 30 seconds ago. Switching to WhatsApp and back then costs nothing; a change by the DM shows up on the next return after that, or when the screen is opened again. Done in `useLoad` (`src/lib/useLoad.ts`), so every screen gets it.
@@ -915,12 +931,13 @@ Realtime is added later together with the features that need it, such as live co
 - **Build settings** are GitHub Actions **variables** (public values, never secrets), read by `.github/workflows/deploy.yml`, and the same names in `.env.local` for local work (template: `.env.example`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GOOGLE_CLIENT_ID` (Google's button, 1.5) and `VITE_EMAIL_LOGIN=true` (email forms, 1.7). All four are set in GitHub (2026-09-25).
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
-### 3.9 Version number. *Decided (owner, 2026-09-25)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.8.1-alpha` (2026-09-30: tick boxes for saving throws and skills save again; death saves only at 0 HP).*
-- **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …); a fix between phases adds 1 to the last number (`0.5.1-alpha`).
+### 3.9 Version number. *Decided (owner, 2026-09-25; changed 2026-10-07)*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.9.0-alpha` (2026-10-07: Phase 9, speed, data and battery).*
+- **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …). **Every other push that changes the website adds 1 to the last number** (`0.9.1-alpha`, `0.9.2-alpha`, …), also a small fix and also a step of a phase that is still being built. *Changed 2026-10-07 (owner):* phones show "New version" whenever the website's files change, so the number in the footer must change with it. Before this, only a finished phase or fix raised it, and during Phase 9 phones showed "New version" several times on the same `0.8.1-alpha`.
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.
-- **Rule for the agent:** bump the version in the same commit that finishes a phase or a fix, and keep `package-lock.json` in step.
+- **Rule for the agent:** raise the version in every push that changes the website (anything under `src/` or `public/`, `index.html`, `vite.config.ts`, `package.json`, `package-lock.json`, `tsconfig*.json`), and keep `package-lock.json` in step. A push of several commits needs one raise. A push that only changes the plan, the README, tests, scripts, workflows or database files needs none, and phones then show no "New version".
+- **Safety check:** the Deploy workflow runs `scripts/check-version.mjs` first. It compares the push with the one before (`github.event.before`) and stops the deploy when website files changed but the version did not.
 
 **Footer on every page** *(owner, 2026-09-25)*: "DnD Companion App v…", "Created by: Yannick Mul", and links to the privacy policy (`/privacy`) and the terms of use (`/terms`). Both pages are readable without logging in. The terms page is optional for Google's branding, but linked there too.
 
@@ -1077,7 +1094,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 3. Only then does the agent push website code that uses the change. Pushing it earlier breaks the live site.
 4. The agent checks new screens in the Claude app's browser pane (local copy at `localhost:5173`, which talks to the real database). The owner logs in there; the agent cannot log in for them.
 
-### Where we are *(updated 2026-10-06)*
+### Where we are *(updated 2026-10-07)*
 
 | Step | Status |
 |---|---|
@@ -1092,7 +1109,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
-| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **In progress** (started 2026-10-06). Steps 1 to 6 done (baseline, loading, `notes_start`, less data, typing, size check). Step 7 (retest) next. |
+| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **Built** (2026-10-07), version `0.9.0-alpha`. Login page 98 → 100, first text 1.8 → 0.8–1.1 s; character sheet 95 → 100; typing measured on the owner's phone. Since then, every push that changes the website raises the version (3.9). |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 
@@ -1337,7 +1354,7 @@ One step per commit. **Do not add anything that is not in section 1.9.**
 
 One step per commit. **Do not add anything that is not in section 1.10.**
 
-### Phase 9: Speed, data and battery (section 1.11)
+### Phase 9: Speed, data and battery (section 1.11) *(built 2026-10-07)*
 1. **Baseline.** Lighthouse (mobile) on the live login page and, with the owner logged in in the browser pane, the dashboard and a character sheet. The owner reads Supabase → Usage (egress this month, database size). Record the numbers in 1.11. No code changes.
 2. **Loading (A1–A3):** code split per screen with a shared file for React, the router and Supabase; the dark background and app name in `index.html`; the startup requests together. Check every screen in the browser pane, including a refresh on each and the "New version" message.
 3. **Migration: `sessions.notes_start`**, with its permission-test case. Pushed alone first; the owner runs `db push`.
@@ -1424,6 +1441,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 
 
 **Resolved:**
+- **Version number on every website change** (owner, 2026-10-07; see 3.9): every push that changes the website raises the last number, a finished phase the middle one; the Deploy workflow refuses a website change without a new version.
 - **Phase 9: speed, data and battery** (owner decisions, 2026-09-30; see section 1.11): no reload on a return to the tab within 30 seconds; keep the full Supabase client; keep the local typing backup on every key press.
 - **Automatic character sheet (Phase 8)** (owner decisions, 2026-09-28; see section 1.10):
   - class as a list of name and level entries with an Add class button, no separate level field, at most 20 levels in total
