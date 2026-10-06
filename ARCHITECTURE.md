@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). Also on 2026-10-07 the owner moved the Phase 4 group test to the next week and picked six roadmap items, in three phases: Phase 10 (at the table: conditions, hit dice and rests, a party overview; section 1.12), Phase 11 (lore and links) and Phase 12 (live combat) (section 1.13). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -809,6 +809,59 @@ No task over 50 ms in either recording; Google's "good" limit for an interaction
 
 **Tests.** The existing unit and permission tests must stay green. New: the permission test checks that `notes_start` is readable only by the DM (it follows the `sessions` policies) and matches the start of `notes` after a save. Lighthouse (mobile) on the login page and the dashboard, before and after, with the numbers recorded here under *As built*.
 
+### 1.12 Phase 10: At the table *(put in scope by the owner, 2026-10-07)*
+
+Three things that help **during play**: conditions on a character, hit dice with Short and Long rest, and a party overview for the DM. They are built in that order: a long rest lowers exhaustion (a condition), and the party overview shows both. The ruleset stays 2014 (5e classic, 6.1). This phase is built before the Phase 4 group test, so the group tests it too (owner, 2026-10-07).
+
+**Conditions** (owner decision, 2026-10-07: the player and the DM switch them, everyone in the campaign sees them)
+- The 14 conditions of SRD 5.1, in this order: Blinded, Charmed, Deafened, Frightened, Grappled, Incapacitated, Invisible, Paralyzed, Petrified, Poisoned, Prone, Restrained, Stunned, Unconscious. Keys are the names in lower case (`blinded` … `unconscious`).
+- **Exhaustion** is a level from 0 to 6, not on/off.
+- **On the sheet:** a **Conditions** row below death saves and Inspiration. It shows a chip per active condition and `Exhaustion n` when above 0. With none, the owner and the DM see a muted "No conditions"; other players see nothing.
+- Tapping the row (owner and DM) opens a dialog with an on/off switch per condition and − / + for exhaustion. Each tap saves at once.
+- **Reminders only.** The app changes no numbers: no disadvantage, no halved speed, no halved max HP. Rules text per condition is not shown (owner, 2026-10-07).
+- **Exhaustion 6** is death in 5e, so it gives the same crossed-out name and red `Dead` tag as three failed death saves (1.10). Lowering it clears that again.
+
+**Hit dice** (owner decisions, 2026-10-07)
+- **Die per class entry.** The die follows the class name (case-insensitive, spaces ignored), from the SRD: Barbarian d12; Fighter, Paladin, Ranger d10; Bard, Cleric, Druid, Monk, Rogue, Warlock d8; Sorcerer, Wizard d6. Any other name, or none, is d8.
+- The class dialog (1.10) gets a **Hit die** choice (d6, d8, d10, d12). It shows the die from the name until someone picks one; a picked die is stored with the entry and then wins over the name.
+- **Total hit dice** per die = the levels of the entries with that die. The database stores how many of each die are **spent**.
+- **On the sheet:** below the hit points card, one line `Hit dice 3 / 5`, with the dice per size when there is more than one (`d10 2 / 3 · d8 1 / 2`), and the buttons **Short rest** and **Long rest** (owner and DM only).
+- **Short rest:** a dialog listing each die size with dice left. Tapping a die asks "What did you roll on the d10?" (a number from 1 to the die). The app adds the CON modifier (of the final CON score, 1.10), heals that much (at least 0, never above max HP), and marks the die as spent. The dialog stays open for the next die; **Done** closes it. The player rolls real dice; the app does not roll (owner, 2026-10-07).
+- **Long rest:** a confirm dialog that lists what happens:
+  - current HP to max HP, temp HP to 0 (2014: temporary HP last until a long rest)
+  - spent hit dice come back, up to half the total level (at least 1), the largest dice first
+  - exhaustion 1 lower
+  - death saves back to 0 (they already reset once HP is above 0)
+  
+  Other conditions do not change. A dead character (three failed death saves, or exhaustion 6) cannot rest: the buttons are hidden.
+- **Who rests** (owner, 2026-10-07): the owner and the DM on the sheet, and the DM for the whole party on the party overview.
+
+**Party overview** (owner decision, 2026-10-07: DM only)
+- A **Party** button on the DM's dashboard, next to Players; the page is `/c/:campaignId/party`. Players never see the button, and the page sends them back to the dashboard. *(All of its data is already readable to players on the separate sheets; this is a DM tool, not a lock.)*
+- One card per character in the campaign (not deleted), sorted by name, each with:
+  - the name (crossed out with `Dead` when dead), and the class line ("Fighter 3 / Wizard 2")
+  - **HP** `cur / max` with `+temp` when above 0, red at 0
+  - **AC** and **Passive Perception**, calculated by the same rules as the sheet (1.10, from `character_effects`)
+  - the conditions and exhaustion chips
+  - **Hit dice** `left / total`
+- Tapping HP opens the same dialog as on the sheet (Damage, Heal, Set), so the DM can follow a fight from one screen. Tapping anywhere else opens the character's sheet.
+- **Long rest for the party** at the bottom: a confirm dialog naming the characters, then a long rest for every living character in the campaign.
+
+**Saving**
+- Conditions are a list, so they are saved as single changes (`listChange`, 1.10). Exhaustion, HP and spent hit dice use the save hook and conflict guard (3.4).
+- **A long rest is one database function**, `long_rest(characters)`, for one character or the whole party. It runs as the caller (`security invoker`), so the normal rules decide whose characters someone may rest: a player only their own, the DM any. It changes each character in one step and skips dead ones. The screen reloads afterwards; a sheet that is open elsewhere gets the usual conflict warning on its next save (3.4).
+
+**Not in Phase 10 (roadmap):** rules text and automatic effects of conditions, spell slots and anything else a rest restores (they come with spells, 6.1 part 5), an app dice roller, hit dice from a content library, and conditions in the Characters list.
+
+**Tests.** A unit test for the hit die per class name, the dice totals per size, short rest healing (with a negative CON modifier), and what a long rest gives back (odd and even levels, level 1, the largest dice first). The permission test gains the cases in section 4.
+
+### 1.13 Phase 11 and Phase 12 *(order agreed with the owner, 2026-10-07; written out when started)*
+
+- **Phase 11: Lore and links.** NPC and lore notes (6, NPC / lore notes), then links to characters, gods and NPCs in notes (6, Session notes: character/god links). Links come last so they can point to NPCs from the start.
+- **Phase 12: Live combat.** The initiative tracker that players see live on their phones (6, Initiative tracker and Live combat). It is the hardest of the three: it adds Supabase Realtime (changes 3.6), needs privacy for monster HP, and must stay light on the battery (1.11). It reuses the conditions and the party overview from Phase 10. Started after Phase 11; probably not finished before the group test.
+
+The owner answers the questions for each before it is written out, like the earlier phases.
+
 ---
 
 ## 2. Priorities
@@ -1064,6 +1117,16 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
   - A player cannot change another character's new fields.
   - Refused: an unknown target or key, a value out of range, text or a fraction instead of a whole number, an extra key, something that is not a list, a 101st modifier, a 6th item bonus, 0 or 11 class entries, a level of 21, a total level of 21, a death save count of 4, an unknown armor type or unarmored choice.
 
+**Phase 10 (section 1.12).** One migration, so one `db push`. The website before Phase 10 must keep working on it, because phones may still run a cached copy.
+- `characters` gets:
+  - `conditions`: a JSON list of distinct condition keys (1.12), default empty
+  - `exhaustion`: a whole number from 0 to 6, default 0
+  - `hit_dice_spent`: a JSON object with only the keys `"6"`, `"8"`, `"10"`, `"12"`, each a whole number from 0 to 20, default empty (a missing key is 0)
+- A `classes` entry may have a third key, `die` (6, 8, 10 or 12), the picked hit die. It is optional, so entries without it, and the older website, stay valid. `private.valid_classes` is changed to allow it.
+- Shape checks as CHECK constraints with `immutable` validators in `private` (`valid_conditions`, `valid_hit_dice`), like Phase 8.
+- `long_rest(characters uuid[])`, `security invoker`, so the characters policies decide. For each character that is not dead: `hp_cur` = `hp_max`, `hp_temp` = 0, death saves 0, `exhaustion` 1 lower (not below 0), and spent hit dice back up to half the total level (at least 1), the largest dice first. When the caller may not change one of the characters, the whole call is refused and nothing changes. It returns the number of characters rested.
+- **Permission test, new cases:** a player sets conditions, exhaustion and spent hit dice on their own character, but not on someone else's; others read them; refused: an unknown condition, a condition twice, exhaustion 7 or −1, an unknown die key, a spent count of 21, a `die` of 7, an extra key in a class entry; a class entry without `die` is still accepted. `long_rest`: a player rests their own character; resting someone else's character (alone or in a list with their own) is refused and changes nothing; the DM rests the whole party; a dead character is skipped; the results match the rules above (HP, temp HP, hit dice for an odd and an even level, exhaustion).
+
 **Text length limits (all tables, 2026-09-27):** names 100 characters, one-line fields 500, notes and descriptions 100,000. Every new text column gets a limit in the migration that creates it.
 
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
@@ -1101,7 +1164,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Step | Status |
 |---|---|
 | Phases 0–3: version 1 (login, database and security, campaigns, gods, characters, piety) | **Done** |
-| Phase 4: stress test, security check and share | **Written out in depth** (2026-09-27): preparation, accounts and settings, a security test by the agent, a group test with a player checklist, fixes. Owner decides when. Four known gaps are listed there for the owner to decide on. |
+| Phase 4: stress test, security check and share | **Written out in depth** (2026-09-27): preparation, accounts and settings, a security test by the agent, a group test with a player checklist, fixes. Four known gaps are listed there for the owner to decide on. **Plan (owner, 2026-10-07):** steps 1–3 in the week of 2026-10-07, next to Phase 10, with the security test at the end of the week so it covers the new tables; the group test (step 4) the week after, including Phase 10. |
 | Phase 4.5: look and navigation (1.5): dashboard, account menu, settings, responsive layout, friendlier Google sign-in | **Built** (2026-09-25). Google's button is set up and tested by the owner. Still open: brand verification, the WhatsApp retest (section 8). |
 | Phase 4.6: invite-only access, remove player, delete my account (1.6) | **Built** (2026-09-25) |
 | Phase 4.7: email and password login (1.7): sign-up through invite links, verification mail, forgot password, Resend | **Built and tested by the owner** (2026-09-25) |
@@ -1112,8 +1175,11 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
 | Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **Built** (2026-10-07), version `0.9.0-alpha`. Login page 98 → 100, first text 1.8 → 0.8–1.1 s; character sheet 95 → 100; typing measured on the owner's phone. Since then, every push that changes the website raises the version (3.9). |
+| Phase 10: at the table (1.12): conditions, hit dice with Short and Long rest, party overview for the DM | **Next** (owner, 2026-10-07) |
+| Phase 11: lore and links (1.13): NPC and lore notes, then links in notes | After Phase 10; written out when started |
+| Phase 12: live combat (1.13): initiative tracker with Realtime | After Phase 11; written out when started |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
-| Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
+| Other roadmap candidates (Lottie animations, session quiz, pictures, …) | Unordered |
 
 A roadmap item becomes buildable only when the owner says to start it. At that point, write it up as its own scope section (like 1.4 and 1.5) and phase, and add its build steps below.
 
@@ -1367,6 +1433,17 @@ One step per commit. **Do not add anything that is not in section 1.10.**
 
 One step per commit. **Do not add anything that is not in section 1.11.**
 
+### Phase 10: At the table (section 1.12)
+1. **Migration**, with its new permission-test cases (section 4). Pushed alone first; the owner runs `db push`.
+2. **Rules** in `src/lib` with unit tests: hit die per class name, dice totals per size, short rest healing, what a long rest gives back, Dead at exhaustion 6.
+3. **Conditions** on the sheet: the row, the dialog, and the Dead tag at exhaustion 6.
+4. **Hit dice:** the Hit die choice in the class dialog, the hit dice line, and Short rest.
+5. **Long rest** on the sheet, through `long_rest`.
+6. **Party overview:** the Party button on the DM's dashboard, `/c/:campaignId/party`, HP from the overview, and Long rest for the party.
+7. **Finish:** check every step in the browser pane as DM; add Phase 10 lines to the Phase 4 checklist for players; version `0.10.0-alpha`; update 3.9; fill in *As built* in 1.12.
+
+One step per commit; each push that changes the website raises the last version number (3.9). **Do not add anything that is not in section 1.12.**
+
 ---
 
 ## 6. Roadmap input (unordered; the owner decides what and when)
@@ -1378,16 +1455,16 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Inventory**, private to the owner and DM | The `owner` audience |
 | **Items with secret rules** (e.g. Longsword of Vengeance) | The separate-secret-row pattern in 3.3 |
 | **Lore database** with linked entries, written together | The world level, and Postgres suits linked data. Writing in the same document **at the same time** would need an extra technology (for example Yjs) and is a larger project. Taking turns editing works with the v1 conflict guard. |
-| **Live combat** with shared turn order | Add Supabase Realtime together with this feature |
+| **Live combat** with shared turn order *(Phase 12, 1.13)* | Add Supabase Realtime together with this feature |
 | **Image uploads** | `image_path` columns. Compress on the phone before upload. |
 | **Lottie animations** *(owner plan, 2026-09-24; the owner makes the files later, e.g. After Effects + Bodymovin)*: a splash screen and animated dashboard icons/buttons | The Phase 4.5 dashboard (1.5). Agreed behaviour: the splash shows on a cold start only, covers loading, fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**. Use the light SVG build of `lottie-web`, loaded lazily; pause off screen. Add an **Animations on/off** setting (per device, off by default when the phone asks for reduced motion) together with it. |
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
 | **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
 | **Player features: character notes and inventory** *(moved into Phase 6, see 1.8)* | |
-| **Session notes: character/god links** *(owner interest, 2026-09-24)*: mention a character or god in the notes as a tappable link | The `sessions` table and markdown (1.4). Links can be stored as text markers, so no new table is needed. |
-| **Initiative tracker** *(owner interest)*: turn order for combat that players see live on their phones | Needs Supabase Realtime, so this is the same project as Live combat |
-| **NPC / lore notes** *(owner interest)*: NPCs, places and factions, each entry either DM only or shared with players, with secret parts in their own `dm` row | The world level, the `dm` / `members` audiences, and the separate-secret-row pattern in 3.3 |
+| **Session notes: character/god links** *(owner interest, 2026-09-24; Phase 11, 1.13)*: mention a character or god in the notes as a tappable link | The `sessions` table and markdown (1.4). Links can be stored as text markers, so no new table is needed. |
+| **Initiative tracker** *(owner interest; Phase 12, 1.13)*: turn order for combat that players see live on their phones | Needs Supabase Realtime, so this is the same project as Live combat |
+| **NPC / lore notes** *(owner interest; Phase 11, 1.13)*: NPCs, places and factions, each entry either DM only or shared with players, with secret parts in their own `dm` row | The world level, the `dm` / `members` audiences, and the separate-secret-row pattern in 3.3 |
 | **Tighter invites** *(offered 2026-09-25, not wanted for now)*: single-use links, or a maximum number of uses | `campaign_invites`; add a `max_uses` / used-by record |
 | **DM approves new players** *(offered 2026-09-25, not wanted for now)*: someone opening an invite waits until the DM taps Let in | `campaign_members`; add a pending state |
 | **Session quiz** *(owner idea, very future)*: a Kahoot-style quiz where players answer questions about the previous session, maybe with AI-generated questions | Needs Realtime for a live quiz. AI questions would read the DM-only notes, so the DM must approve every question before players see it (priority 2), and an AI API has a running cost (priority 3). |
@@ -1443,6 +1520,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 
 
 **Resolved:**
+- **Next phases** (owner, 2026-10-07): Phase 10 at the table (1.12), then Phase 11 lore and links and Phase 12 live combat (1.13). Phase 4 steps 1–3 this week, the group test next week, including Phase 10. Phase 10 decisions: conditions switched by the player and the DM, without rules text; the player types their hit die roll; the owner and the DM rest a character, and the DM also the whole party; the party overview is DM only.
 - **Version number on every website change** (owner, 2026-10-07; see 3.9): every push that changes the website raises the last number, a finished phase the middle one; the Deploy workflow refuses a website change without a new version.
 - **Phase 9: speed, data and battery** (owner decisions, 2026-09-30; see section 1.11): no reload on a return to the tab within 30 seconds; keep the full Supabase client; keep the local typing backup on every key press.
 - **Automatic character sheet (Phase 8)** (owner decisions, 2026-09-28; see section 1.10):
