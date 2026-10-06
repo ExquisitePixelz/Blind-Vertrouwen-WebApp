@@ -780,6 +780,8 @@ No task over 50 ms in either recording; Google's "good" limit for an interaction
 9. **Size check in the build.** A small script after `npm run build` fails the Deploy workflow when the files needed for the login page pass a set size (the size after step A plus about 20%). Raising it is a deliberate choice, noted here.
 10. **Owner routine:** once a month, open Supabase → **Usage** and look at egress and database size. The README gets the steps. More than half of either limit is a reason to look again.
 
+*As built, step 6 (2026-10-07):* `scripts/check-size.mjs` (`npm run size`) runs in the Deploy workflow after the build. It follows Vite's build manifest (`build.manifest`) from `index.html` and the login screen, and adds up the compressed size of every file a first visit to the login page downloads: **144 KB** now, **limit 173 KB**. The monthly Usage routine is in the README.
+
 **Owner decisions** (2026-09-30)
 1. **Coming back to the tab** (3.6): **yes.** A return to the tab no longer reloads a screen that loaded less than 30 seconds ago. Switching to WhatsApp and back then costs nothing; a change by the DM shows up on the next return after that, or when the screen is opened again. Done in `useLoad` (`src/lib/useLoad.ts`), so every screen gets it.
 2. **The unused parts of Supabase** (3.7): **no.** The app keeps the full official client. Using only `@supabase/auth-js` and `@supabase/postgrest-js` would save about 86 KB (about 25 KB compressed), but it is a less common setup with fewer examples (priority 5), and Live combat would bring realtime back.
@@ -1090,7 +1092,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
-| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **In progress** (started 2026-10-06). Steps 1 to 5 done (baseline, loading, `notes_start`, less data, typing). |
+| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **In progress** (started 2026-10-06). Steps 1 to 6 done (baseline, loading, `notes_start`, less data, typing, size check). Step 7 (retest) next. |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 

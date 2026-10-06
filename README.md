@@ -11,8 +11,18 @@ npm run build        # what GitHub Actions builds
 ```
 
 Every push to `main`:
-- **Deploy** builds the site and publishes it to GitHub Pages.
+- **Deploy** builds the site and publishes it to GitHub Pages. It stops when the login page grows past its size limit (`npm run size`, `scripts/check-size.mjs`, ARCHITECTURE.md 1.11 D9).
 - **Database tests** start a throwaway Supabase from `supabase/migrations/` and run the permission test (`tests/permissions.test.ts`). If it fails, do not apply the migrations to the real project.
+
+## Monthly check: Supabase usage (owner, about 2 minutes)
+
+The free plan allows 5 GB of data sent out (egress) a month and a 500 MB database (ARCHITECTURE.md 1.11 D10).
+
+1. Go to supabase.com, open the project, and open **Usage** (in the organization's menu, or Project Settings → Usage).
+2. Note **Egress** for this billing period and **Database size**.
+3. More than half of either limit (2.5 GB egress, 250 MB database) is a reason to look again: tell the agent the numbers.
+
+Baseline on 2026-10-06: egress 0.01 GB, database 28 MB.
 
 ## Applying database changes to the real project
 

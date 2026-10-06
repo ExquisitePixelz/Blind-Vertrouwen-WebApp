@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "size": "node scripts/check-size.mjs",
     "test:db": "node --test tests/*.test.ts",
     "test": "node --test tests/character.test.ts tests/piety.test.ts tests/validate.test.ts tests/sessionText.test.ts tests/inventory.test.ts tests/quests.test.ts tests/sheet.test.ts"
   },

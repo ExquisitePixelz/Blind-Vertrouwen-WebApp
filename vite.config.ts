@@ -55,6 +55,8 @@ const { version } = JSON.parse(readFileSync(resolve(import.meta.dirname, 'packag
 export default defineConfig(({ mode }) => ({
   define: { __APP_VERSION__: JSON.stringify(version) },
   build: {
+    // dist/.vite/manifest.json: which files each screen needs, for the size check (1.11 D9).
+    manifest: true,
     rolldownOptions: {
       output: {
         // React, the router and Supabase change rarely: one shared file of
