@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { CharacterName } from '../components/CharacterName'
 import { ClassDialog } from '../components/ClassDialog'
+import { ConditionChips, ConditionsDialog } from '../components/Conditions'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
@@ -32,6 +33,7 @@ import { useRowSaver, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
+import { toggleCondition, type ConditionKey } from '../lib/rest'
 import {
   buildSheet,
   canAddClass,
@@ -70,6 +72,7 @@ type Open =
   | { kind: 'removeClass'; index: number }
   | { kind: 'stat'; key: StatKey }
   | { kind: 'unarmored' }
+  | { kind: 'conditions' }
   | { kind: 'menu' }
   | { kind: 'delete' }
 
@@ -194,7 +197,7 @@ export function CharacterPage() {
    * (1.10, "Saving"): send what is still waiting, then apply the change to
    * the latest list. If the change no longer fits, the sheet reloads.
    */
-  async function changeField<V>(field: 'classes' | 'modifiers' | 'proficiencies', change: (latest: V) => V) {
+  async function changeField<V>(field: 'classes' | 'modifiers' | 'proficiencies' | 'conditions', change: (latest: V) => V) {
     await saver.settle()
     try {
       const saved = await changeList<Character, V>('characters', c!.id, field, change)
@@ -343,6 +346,9 @@ export function CharacterPage() {
           />
           <span>Inspiration</span>
         </label>
+        {(canEdit || c.conditions.length > 0 || c.exhaustion > 0) && (
+          <ConditionsRow c={c} onTap={tap({ kind: 'conditions' })} />
+        )}
       </div>
 
       <div className="tiles">
@@ -526,6 +532,15 @@ export function CharacterPage() {
           options={UNARMORED.map((u) => ({ value: u.value, label: `${u.label}${u.value === c.unarmored_ac ? ' •' : ''}` }))}
         />
       )}
+      {open?.kind === 'conditions' && (
+        <ConditionsDialog
+          conditions={c.conditions}
+          exhaustion={c.exhaustion}
+          onToggle={(key, on) => changeField<ConditionKey[]>('conditions', (latest) => toggleCondition(latest, key, on))}
+          onExhaustion={(exhaustion) => save({ exhaustion })}
+          onClose={close}
+        />
+      )}
       {open?.kind === 'hp' && (
         <NumberDialog
           title={`HP ${c.hp_cur} / ${c.hp_max}`}
@@ -664,6 +679,28 @@ const SEVERITY: SaveStatus[] = ['saved', 'saving', 'unsaved', 'conflict']
 
 /** One indicator for the sheet: show the least-saved of its rows. */
 const worst = (a: SaveStatus, b: SaveStatus) => (SEVERITY.indexOf(a) >= SEVERITY.indexOf(b) ? a : b)
+
+/** The conditions and exhaustion (1.12); tappable for the owner and the DM. */
+function ConditionsRow({ c, onTap }: { c: Character; onTap?: () => void }) {
+  const none = c.conditions.length === 0 && c.exhaustion === 0
+  const content = (
+    <>
+      <span className="muted">Conditions</span>
+      {none ? (
+        <span className="muted">No conditions</span>
+      ) : (
+        <ConditionChips conditions={c.conditions} exhaustion={c.exhaustion} />
+      )}
+    </>
+  )
+  return onTap ? (
+    <button type="button" className="fact-row conditions-row" onClick={onTap}>
+      {content}
+    </button>
+  ) : (
+    <div className="fact-row conditions-row">{content}</div>
+  )
+}
 
 /** Three death save circles (1.10): tapping one fills up to it, or empties it. */
 function Pips({

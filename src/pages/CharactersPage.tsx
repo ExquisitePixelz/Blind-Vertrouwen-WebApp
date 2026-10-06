@@ -17,11 +17,12 @@ type ListRow = SheetInput & {
   hp_max: number
   death_saves_success: number
   death_saves_failure: number
+  exhaustion: number
 }
 
 /** Everything the list needs, including what AC is calculated from (1.10). */
 const LIST_COLUMNS =
-  'id, name, player, classes, hp_cur, hp_max, death_saves_success, death_saves_failure, strength, dexterity, constitution, intelligence, wisdom, charisma, speed, modifiers, proficiencies, unarmored_ac'
+  'id, name, player, classes, hp_cur, hp_max, death_saves_success, death_saves_failure, exhaustion, strength, dexterity, constitution, intelligence, wisdom, charisma, speed, modifiers, proficiencies, unarmored_ac'
 
 /** Character list (1.3 B3). */
 export function CharactersPage() {
