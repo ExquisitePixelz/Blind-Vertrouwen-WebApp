@@ -722,8 +722,7 @@ describe('sessions (Phase 5)', () => {
 
   test('notes_start is the first 500 characters of the notes after a save, and nobody writes it (1.11)', async () => {
     const row = ok(await dm.db.from('sessions').select('version').eq('id', first.id).single())
-    const notes = '# Intro
-' + 'x'.repeat(600)
+    const notes = '# Intro\n' + 'x'.repeat(600)
     const saved = ok(
       await dm.db.from('sessions').update({ notes, version: row.version }).eq('id', first.id).select('notes_start, version').single(),
     )
