@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useMatch } from 'react-router'
 import { Footer } from './components/Footer'
 import { UpdatePrompt } from './components/UpdatePrompt'
@@ -8,30 +8,36 @@ import { MeContext, type Me } from './lib/me'
 import { flushAllPending, setPendingOwner } from './lib/saver'
 import { must, supabase } from './lib/supabase'
 import { useSession } from './lib/useSession'
-import { CharacterPage } from './pages/CharacterPage'
-import { CharactersPage } from './pages/CharactersPage'
-import { DashboardPage, OpenCampaign } from './pages/DashboardPage'
-import { GodPage } from './pages/GodPage'
-import { GodsPage } from './pages/GodsPage'
-import { InvitePage } from './pages/InvitePage'
-import { LoginPage } from './pages/LoginPage'
-import { PietyPage } from './pages/PietyPage'
-import { PlayersPage } from './pages/PlayersPage'
-import { PrivacyPage } from './pages/PrivacyPage'
-import { QuestPage } from './pages/QuestPage'
-import { QuestsPage } from './pages/QuestsPage'
-import { ResetPasswordPage } from './pages/ResetPasswordPage'
-import { SessionPage } from './pages/SessionPage'
-import { SessionsPage } from './pages/SessionsPage'
-import { SettingsPage } from './pages/SettingsPage'
-import { TermsPage } from './pages/TermsPage'
 import { useRememberCampaign } from './lib/campaigns'
+
+// Each screen is its own file, loaded when it is first opened (ARCHITECTURE.md
+// 1.11 A1), so the login page and the dashboard do not carry the rest.
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const OpenCampaign = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.OpenCampaign })))
+const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })))
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })))
+const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
+const InvitePage = lazy(() => import('./pages/InvitePage').then((m) => ({ default: m.InvitePage })))
+const CharactersPage = lazy(() => import('./pages/CharactersPage').then((m) => ({ default: m.CharactersPage })))
+const CharacterPage = lazy(() => import('./pages/CharacterPage').then((m) => ({ default: m.CharacterPage })))
+const PietyPage = lazy(() => import('./pages/PietyPage').then((m) => ({ default: m.PietyPage })))
+const PlayersPage = lazy(() => import('./pages/PlayersPage').then((m) => ({ default: m.PlayersPage })))
+const QuestsPage = lazy(() => import('./pages/QuestsPage').then((m) => ({ default: m.QuestsPage })))
+const QuestPage = lazy(() => import('./pages/QuestPage').then((m) => ({ default: m.QuestPage })))
+const SessionsPage = lazy(() => import('./pages/SessionsPage').then((m) => ({ default: m.SessionsPage })))
+const SessionPage = lazy(() => import('./pages/SessionPage').then((m) => ({ default: m.SessionPage })))
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const GodsPage = lazy(() => import('./pages/GodsPage').then((m) => ({ default: m.GodsPage })))
+const GodPage = lazy(() => import('./pages/GodPage').then((m) => ({ default: m.GodPage })))
 
 export default function App() {
   return (
     <>
       <div className="screen">
-        <Screens />
+        <Suspense fallback={<Starting />}>
+          <Screens />
+        </Suspense>
       </div>
       <Footer />
       <UpdatePrompt />
@@ -72,12 +78,11 @@ function Screens() {
     ;(async () => {
       // Invite-only (1.6). Someone opening an invite link is checked after
       // joining instead (InvitePage), or joining would be refused first.
-      if (!joining && !(await checkAccess())) {
-        if (!cancelled) await signOutWith(INVITE_ONLY)
-        return
-      }
+      // The check and the first reads go out together (1.11 A3); when access
+      // is refused, the reads are thrown away.
+      const allowed = joining ? true : checkAccess()
       // Players see Theros only once they are in a campaign; the DM always does.
-      const [worlds, profile] = await Promise.all([
+      const reads = Promise.all([
         supabase
           .from('worlds')
           .select('id, dm_user_id')
@@ -90,6 +95,12 @@ function Screens() {
           .maybeSingle()
           .then((r) => must(r) as { display_name: string; last_campaign_id: string | null } | null),
       ])
+      reads.catch(() => {}) // a refused user's failed read is not an error
+      if (!(await allowed)) {
+        if (!cancelled) await signOutWith(INVITE_ONLY)
+        return
+      }
+      const [worlds, profile] = await reads
       // Send changes left over from an earlier visit before any screen loads,
       // so a screen never races its own leftover save (ARCHITECTURE.md 3.4).
       setPendingOwner(user.id)
@@ -114,10 +125,10 @@ function Screens() {
   if (onTerms) return <TermsPage />
   if (onReset) return <ResetPasswordPage />
   if (confirming) return <main className="page center muted">Confirming your email…</main>
-  if (session === undefined) return null
+  if (session === undefined) return <Starting />
   if (!session) return <LoginPage inviteCode={onInvite?.params.code} notice={authNotice} />
   if (error) return <main className="page center error">{error}</main>
-  if (!me) return null
+  if (!me) return <Starting />
 
   return (
     <MeContext.Provider value={{ me, update: (patch) => setMe((m) => m && { ...m, ...patch }) }}>
@@ -141,6 +152,11 @@ function Screens() {
       </Routes>
     </MeContext.Provider>
   )
+}
+
+/** What shows while the app starts: the same as index.html, so nothing flashes (1.11 A2). */
+function Starting() {
+  return <main className="page center muted">DnD Companion App</main>
 }
 
 /**

@@ -8,9 +8,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#121214" />
     <title>DnD Companion App</title>
+    <!-- Dark from the first moment, before the styles and code arrive (ARCHITECTURE.md 1.11 A2). -->
+    <style>
+      html { background: #121214; color: #8e8c87; color-scheme: dark; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Replaced by the app as soon as it runs; App.tsx shows the same while it starts. -->
+    <div id="root"><main class="page center muted">DnD Companion App</main></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

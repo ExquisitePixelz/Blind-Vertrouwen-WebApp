@@ -54,6 +54,23 @@ const { version } = JSON.parse(readFileSync(resolve(import.meta.dirname, 'packag
 
 export default defineConfig(({ mode }) => ({
   define: { __APP_VERSION__: JSON.stringify(version) },
+  build: {
+    rolldownOptions: {
+      output: {
+        // React, the router and Supabase change rarely: one shared file of
+        // their own, so a new version of the app usually changes only small
+        // files and phones download just those (ARCHITECTURE.md 1.11 A1).
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor',
+              test: /node_modules[/\\](react|react-dom|scheduler|react-router|cookie|set-cookie-parser|@supabase|tslib)[/\\]/,
+            },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
