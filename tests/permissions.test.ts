@@ -706,6 +706,7 @@ describe('sessions (Phase 5)', () => {
   test('Players and non-members cannot read or write sessions', async () => {
     for (const user of [playerA, playerB, outsider]) {
       assert.equal(ok(await user.db.from('sessions').select('id')).length, 0, 'reads sessions')
+      assert.equal(ok(await user.db.from('sessions').select('notes_start')).length, 0, 'reads the start of the notes')
       refused(await user.db.rpc('create_session', { p_campaign_id: campaignId, p_number: 99 }), 'create via rpc')
       refused(await user.db.from('sessions').insert({ campaign_id: campaignId, number: 98 }), 'insert')
       noEffect(
@@ -717,6 +718,22 @@ describe('sessions (Phase 5)', () => {
     const row = ok(await admin.from('sessions').select('notes').eq('id', first.id).single())
     assert.equal(row.notes, '')
     refused(await anon.from('sessions').insert({ campaign_id: campaignId, number: 97 }), 'anonymous insert')
+  })
+
+  test('notes_start is the first 500 characters of the notes after a save, and nobody writes it (1.11)', async () => {
+    const row = ok(await dm.db.from('sessions').select('version').eq('id', first.id).single())
+    const notes = '# Intro
+' + 'x'.repeat(600)
+    const saved = ok(
+      await dm.db.from('sessions').update({ notes, version: row.version }).eq('id', first.id).select('notes_start, version').single(),
+    )
+    assert.equal(saved.notes_start, notes.slice(0, 500))
+    refused(
+      await dm.db.from('sessions').update({ notes_start: 'forged', version: saved.version }).eq('id', first.id).select(),
+      'even the DM: writing notes_start',
+    )
+    ok(await dm.db.from('sessions').update({ notes: '', version: saved.version }).eq('id', first.id))
+    first.version = saved.version + 1
   })
 
   test('Attendance is the DM’s only; unticking removes the row', async () => {
