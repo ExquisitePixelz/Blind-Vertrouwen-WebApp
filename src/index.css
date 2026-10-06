@@ -1519,3 +1519,26 @@ button.pip:disabled {
 .stepper button.round {
   margin-top: 0;
 }
+
+.dialog .segmented {
+  background: var(--bg);
+}
+
+.segmented.dice button {
+  min-width: 3.2rem;
+  min-height: var(--tap);
+  padding: 0 0.5rem;
+}
+
+.rest-dice {
+  display: block;
+}
+
+.card.rest-card {
+  margin-top: 0.75rem;
+}
+
+.rest-buttons {
+  margin: 0;
+  padding: 0 1rem 1rem;
+}

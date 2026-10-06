@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { CharacterName } from '../components/CharacterName'
 import { ClassDialog } from '../components/ClassDialog'
 import { ConditionChips, ConditionsDialog } from '../components/Conditions'
+import { ShortRestDialog } from '../components/Rest'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
@@ -19,6 +20,7 @@ import {
   formatModifier,
   heal,
   hpBar,
+  isDead,
   setCurrentHp,
   setMaxHp,
   withDeathSaves,
@@ -33,7 +35,14 @@ import { useRowSaver, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
-import { toggleCondition, type ConditionKey } from '../lib/rest'
+import {
+  formatHitDice,
+  hitDice,
+  shortRestHealing,
+  spendDie,
+  toggleCondition,
+  type ConditionKey,
+} from '../lib/rest'
 import {
   buildSheet,
   canAddClass,
@@ -73,6 +82,7 @@ type Open =
   | { kind: 'stat'; key: StatKey }
   | { kind: 'unarmored' }
   | { kind: 'conditions' }
+  | { kind: 'shortRest' }
   | { kind: 'menu' }
   | { kind: 'delete' }
 
@@ -191,6 +201,9 @@ export function CharacterPage() {
   const level = totalLevel(c.classes)
   const sheet = calculated!
   const stat = (key: StatKey) => tap({ kind: 'stat', key })
+  const diceRows = hitDice(c.classes, c.hit_dice_spent)
+  const dice = formatHitDice(diceRows)
+  const dead = isDead(c)
 
   /**
    * Lists (classes, modifiers, proficiencies) are saved one change at a time
@@ -314,6 +327,23 @@ export function CharacterPage() {
               Damage
             </button>
             <button onClick={() => setOpen({ kind: 'heal' })}>Heal</button>
+          </div>
+        )}
+      </div>
+
+      <div className="card rest-card">
+        <div className="fact-row">
+          <span className="muted">Hit dice</span>
+          <span>
+            {dice.summary}
+            {dice.perDie && <span className="muted small rest-dice">{dice.perDie}</span>}
+          </span>
+        </div>
+        {canEdit && !dead && (
+          <div className="hp-buttons rest-buttons">
+            <button className="secondary" onClick={() => setOpen({ kind: 'shortRest' })}>
+              Short rest
+            </button>
           </div>
         )}
       </div>
@@ -530,6 +560,20 @@ export function CharacterPage() {
           onClose={() => setTimeout(() => setOpen({ kind: 'stat', key: 'ac' }))}
           onPick={(unarmored_ac) => save({ unarmored_ac })}
           options={UNARMORED.map((u) => ({ value: u.value, label: `${u.label}${u.value === c.unarmored_ac ? ' •' : ''}` }))}
+        />
+      )}
+      {open?.kind === 'shortRest' && (
+        <ShortRestDialog
+          hp={`HP ${c.hp_cur} / ${c.hp_max}`}
+          dice={diceRows}
+          conModifier={sheet.abilities.constitution.modifier}
+          onSpend={(die, roll) =>
+            saveHp({
+              ...heal(c, shortRestHealing(roll, sheet.abilities.constitution.modifier)),
+              hit_dice_spent: spendDie(c.hit_dice_spent, die),
+            })
+          }
+          onClose={close}
         />
       )}
       {open?.kind === 'conditions' && (
