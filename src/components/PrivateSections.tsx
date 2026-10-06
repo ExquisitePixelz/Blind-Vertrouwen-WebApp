@@ -3,10 +3,10 @@ import { MarkdownNotes } from './MarkdownNotes'
 import { NumberDialog } from './Dialog'
 import { ConflictBanner } from './SaveState'
 import { Inventory } from './Inventory'
-import { COINS, PRIVATE_COLUMNS, addCoins, setCoins, spendCoins, type CharacterPrivate, type Coin } from '../lib/inventory'
+import { COINS, PRIVATE_COLUMNS, addCoins, setCoins, spendCoins, type CharacterPrivate, type Coin, type Item } from '../lib/inventory'
 import { useRowSaver, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
-import { useLoad } from '../lib/useLoad'
+import { useLoad, type Loaded } from '../lib/useLoad'
 
 /**
  * The parts of a character sheet only its player and the DM see (1.8):
@@ -16,12 +16,14 @@ import { useLoad } from '../lib/useLoad'
 export function PrivateSections({
   characterId,
   campaignId,
+  items,
   strength,
   onStatus,
   onItemsChanged,
 }: {
   characterId: string
   campaignId: string
+  items: Loaded<Item[]>
   /** The final STR score, for the carrying capacity (1.10). */
   strength: number
   onStatus: (status: SaveStatus) => void
@@ -82,6 +84,7 @@ export function PrivateSections({
       <Inventory
         characterId={characterId}
         campaignId={campaignId}
+        items={items}
         strength={strength}
         coins={p}
         onItemsChanged={onItemsChanged}

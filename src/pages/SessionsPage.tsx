@@ -28,7 +28,7 @@ function Sessions() {
       {sessions.data?.length === 0 && <p className="muted">No sessions yet. Tap + to start one.</p>}
       <ul className="list">
         {sessions.data?.map((s) => {
-          const snippet = notesSnippet(s.notes)
+          const snippet = notesSnippet(s.notes_start)
           return (
             <li key={s.id}>
               <Link to={`/c/${campaignId}/sessions/${s.id}`} className="row">

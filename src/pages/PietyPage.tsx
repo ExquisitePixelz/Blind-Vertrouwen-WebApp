@@ -3,7 +3,7 @@ import { useParams } from 'react-router'
 import { ConfirmDialog, Dialog, NumberDialog, PickDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
-import { byName, loadGods, type God } from '../lib/gods'
+import { byName, loadGodNames, type GodName } from '../lib/gods'
 import { useMe } from '../lib/me'
 import { caption, clampPiety, segments } from '../lib/piety'
 import { useRowSaver } from '../lib/saver'
@@ -24,7 +24,7 @@ type Track = {
 const TRACK_COLUMNS = 'id, version, character_id, god_id, custom_source_name, custom_source_rules, score, created_at'
 
 /** A god, or "set up a custom source". */
-type Source = { god: God } | { custom: true }
+type Source = { god: GodName } | { custom: true }
 
 /**
  * Piety page (ARCHITECTURE.md 1.1 and 4). Everyone in the campaign reads every
@@ -47,7 +47,7 @@ export function PietyPage() {
         .is('deleted_at', null)
         .order('created_at')
         .then(must),
-      loadGods(),
+      loadGodNames(),
     ])
     return {
       characters: (characters as { id: string; name: string }[]).sort(byName),
@@ -166,7 +166,7 @@ function TrackRow({
   track: Track
   sourceName: string
   canEdit: boolean
-  godChoices: God[]
+  godChoices: GodName[]
   onSaved: (track: Track) => void
   onChanged: () => void
 }) {

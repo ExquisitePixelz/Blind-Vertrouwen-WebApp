@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { CharacterName } from '../components/CharacterName'
 import { Dialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
-import { byName, loadGods } from '../lib/gods'
+import { byName, loadGodNames } from '../lib/gods'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
@@ -83,7 +83,7 @@ const NO_GOD = 'none'
  */
 function NewCharacterDialog({ campaignId, onClose }: { campaignId: string; onClose: () => void }) {
   const navigate = useNavigate()
-  const gods = useLoad(loadGods, [])
+  const gods = useLoad(loadGodNames, [])
   const [name, setName] = useState('')
   const [god, setGod] = useState('')
   const [busy, setBusy] = useState(false)

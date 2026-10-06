@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
-import { loadGods, slugify } from '../lib/gods'
+import { loadGodSummaries, slugify } from '../lib/gods'
 import { useMe } from '../lib/me'
 import { NEUTRAL, standing } from '../lib/standing'
 import { supabase } from '../lib/supabase'
@@ -14,7 +14,7 @@ export function GodsPage() {
   const me = useMe()
   const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
-  const gods = useLoad(loadGods, [])
+  const gods = useLoad(loadGodSummaries, [])
 
   return (
     <main className="page">

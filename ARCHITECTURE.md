@@ -755,6 +755,13 @@ The owner wants the app to load quickly, use little battery, and stay well insid
 6. **The inventory is read once** on the character sheet, and the sheet takes the item names from it.
 7. **Saves return only what changed**: the version and the saved fields, not the whole row. Before this, check every trigger on the tables involved: a trigger that changes another column than the one saved would be missed, so those tables keep returning the full row.
 
+*As built, steps 3 and 4 (2026-10-06):*
+- `sessions.notes_start` is a generated column (`left(notes, 500)`), live after the owner's `db push`.
+- Gods: the character sheet, the Piety screen and New character read `id, name, epithet`; the Gods list reads everything but the notes; the god page as before.
+- The character sheet reads the inventory once (8 requests instead of 10 on opening) and hands it to the inventory list.
+- Saves (`saver.ts`, `listChange.ts`) return `id`, `version` and the saved fields; the website merges them into the row it has. **Trigger check:** on an update, `content_stamp` changes `version` and `updated_at` (no screen reads `updated_at`); the guard triggers (`guard_character_update`, `character_row_guard`, `quest_guard`, `quest_part_guard`) only refuse, or set a column to the value it already has; `follow_owner` and `rebuild_effects` change other tables, which the sheet already reloads. So every table returns only what changed. A future trigger or generated column that changes a column a screen shows must be added to the returned columns.
+- A return to the tab within 30 seconds of the last load makes no requests (checked in the browser pane).
+
 *C. Battery*
 
 8. **Measure typing first.** Type in a long backstory (a few pages) on the owner's phone with the browser's performance tool. The sheet's calculation (`buildSheet`) is only redone when the character changes (`useMemo`). The local backup stays on every key press (owner decision 3); if typing is still slow, the agent reports the numbers to the owner instead of changing more.
@@ -1074,7 +1081,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 6: player features (1.8): backstory, private notes, coins and inventory on the character sheet | **Built** (2026-09-25), version `0.6.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
-| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **In progress** (started 2026-10-06). Steps 1 (baseline) and 2 (loading) done. |
+| Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **In progress** (started 2026-10-06). Steps 1 to 4 done (baseline, loading, `notes_start`, less data). |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (lore notes, initiative tracker, Lottie animations, session quiz, character/god links in notes, …) | Unordered |
 

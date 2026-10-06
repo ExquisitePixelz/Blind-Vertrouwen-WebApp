@@ -7,6 +7,9 @@
 //   connection comes back. After confirmation it is deleted.
 // * Every save sends the row's version. If someone else saved in between, the
 //   database refuses it (HTTP 409) and the user chooses: keep mine, or use theirs.
+// * A save returns only the new version and the saved fields, not the whole
+//   row (1.11 B7). The only trigger that changes another column on a save is
+//   the version stamp (updated_at, which no screen shows); checked 2026-10-06.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from './supabase'
@@ -58,19 +61,22 @@ function clearPending(table: string, id: string) {
 
 class ConflictError extends Error {}
 
-async function send<T extends Row>(table: string, id: string, baseVersion: number, patch: Patch): Promise<T> {
+/** What the server confirms after a save: the new version and the saved fields. */
+type Saved = Row & Patch
+
+async function send(table: string, id: string, baseVersion: number, patch: Patch): Promise<Saved> {
   const result = await supabase
     .from(table)
     .update({ ...patch, version: baseVersion })
     .eq('id', id)
-    .select()
+    .select(['id', 'version', ...Object.keys(patch)].join(', '))
     .maybeSingle()
   if (result.error) {
     if (result.status === 409) throw new ConflictError(result.error.message)
     throw new Error(result.error.message)
   }
   if (!result.data) throw new Error('You are not allowed to change this.')
-  return result.data as T
+  return result.data as unknown as Saved
 }
 
 /**
@@ -115,8 +121,10 @@ export function useRowSaver<T extends Row>(table: string, row: T | undefined, on
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const running = useRef<Promise<void> | null>(null) // the save loop, while it runs
   const savedCallback = useRef(onSaved)
+  const latestRow = useRef(row)
   useEffect(() => {
     savedCallback.current = onSaved
+    latestRow.current = row
   })
 
   const persist = useCallback(() => {
@@ -135,14 +143,17 @@ export function useRowSaver<T extends Row>(table: string, row: T | undefined, on
     const run = (async () => {
       try {
         // Keep sending until nothing new was typed while the last save was on its way.
+        let stored = latestRow.current
         while (Object.keys(draft.current).length) {
           inflight.current = draft.current
           draft.current = {}
-          const saved: T = await send<T>(table, id, version.current!, inflight.current)
+          const saved = await send(table, id, version.current!, inflight.current)
           version.current = saved.version
           inflight.current = null
           persist()
-          savedCallback.current(saved)
+          // The row as the server now stores it: the loaded row plus what was saved.
+          stored = { ...stored, ...saved } as T
+          savedCallback.current(stored)
         }
         setLocal({})
         setStatus('saved')

@@ -18,11 +18,11 @@ import {
   type Item,
 } from '../lib/inventory'
 import { changeList, ListChangedError } from '../lib/listChange'
-import { useRowSaver } from '../lib/saver'
+import { useRowSaver, type Row } from '../lib/saver'
 import { formatModifier } from '../lib/character'
 import { ARMOR, armorInfo, MAX_ITEM_BONUSES, targetLabel, type ArmorKey, type Bonus } from '../lib/sheet'
 import { must, supabase } from '../lib/supabase'
-import { useLoad } from '../lib/useLoad'
+import type { Loaded } from '../lib/useLoad'
 import { NAME_MAX, NOTES_MAX } from '../lib/limits'
 
 /**
@@ -33,12 +33,15 @@ import { NAME_MAX, NOTES_MAX } from '../lib/limits'
 export function Inventory({
   characterId,
   campaignId,
+  items,
   strength,
   coins,
   onItemsChanged,
 }: {
   characterId: string
   campaignId: string
+  /** Loaded once by the character sheet, which also takes the item names from it (1.11 B6). */
+  items: Loaded<Item[]>
   strength: number
   coins: Pick<CharacterPrivate, Coin>
   onItemsChanged: () => void
@@ -46,19 +49,13 @@ export function Inventory({
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
 
-  const items = useLoad(async () => {
-    const rows = must(
-      await supabase.from('inventory_items').select(ITEM_COLUMNS).eq('character_id', characterId).is('deleted_at', null),
-    ) as Item[]
-    return rows.sort(byItemName)
-  }, [characterId])
-
   const list = items.data ?? []
-  const replace = (saved: Item) => {
+  /** A save returns the version and the saved fields (1.11 B7): merge them into the item. */
+  const replace = (saved: Row & Partial<Item>) => {
     const before = items.data?.find((i) => i.id === saved.id)
-    items.mutate((all) => all?.map((i) => (i.id === saved.id ? saved : i)).sort(byItemName))
+    items.mutate((all) => all?.map((i) => (i.id === saved.id ? { ...i, ...saved } : i)).sort(byItemName))
     // Only what changes the sheet reloads it, not typing in the description.
-    if (!before || addsKey(before) !== addsKey(saved)) onItemsChanged()
+    if (!before || addsKey(before) !== addsKey({ ...before, ...saved })) onItemsChanged()
   }
   const carried = carriedWeight(list, coins)
   const capacity = carryingCapacity(strength)
@@ -167,7 +164,7 @@ function ItemEditor({
   onClose,
 }: {
   item: Item
-  onSaved: (item: Item) => void
+  onSaved: (item: Row & Partial<Item>) => void
   onReload: () => void
   onDeleted: () => void
   onClose: () => void

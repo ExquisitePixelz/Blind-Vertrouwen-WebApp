@@ -16,16 +16,19 @@ export type Session = {
 
 export const SESSION_COLUMNS = 'id, version, campaign_id, number, title, notes, played_on'
 
+/** A row of the Sessions list: the start of the notes, not all of them (1.11 B4). */
+export type SessionListItem = Pick<Session, 'id' | 'number' | 'title' | 'played_on'> & { notes_start: string }
+
 /** Live sessions, newest (highest number) first. */
-export async function loadSessions(campaignId: string): Promise<Session[]> {
+export async function loadSessions(campaignId: string): Promise<SessionListItem[]> {
   return must(
     await supabase
       .from('sessions')
-      .select(SESSION_COLUMNS)
+      .select('id, number, title, played_on, notes_start')
       .eq('campaign_id', campaignId)
       .is('deleted_at', null)
       .order('number', { ascending: false }),
-  ) as Session[]
+  ) as SessionListItem[]
 }
 
 /**

@@ -24,7 +24,8 @@ import {
   type Ability,
   type Character,
 } from '../lib/character'
-import { loadGods } from '../lib/gods'
+import { loadGodNames } from '../lib/gods'
+import { ITEM_COLUMNS, byItemName, type Item } from '../lib/inventory'
 import { changeList, ListChangedError } from '../lib/listChange'
 import { useMe } from '../lib/me'
 import { useRowSaver, type SaveStatus } from '../lib/saver'
@@ -105,7 +106,7 @@ export function CharacterPage() {
         .eq('character_id', characterId)
         .is('deleted_at', null)
         .then(must),
-      loadGods(),
+      loadGodNames(),
     ])
     const names = new Map(gods.map((g) => [g.id, g.name]))
     return (tracks as { god_id: string | null; custom_source_name: string | null }[])
@@ -122,12 +123,13 @@ export function CharacterPage() {
     return row?.items ?? []
   }, [characterId])
 
-  // ... and the names of those items, which only the owner and the DM can read.
-  const itemNames = useLoad(async () => {
+  // ... and the items themselves, which only the owner and the DM can read:
+  // the inventory list and the item names, read once (1.11 B6).
+  const items = useLoad(async () => {
     const rows = must(
-      await supabase.from('inventory_items').select('id, name').eq('character_id', characterId).is('deleted_at', null),
-    ) as { id: string; name: string }[]
-    return new Map(rows.map((i) => [i.id, i.name]))
+      await supabase.from('inventory_items').select(ITEM_COLUMNS).eq('character_id', characterId).is('deleted_at', null),
+    ) as Item[]
+    return rows.sort(byItemName)
   }, [characterId])
 
   const saver = useRowSaver<Character>('characters', character.data ?? undefined, (saved) =>
@@ -161,7 +163,7 @@ export function CharacterPage() {
   const saveHp = (patch: Partial<Character>) => save(withDeathSaves(c, patch))
   const bar = hpBar(c)
   const level = totalLevel(c.classes)
-  const names = itemNames.data ?? new Map<string, string>()
+  const names = new Map((items.data ?? []).map((i) => [i.id, i.name]))
   const sheet = buildSheet(c, effects.data ?? [], names)
   const stat = (key: StatKey) => tap({ kind: 'stat', key })
 
@@ -174,7 +176,7 @@ export function CharacterPage() {
     await saver.settle()
     try {
       const saved = await changeList<Character, V>('characters', c!.id, field, change)
-      character.mutate(() => saved)
+      character.mutate((row) => row && { ...row, ...saved })
     } catch (e) {
       if (e instanceof ListChangedError) character.reload()
       throw e
@@ -456,10 +458,8 @@ export function CharacterPage() {
           campaignId={c.campaign_id}
           strength={sheet.abilities.strength.value}
           onStatus={setPrivateStatus}
-          onItemsChanged={() => {
-            effects.reload()
-            itemNames.reload()
-          }}
+          items={items}
+          onItemsChanged={effects.reload}
         />
       )}
 

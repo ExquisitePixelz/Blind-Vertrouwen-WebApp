@@ -6,6 +6,7 @@
 // the latest list, apply the one change, and save it with the conflict guard
 // (3.4). If someone else saved in between, read again and apply again.
 
+import type { Row } from './saver'
 import { supabase } from './supabase'
 
 /** The change no longer fits the latest list (for example, the entry was removed). */
@@ -15,9 +16,15 @@ const ATTEMPTS = 3
 
 /**
  * Apply `change` to the latest value of `field` and save it. `change` may
- * throw (for example a ListChangedError) to cancel. Returns the saved row.
+ * throw (for example a ListChangedError) to cancel. Returns the new version
+ * and the saved field, not the whole row (1.11 B7): merge it into the row.
  */
-export async function changeList<T, V>(table: string, id: string, field: string, change: (current: V) => V): Promise<T> {
+export async function changeList<T extends Row, V>(
+  table: string,
+  id: string,
+  field: keyof T & string,
+  change: (current: V) => V,
+): Promise<Row & Partial<T>> {
   for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
     const latest = await supabase.from(table).select(`version, ${field}`).eq('id', id).maybeSingle()
     if (latest.error) throw new Error(latest.error.message)
@@ -28,12 +35,12 @@ export async function changeList<T, V>(table: string, id: string, field: string,
       .from(table)
       .update({ [field]: change(row[field]), version: row.version })
       .eq('id', id)
-      .select()
+      .select(`id, version, ${field}`)
       .maybeSingle()
     if (saved.status === 409) continue // someone else saved in between: try again on their version
     if (saved.error) throw new Error(saved.error.message)
     if (!saved.data) throw new Error('You are not allowed to change this.')
-    return saved.data as T
+    return saved.data as unknown as Row & Partial<T>
   }
   throw new Error('Someone else keeps changing this. Please try again.')
 }

@@ -19,11 +19,34 @@ export type Relationship = { from_god_id: string; to_god_id: string; value: numb
 
 const GOD_COLUMNS = 'id, version, world_id, slug, name, epithet, alignment, domains, symbol, notes, party_attitude'
 
+/** A god without the notes, for the Gods list (1.11 B5). */
+export type GodSummary = Omit<God, 'notes'>
+/** Just enough to name a god, for pickers and the character sheet (1.11 B5). */
+export type GodName = Pick<God, 'id' | 'name' | 'epithet'>
+
 export const byName = (a: { name: string }, b: { name: string }) =>
   a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 
+/** Every god with everything, notes included: the god page only. */
 export async function loadGods(): Promise<God[]> {
   const gods = must(await supabase.from('gods').select(GOD_COLUMNS).is('deleted_at', null)) as God[]
+  return gods.sort(byName)
+}
+
+/** Every god without the notes (up to 100,000 characters each). */
+export async function loadGodSummaries(): Promise<GodSummary[]> {
+  const gods = must(
+    await supabase
+      .from('gods')
+      .select('id, version, world_id, slug, name, epithet, alignment, domains, symbol, party_attitude')
+      .is('deleted_at', null),
+  ) as GodSummary[]
+  return gods.sort(byName)
+}
+
+/** Every god's id and name (and epithet). */
+export async function loadGodNames(): Promise<GodName[]> {
+  const gods = must(await supabase.from('gods').select('id, name, epithet').is('deleted_at', null)) as GodName[]
   return gods.sort(byName)
 }
 
