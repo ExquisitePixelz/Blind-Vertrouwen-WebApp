@@ -12,8 +12,9 @@ const LIMIT_KB = 173 // 144 KB after Phase 9 step 2, plus about 20%
 const dist = resolve(import.meta.dirname, '..', 'dist')
 const manifest = JSON.parse(readFileSync(resolve(dist, '.vite', 'manifest.json'), 'utf8'))
 
-// The page itself, its code and styles, and everything they import, plus
-// the login screen, which is loaded as soon as the app sees nobody is logged in.
+// The page itself, its code and styles, and everything they import. The
+// login screen is part of the main file; if it is ever split off again, it
+// is still counted here.
 const files = new Set(['index.html'])
 const visit = (key) => {
   const chunk = manifest[key]

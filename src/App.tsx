@@ -8,13 +8,15 @@ import { MeContext, type Me } from './lib/me'
 import { flushAllPending, setPendingOwner } from './lib/saver'
 import { must, supabase } from './lib/supabase'
 import { useSession } from './lib/useSession'
+import { LoginPage } from './pages/LoginPage'
 import { useRememberCampaign } from './lib/campaigns'
 
 // Each screen is its own file, loaded when it is first opened (ARCHITECTURE.md
-// 1.11 A1), so the login page and the dashboard do not carry the rest.
+// 1.11 A1), so the login page and the dashboard do not carry the rest. The
+// login screen itself (1.4 KB) stays in the main file: a first visit then
+// needs no extra round trip before it shows.
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const OpenCampaign = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.OpenCampaign })))
-const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })))
 const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
