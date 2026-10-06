@@ -71,7 +71,8 @@ export const TARGETS: { target: Target; label: string }[] = [
 
 export const targetLabel = (t: Target) => TARGETS.find((x) => x.target === t)?.label ?? t
 
-export type ClassEntry = { name: string; level: number }
+/** `die` is the hit die someone picked (1.12); without it the die follows the name. */
+export type ClassEntry = { name: string; level: number; die?: 6 | 8 | 10 | 12 }
 export type Modifier = { id: string; target: Target; label: string; value: number }
 export type SkillProficiency = 'proficient' | 'expertise'
 export type Proficiencies = { saves: Ability[]; skills: Partial<Record<SkillKey, SkillProficiency>> }

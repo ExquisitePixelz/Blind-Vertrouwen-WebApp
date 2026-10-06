@@ -1,5 +1,6 @@
 // Character fields and rules (ARCHITECTURE.md 1.3 B1 and B2, 1.10).
 
+import type { ConditionKey, SpentDice } from './rest.ts'
 import type { ClassEntry, Modifier, Proficiencies, UnarmoredAc } from './sheet.ts'
 
 export type Character = {
@@ -29,12 +30,16 @@ export type Character = {
   death_saves_success: number
   death_saves_failure: number
   inspiration: boolean
+  conditions: ConditionKey[]
+  exhaustion: number
+  hit_dice_spent: SpentDice
 }
 
 export const CHARACTER_COLUMNS =
   'id, version, campaign_id, owner_id, name, player, classes, race, background, hp_max, hp_cur, hp_temp, speed, ' +
   'strength, dexterity, constitution, intelligence, wisdom, charisma, backstory, ' +
-  'unarmored_ac, modifiers, proficiencies, death_saves_success, death_saves_failure, inspiration'
+  'unarmored_ac, modifiers, proficiencies, death_saves_success, death_saves_failure, inspiration, ' +
+  'conditions, exhaustion, hit_dice_spent'
 
 export type Ability = 'strength' | 'dexterity' | 'constitution' | 'intelligence' | 'wisdom' | 'charisma'
 
@@ -76,11 +81,12 @@ export function setCurrentHp(c: Hp, value: number): Pick<Character, 'hp_cur'> {
 type DeathSaves = Pick<Character, 'death_saves_success' | 'death_saves_failure'>
 
 /**
- * Three failed death saves at 0 HP: the name is crossed out (1.10). Nothing
- * else changes; some spells still bring a dead character back, and healing
- * clears it like any other death saves.
+ * Three failed death saves at 0 HP, or exhaustion 6 (1.10, 1.12): the name is
+ * crossed out. Nothing else changes; some spells still bring a dead
+ * character back, and healing (or lowering exhaustion) clears it.
  */
-export const isDead = (c: DeathSaves & Pick<Character, 'hp_cur'>) => c.hp_cur === 0 && c.death_saves_failure >= 3
+export const isDead = (c: DeathSaves & Pick<Character, 'hp_cur'> & { exhaustion?: number }) =>
+  (c.hp_cur === 0 && c.death_saves_failure >= 3) || (c.exhaustion ?? 0) >= 6
 
 /**
  * An HP change, plus the death saves reset to zero once current HP is above 0

@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "size": "node scripts/check-size.mjs",
     "test:db": "node --test tests/*.test.ts",
-    "test": "node --test tests/character.test.ts tests/piety.test.ts tests/validate.test.ts tests/sessionText.test.ts tests/inventory.test.ts tests/quests.test.ts tests/sheet.test.ts"
+    "test": "node --test tests/character.test.ts tests/piety.test.ts tests/validate.test.ts tests/sessionText.test.ts tests/inventory.test.ts tests/quests.test.ts tests/sheet.test.ts tests/rest.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.1",
