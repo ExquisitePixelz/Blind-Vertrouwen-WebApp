@@ -1431,6 +1431,139 @@ describe('automatic character sheet (Phase 8)', () => {
   })
 })
 
+describe('at the table (Phase 10)', () => {
+  type Row = Record<string, unknown> & { id: string; version: number }
+  let hero: Row // Player A's
+  let rival: Row // Player B's
+  const edit = async (user: { db: SupabaseClient }, row: Row, fields: Record<string, unknown>) =>
+    ok(await user.db.from('characters').update({ ...fields, version: row.version }).eq('id', row.id).select().single()) as Row
+  const reload = async (row: Row) => ok(await admin.from('characters').select('*').eq('id', row.id).single()) as Row
+
+  before(async () => {
+    hero = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Ione' }))
+    rival = ok(await playerB.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Damon' }))
+  })
+
+  test('A new character has no conditions, no exhaustion and no spent hit dice', async () => {
+    const row = ok(await playerB.db.from('characters').select('conditions, exhaustion, hit_dice_spent').eq('id', hero.id).single())
+    assert.deepEqual(row, { conditions: [], exhaustion: 0, hit_dice_spent: {} })
+  })
+
+  test('The owner and the DM set conditions, exhaustion and spent hit dice; other players only read them', async () => {
+    const changes = {
+      conditions: ['poisoned', 'prone'],
+      exhaustion: 2,
+      hit_dice_spent: { '10': 2, '6': 20 },
+      classes: [
+        { name: 'Fighter', level: 3, die: 10 },
+        { name: 'Wizard', level: 2 },
+      ],
+    }
+    hero = await edit(playerA, hero, changes)
+    assert.deepEqual(hero, { ...hero, ...changes })
+    assert.deepEqual(
+      ok(await playerB.db.from('characters').select('conditions, exhaustion').eq('id', hero.id).single()),
+      { conditions: ['poisoned', 'prone'], exhaustion: 2 },
+    )
+    noEffect(
+      await playerB.db.from('characters').update({ conditions: [], version: hero.version }).eq('id', hero.id).select(),
+      'another player clears the conditions',
+    )
+    noEffect(
+      await outsider.db.from('characters').update({ exhaustion: 0, version: hero.version }).eq('id', hero.id).select(),
+      'an outsider lowers the exhaustion',
+    )
+    assert.equal((await outsider.db.from('characters').select('conditions').eq('id', hero.id)).data?.length ?? 0, 0)
+    hero = await edit(dm, hero, { conditions: ['poisoned', 'prone', 'stunned'] })
+  })
+
+  test('The shape of the new fields is checked, for the DM too; a class entry without a die stays valid', async () => {
+    const bad: [string, Record<string, unknown>][] = [
+      ['an unknown condition', { conditions: ['sleepy'] }],
+      ['a condition twice', { conditions: ['prone', 'prone'] }],
+      ['conditions that are not a list', { conditions: { prone: true } }],
+      ['a condition that is not text', { conditions: [1] }],
+      ['exhaustion 7', { exhaustion: 7 }],
+      ['exhaustion −1', { exhaustion: -1 }],
+      ['an unknown die', { hit_dice_spent: { '4': 1 } }],
+      ['21 spent dice', { hit_dice_spent: { '8': 21 } }],
+      ['−1 spent dice', { hit_dice_spent: { '8': -1 } }],
+      ['a spent count as text', { hit_dice_spent: { '8': '1' } }],
+      ['spent dice that are not an object', { hit_dice_spent: [1] }],
+      ['a die of 7', { classes: [{ name: 'Fighter', level: 3, die: 7 }] }],
+      ['a die as text', { classes: [{ name: 'Fighter', level: 3, die: '10' }] }],
+      ['another extra key on a class', { classes: [{ name: 'Fighter', level: 3, die: 10, hp: 1 }] }],
+    ]
+    for (const [label, patch] of bad) {
+      refused(await playerA.db.from('characters').update({ ...patch, version: hero.version }).eq('id', hero.id).select(), label)
+    }
+    refused(
+      await dm.db.from('characters').update({ exhaustion: 7, version: hero.version }).eq('id', hero.id).select(),
+      'the DM sets exhaustion 7',
+    )
+    hero = await edit(playerA, hero, { classes: [{ name: 'Fighter', level: 3 }, { name: 'Wizard', level: 2 }] })
+    hero = await edit(playerA, hero, { classes: [{ name: 'Fighter', level: 3, die: 10 }, { name: 'Wizard', level: 2, die: 6 }] })
+  })
+
+  test('A long rest restores HP, temp HP, death saves, exhaustion and up to half the hit dice', async () => {
+    // Level 5: two dice come back, the largest first.
+    hero = await edit(playerA, hero, {
+      hp_max: 40,
+      hp_cur: 0,
+      hp_temp: 5,
+      death_saves_success: 1,
+      death_saves_failure: 2,
+      exhaustion: 2,
+      hit_dice_spent: { '10': 1, '8': 1, '6': 2 },
+    })
+    assert.equal(ok(await playerA.db.rpc('long_rest', { p_characters: [hero.id] })), 1)
+    hero = await reload(hero)
+    assert.deepEqual(
+      [hero.hp_cur, hero.hp_temp, hero.death_saves_success, hero.death_saves_failure, hero.exhaustion, hero.hit_dice_spent],
+      [40, 0, 0, 0, 1, { '6': 2 }],
+    )
+    assert.deepEqual(hero.conditions, ['poisoned', 'prone', 'stunned'], 'other conditions stay')
+
+    // Level 1: still one die back.
+    let low = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Low' })) as Row
+    low = await edit(playerA, low, { hit_dice_spent: { '8': 1 } })
+    ok(await playerA.db.rpc('long_rest', { p_characters: [low.id] }))
+    assert.deepEqual((await reload(low)).hit_dice_spent, {})
+  })
+
+  test('A player rests only their own characters; a list with someone else’s changes nothing', async () => {
+    rival = await edit(playerB, rival, { hp_cur: 1, exhaustion: 1 })
+    hero = await edit(playerA, hero, { hp_cur: 1 })
+    refused(await playerA.db.rpc('long_rest', { p_characters: [rival.id] }), 'Player A rests Player B’s character')
+    refused(await playerA.db.rpc('long_rest', { p_characters: [hero.id, rival.id] }), 'Player A rests a list with Player B’s character')
+    refused(await outsider.db.rpc('long_rest', { p_characters: [hero.id] }), 'an outsider rests a character')
+    refused(await anon.rpc('long_rest', { p_characters: [hero.id] }), 'someone logged out rests a character')
+    assert.equal((await reload(hero)).hp_cur, 1, 'nothing changed')
+    assert.equal((await reload(rival)).exhaustion, 1, 'nothing changed')
+  })
+
+  test('The DM rests the whole party at once; dead characters are skipped', async () => {
+    const dead = await edit(playerA, ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Fallen' })) as Row, {
+      hp_cur: 0,
+      death_saves_failure: 3,
+    })
+    const spent = await edit(playerA, ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Spent' })) as Row, {
+      hp_cur: 3,
+      exhaustion: 6,
+    })
+    hero = await reload(hero)
+    rival = await reload(rival)
+    assert.equal(ok(await dm.db.rpc('long_rest', { p_characters: [hero.id, rival.id, dead.id, spent.id] })), 2)
+    assert.equal((await reload(hero)).hp_cur, (await reload(hero)).hp_max)
+    assert.equal((await reload(rival)).exhaustion, 0)
+    assert.deepEqual([(await reload(dead)).hp_cur, (await reload(dead)).death_saves_failure], [0, 3], 'the dead stay dead')
+    assert.deepEqual([(await reload(spent)).hp_cur, (await reload(spent)).exhaustion], [3, 6], 'exhaustion 6 stays')
+    const removed = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Gone' })) as Row
+    ok(await playerA.db.rpc('delete_character', { p_character_id: removed.id }))
+    refused(await dm.db.rpc('long_rest', { p_characters: [removed.id] }), 'a deleted character')
+  })
+})
+
 describe('text length limits (Phase 4)', () => {
   const long = (n: number) => 'x'.repeat(n)
 
