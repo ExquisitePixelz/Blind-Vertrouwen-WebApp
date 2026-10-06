@@ -855,6 +855,12 @@ Three things that help **during play**: conditions on a character, hit dice with
 
 **Tests.** A unit test for the hit die per class name, the dice totals per size, short rest healing (with a negative CON modifier), and what a long rest gives back (odd and even levels, level 1, the largest dice first). The permission test gains the cases in section 4.
 
+**As built (2026-10-07, `0.10.0-alpha`):**
+- **Database:** one migration (`20261007120000_at_the_table.sql`). `private.valid_classes` was replaced with a version that also allows `die`; existing rows stay valid, so no data changed. The hit dice that come back are worked out by `private.hit_dice_after_long_rest`, which `long_rest` calls. 124 permission-test cases pass.
+- **Rules:** `src/lib/rest.ts` (unit-tested in `tests/rest.test.ts`): the conditions list, the hit die per class name, the dice per size, short rest healing, and `longRestChanges` for the confirm dialog. `isDead` (`src/lib/character.ts`) also counts exhaustion 6, so the Characters list and the party overview show the Dead tag too.
+- **Screens:** the sheet has a Hit dice card (Short rest, Long rest) below the hit points, and the Conditions row below Inspiration. The class dialog has the Hit die choice; it follows the name ("from the class name") until a die is tapped. Shared parts: `src/components/Conditions.tsx` and `src/components/Rest.tsx`. The party overview is `src/pages/PartyPage.tsx`; it reads only the columns it needs. A long rest first sends what the sheet has not saved yet, so the sheet's next save gets no false conflict.
+- **Checked in the browser** (2026-10-07) as DM, in a new **Stress test** campaign (Phase 4 step 1.1, made early) with the test characters Testra and Testor: the hit die from the class name, the dice line, damage then Short rest, conditions and exhaustion surviving a reload, Long rest, a save after the rest, the Dead tag at exhaustion 6 (sheet and Characters list), HP from the overview, and Long rest for the party skipping the dead character. No errors in the console.
+
 ### 1.13 Phase 11 and Phase 12 *(order agreed with the owner, 2026-10-07; written out when started)*
 
 - **Phase 11: Lore and links.** NPC and lore notes (6, NPC / lore notes), then links to characters, gods and NPCs in notes (6, Session notes: character/god links). Links come last so they can point to NPCs from the start.
@@ -987,7 +993,7 @@ Realtime is added later together with the features that need it, such as live co
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
 ### 3.9 Version number. *Decided (owner, 2026-09-25; changed 2026-10-07)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.9.1-alpha` (2026-10-07: no footer jump while a screen loads).*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.10.0-alpha` (2026-10-07: Phase 10, at the table).*
 - **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …). **Every other push that changes the website adds 1 to the last number** (`0.9.1-alpha`, `0.9.2-alpha`, …), also a small fix and also a step of a phase that is still being built. *Changed 2026-10-07 (owner):* phones show "New version" whenever the website's files change, so the number in the footer must change with it. Before this, only a finished phase or fix raised it, and during Phase 9 phones showed "New version" several times on the same `0.8.1-alpha`.
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.
@@ -1175,7 +1181,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 7: Quest Journal (1.9): Main, Side and Character quests, revealed once, objectives revealed step by step, visible and hidden rewards | **Built** (2026-09-27), version `0.7.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. |
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
 | Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **Built** (2026-10-07), version `0.9.0-alpha`. Login page 98 → 100, first text 1.8 → 0.8–1.1 s; character sheet 95 → 100; typing measured on the owner's phone. Since then, every push that changes the website raises the version (3.9). |
-| Phase 10: at the table (1.12): conditions, hit dice with Short and Long rest, party overview for the DM | **Next** (owner, 2026-10-07) |
+| Phase 10: at the table (1.12): conditions, hit dice with Short and Long rest, party overview for the DM | **Built** (2026-10-07), version `0.10.0-alpha`. Checked as DM in the browser in the Stress test campaign; the player side is covered by the permission test. Tested by the group in Phase 4. |
 | Phase 11: lore and links (1.13): NPC and lore notes, then links in notes | After Phase 10; written out when started |
 | Phase 12: live combat (1.13): initiative tracker with Realtime | After Phase 11; written out when started |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
@@ -1233,7 +1239,7 @@ One screen or feature per step. **Do not add anything that is not in section 1.1
 
 **What already protects the app (built):**
 - **Row-level security on all 17 tables.** The database itself decides who reads and writes each row. Hiding a button in the website is never the lock (3.3, priority 2).
-- **An automated permission test** (115 cases, `tests/permissions.test.ts`) runs on every push against a throwaway database. It logs in as the DM, two players and an outsider, and tries forbidden things.
+- **An automated permission test** (124 cases, `tests/permissions.test.ts`) runs on every push against a throwaway database. It logs in as the DM, two players and an outsider, and tries forbidden things.
 - **Only the public key is in the website.** The secret key and the database password are only in Supabase and in the private backup repository (3.2, 3.8).
 - **Passwords are handled by Supabase Auth** (bcrypt), never by our code (1.7). Invite-only access (1.6), and sign-up only with a valid invite (1.7).
 - **Markdown is rendered without raw HTML** (`skipHtml`). `react-markdown` removes `javascript:` links by default.
@@ -1343,6 +1349,12 @@ The DM, meanwhile, tests the DM-only parts on a second device: sessions, attenda
 **Phone**
 - A small screen, landscape, and a larger text size in your phone settings
 - Does the keyboard cover the field you are typing in?
+
+**At the table (new in 0.10)**
+- Switch a few conditions on and off, and set exhaustion; refresh: are they still there?
+- Set your class (or classes) and check the hit die; take damage, then a Short rest with a real die roll
+- Take a Long rest: HP full, hit dice back, exhaustion 1 lower
+- Try to change conditions or rest someone else's character
 
 **Report each problem** in the chat: what you did, what you expected, what happened, your phone and browser, the time, and a screenshot. Never send passwords.
 
