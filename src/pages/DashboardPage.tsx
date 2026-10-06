@@ -93,9 +93,14 @@ function Dashboard({ campaign }: { campaign: Campaign }) {
           Gods
         </Link>
         {me.isDm && (
-          <Link className="dash-button" to={`${base}/players`}>
-            Players
-          </Link>
+          <>
+            <Link className="dash-button" to={`${base}/party`}>
+              Party
+            </Link>
+            <Link className="dash-button" to={`${base}/players`}>
+              Players
+            </Link>
+          </>
         )}
       </nav>
       {me.isDm && typeof last.data === 'number' && (

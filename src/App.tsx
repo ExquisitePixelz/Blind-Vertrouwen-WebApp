@@ -24,6 +24,7 @@ const InvitePage = lazy(() => import('./pages/InvitePage').then((m) => ({ defaul
 const CharactersPage = lazy(() => import('./pages/CharactersPage').then((m) => ({ default: m.CharactersPage })))
 const CharacterPage = lazy(() => import('./pages/CharacterPage').then((m) => ({ default: m.CharacterPage })))
 const PietyPage = lazy(() => import('./pages/PietyPage').then((m) => ({ default: m.PietyPage })))
+const PartyPage = lazy(() => import('./pages/PartyPage').then((m) => ({ default: m.PartyPage })))
 const PlayersPage = lazy(() => import('./pages/PlayersPage').then((m) => ({ default: m.PlayersPage })))
 const QuestsPage = lazy(() => import('./pages/QuestsPage').then((m) => ({ default: m.QuestsPage })))
 const QuestPage = lazy(() => import('./pages/QuestPage').then((m) => ({ default: m.QuestPage })))
@@ -144,6 +145,7 @@ function Screens() {
         <Route path="/c/:campaignId/characters" element={<CharactersPage />} />
         <Route path="/c/:campaignId/characters/:characterId" element={<CharacterPage />} />
         <Route path="/c/:campaignId/piety" element={<PietyPage />} />
+        <Route path="/c/:campaignId/party" element={<PartyPage />} />
         <Route path="/c/:campaignId/players" element={<PlayersPage />} />
         <Route path="/c/:campaignId/quests" element={<QuestsPage />} />
         <Route path="/c/:campaignId/quests/:questId" element={<QuestPage />} />

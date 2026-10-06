@@ -1551,3 +1551,79 @@ button.pip:disabled {
 .rest-changes p {
   margin: 0.25rem 0 0.75rem;
 }
+
+/* Party overview (1.12) */
+.card.party-card {
+  margin-bottom: 0.75rem;
+}
+
+.card + .card.party-card {
+  margin-top: 0;
+}
+
+.party-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.75rem 1rem 0.25rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.party-stats {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem 0.5rem;
+}
+
+.party-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.5rem 0.25rem;
+  color: var(--text);
+  background: var(--bg);
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  text-align: center;
+  text-decoration: none;
+}
+
+.party-stat .small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.party-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.party-value .hp-temp {
+  margin-left: 0.2rem;
+  font-size: 0.85rem;
+}
+
+.party-chips {
+  display: block;
+  padding: 0 1rem 0.75rem;
+  text-decoration: none;
+}
+
+.party-chips .chips {
+  justify-content: flex-start;
+}
+
+button.party-rest {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.8rem;
+  font-weight: 600;
+}
