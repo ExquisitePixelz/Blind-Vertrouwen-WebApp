@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { CharacterName } from '../components/CharacterName'
 import { ClassDialog } from '../components/ClassDialog'
 import { ConditionChips, ConditionsDialog } from '../components/Conditions'
-import { ShortRestDialog } from '../components/Rest'
+import { LongRestDialog, ShortRestDialog } from '../components/Rest'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
@@ -38,6 +38,7 @@ import { NAME_MAX } from '../lib/limits'
 import {
   formatHitDice,
   hitDice,
+  longRestChanges,
   shortRestHealing,
   spendDie,
   toggleCondition,
@@ -83,6 +84,7 @@ type Open =
   | { kind: 'unarmored' }
   | { kind: 'conditions' }
   | { kind: 'shortRest' }
+  | { kind: 'longRest' }
   | { kind: 'menu' }
   | { kind: 'delete' }
 
@@ -344,6 +346,9 @@ export function CharacterPage() {
             <button className="secondary" onClick={() => setOpen({ kind: 'shortRest' })}>
               Short rest
             </button>
+            <button className="secondary" onClick={() => setOpen({ kind: 'longRest' })}>
+              Long rest
+            </button>
           </div>
         )}
       </div>
@@ -573,6 +578,21 @@ export function CharacterPage() {
               hit_dice_spent: spendDie(c.hit_dice_spent, die),
             })
           }
+          onClose={close}
+        />
+      )}
+      {open?.kind === 'longRest' && (
+        <LongRestDialog
+          title="Long rest"
+          groups={[{ changes: longRestChanges(c) }]}
+          onConfirm={async () => {
+            // Unsent changes first, so the rest starts from them and the
+            // sheet's next save does not see a conflict.
+            const { saved } = await saver.settle()
+            if (!saved) throw new Error('Some changes are not saved yet. Try again when they are.')
+            must(await supabase.rpc('long_rest', { p_characters: [c.id] }))
+            await character.reload()
+          }}
           onClose={close}
         />
       )}

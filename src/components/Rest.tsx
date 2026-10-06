@@ -4,6 +4,71 @@ import { formatModifier } from '../lib/character'
 import { shortRestHealing, type DiceRow, type Die } from '../lib/rest'
 
 /**
+ * Long rest (1.12): lists what will change, then rests through the database
+ * (`long_rest`). `groups` holds one list of changes per character; a single
+ * character has one group without a name.
+ */
+export function LongRestDialog({
+  title,
+  groups,
+  onConfirm,
+  onClose,
+}: {
+  title: string
+  groups: { name?: string; changes: string[] }[]
+  onConfirm: () => Promise<void>
+  onClose: () => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <Dialog title={title} onClose={onClose}>
+      <div className="rest-changes">
+        {groups.map((g, i) => (
+          <div key={i}>
+            {g.name && <strong>{g.name}</strong>}
+            {g.changes.length ? (
+              <ul>
+                {g.changes.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted small">Nothing to restore.</p>
+            )}
+          </div>
+        ))}
+      </div>
+      <p className="muted small">Death saves go back to 0. Other conditions stay.</p>
+      {error && <p className="error">{error}</p>}
+      <div className="dialog-actions">
+        <button type="button" className="secondary" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true)
+            setError(null)
+            try {
+              await onConfirm()
+              onClose()
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err))
+              setBusy(false)
+            }
+          }}
+        >
+          Long rest
+        </button>
+      </div>
+    </Dialog>
+  )
+}
+
+/**
  * Short rest (1.12): pick a die size, type what the real die showed, and the
  * character heals the roll plus the CON modifier. The dialog stays open for
  * the next die; Done closes it.

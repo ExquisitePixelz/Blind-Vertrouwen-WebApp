@@ -129,3 +129,24 @@ export function diceBack(spent: SpentDice, totalLevel: number): number {
   const count = (s: SpentDice) => DICE.reduce((sum, d) => sum + (s[`${d}`] ?? 0), 0)
   return count(spent) - count(longRestDice(spent, totalLevel))
 }
+
+type Restable = {
+  hp_cur: number
+  hp_max: number
+  hp_temp: number
+  exhaustion: number
+  hit_dice_spent: SpentDice
+  classes: ClassEntry[]
+}
+
+/** What a long rest will change, one line each, for the confirm dialog. */
+export function longRestChanges(c: Restable): string[] {
+  const level = c.classes.reduce((sum, e) => sum + e.level, 0)
+  const back = diceBack(c.hit_dice_spent, level)
+  return [
+    c.hp_cur < c.hp_max && `HP ${c.hp_cur} → ${c.hp_max}`,
+    c.hp_temp > 0 && `Temp HP ${c.hp_temp} → 0`,
+    back > 0 && `${back} hit ${back === 1 ? 'die' : 'dice'} back`,
+    c.exhaustion > 0 && `Exhaustion ${c.exhaustion} → ${c.exhaustion - 1}`,
+  ].filter((line): line is string => Boolean(line))
+}

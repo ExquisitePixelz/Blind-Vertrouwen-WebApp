@@ -9,6 +9,7 @@ import {
   formatHitDice,
   hitDice,
   hitDie,
+  longRestChanges,
   longRestDice,
   shortRestHealing,
   spendDie,
@@ -78,4 +79,16 @@ test('long rest: back up to half the total level, at least 1, the largest dice f
   assert.deepEqual(longRestDice({}, 10), {})
   assert.equal(diceBack({ '10': 1, '8': 1, '6': 2 }, 5), 2)
   assert.equal(diceBack({ '6': 1 }, 20), 1)
+})
+
+test('what a long rest will change, for the confirm dialog', () => {
+  const base = { hp_cur: 10, hp_max: 10, hp_temp: 0, exhaustion: 0, hit_dice_spent: {}, classes: [{ name: 'Rogue', level: 4 }] }
+  assert.deepEqual(longRestChanges(base), [])
+  assert.deepEqual(longRestChanges({ ...base, hp_cur: 3, hp_temp: 4, exhaustion: 2, hit_dice_spent: { '8': 3 } }), [
+    'HP 3 → 10',
+    'Temp HP 4 → 0',
+    '2 hit dice back',
+    'Exhaustion 2 → 1',
+  ])
+  assert.deepEqual(longRestChanges({ ...base, hit_dice_spent: { '8': 1 } }), ['1 hit die back'])
 })

@@ -1542,3 +1542,12 @@ button.pip:disabled {
   margin: 0;
   padding: 0 1rem 1rem;
 }
+
+.rest-changes ul {
+  margin: 0.25rem 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.rest-changes p {
+  margin: 0.25rem 0 0.75rem;
+}
