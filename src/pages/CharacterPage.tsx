@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { CharacterName } from '../components/CharacterName'
 import { ClassDialog } from '../components/ClassDialog'
@@ -137,6 +137,29 @@ export function CharacterPage() {
   )
   const c = saver.view
 
+  // The sheet is recalculated only when what it is made of changes, not on
+  // every letter typed in the backstory (1.11 C8).
+  const names = useMemo(() => new Map((items.data ?? []).map((i) => [i.id, i.name])), [items.data])
+  const calculated = useMemo(
+    () => c && buildSheet(c, effects.data ?? [], names),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      c?.strength,
+      c?.dexterity,
+      c?.constitution,
+      c?.intelligence,
+      c?.wisdom,
+      c?.charisma,
+      c?.speed,
+      c?.classes,
+      c?.modifiers,
+      c?.proficiencies,
+      c?.unarmored_ac,
+      effects.data,
+      names,
+    ],
+  )
+
   if (character.error) return (
       <main className="page">
         <TopBar back={`/c/${campaignId}/characters`} />
@@ -163,8 +186,7 @@ export function CharacterPage() {
   const saveHp = (patch: Partial<Character>) => save(withDeathSaves(c, patch))
   const bar = hpBar(c)
   const level = totalLevel(c.classes)
-  const names = new Map((items.data ?? []).map((i) => [i.id, i.name]))
-  const sheet = buildSheet(c, effects.data ?? [], names)
+  const sheet = calculated!
   const stat = (key: StatKey) => tap({ kind: 'stat', key })
 
   /**
