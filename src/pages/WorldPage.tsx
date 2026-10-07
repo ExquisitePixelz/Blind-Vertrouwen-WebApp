@@ -1,10 +1,10 @@
 import { Link } from 'react-router'
 import { TopBar } from '../components/TopBar'
+import { WORLD_KINDS } from '../lib/world'
 
 /**
- * World (ARCHITECTURE.md 1.13): the lore of Theros, as full-width buttons
- * like the dashboard. Phase 11 has NPCs; places, towns and factions come
- * here later (roadmap).
+ * World (ARCHITECTURE.md 1.13, 1.14): the lore of Theros, as full-width
+ * buttons like the dashboard: NPCs, Places, Factions, Lore, Creatures, Items.
  */
 export function WorldPage() {
   return (
@@ -14,6 +14,11 @@ export function WorldPage() {
         <Link className="dash-button" to="/world/npcs">
           NPCs
         </Link>
+        {WORLD_KINDS.map((k) => (
+          <Link key={k.kind} className="dash-button" to={`/world/${k.segment}`}>
+            {k.plural}
+          </Link>
+        ))}
       </nav>
     </main>
   )

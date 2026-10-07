@@ -5,10 +5,11 @@ import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { NpcName } from '../components/NpcName'
 import { NpcSecrets } from '../components/NpcSecrets'
+import { RevealDialogs } from '../components/Reveal'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
-import { loadCampaigns, type Campaign } from '../lib/campaigns'
 import { forgetLinkTargets } from '../lib/linkTargets'
+import { useReveals, type RevealTable } from '../lib/reveals'
 import { useMe } from '../lib/me'
 import { NPC_COLUMNS, NPC_STATUSES, npcStatusLabel, type Npc, type NpcStatus } from '../lib/npcs'
 import { useRowSaver, worstStatus, type SaveStatus } from '../lib/saver'
@@ -16,7 +17,9 @@ import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
 
-type Open = 'menu' | 'name' | 'role' | 'status' | 'location' | 'faction' | 'pick-campaign' | 'reveal' | 'delete'
+type Open = 'menu' | 'name' | 'role' | 'status' | 'location' | 'faction' | 'reveal' | 'delete'
+
+const REVEALS: RevealTable = { table: 'npc_reveals', column: 'npc_id' }
 
 /**
  * One NPC (ARCHITECTURE.md 1.13). A shared wiki: everyone who can see it
@@ -28,7 +31,6 @@ export function NpcPage() {
   const { npcId = '' } = useParams()
   const navigate = useNavigate()
   const [open, setOpen] = useState<Open | null>(null)
-  const [revealTo, setRevealTo] = useState<Campaign | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [secretsStatus, setSecretsStatus] = useState<SaveStatus>('saved')
   const close = () => setOpen(null)
@@ -42,15 +44,7 @@ export function NpcPage() {
   }, [npcId])
 
   // The DM's reveal state: which campaigns do not see this NPC yet.
-  const reveals = useLoad(async () => {
-    if (!dm) return null
-    const [rows, campaigns] = await Promise.all([
-      supabase.from('npc_reveals').select('campaign_id').eq('npc_id', npcId).then(must),
-      loadCampaigns(),
-    ])
-    const revealed = new Set((rows as { campaign_id: string }[]).map((r) => r.campaign_id))
-    return { campaigns, hiddenFrom: campaigns.filter((c) => !revealed.has(c.id)) }
-  }, [dm, npcId])
+  const reveals = useReveals(REVEALS, npcId)
 
   const saver = useRowSaver<Npc>('npcs', npc.data ?? undefined, (saved) => npc.mutate(() => saved))
   const n = saver.view
@@ -73,15 +67,7 @@ export function NpcPage() {
     )
   }
 
-  const hiddenFrom = reveals.data?.hiddenFrom ?? []
-  const current = hiddenFrom.find((c) => c.id === me.lastCampaignId)
-
-  function startReveal() {
-    if (hiddenFrom.length === 1) {
-      setRevealTo(hiddenFrom[0])
-      setOpen('reveal')
-    } else setOpen('pick-campaign')
-  }
+  const { hiddenFrom, current } = reveals
 
   return (
     <main className="page">
@@ -102,7 +88,7 @@ export function NpcPage() {
       {dm && current && (
         <div className="notice quest-hidden">
           <span>Hidden: players in {current.name} can’t see this NPC yet.</span>
-          <button type="button" className="small-button" onClick={startReveal}>
+          <button type="button" className="small-button" onClick={() => setOpen('reveal')}>
             Reveal
           </button>
         </div>
@@ -135,7 +121,7 @@ export function NpcPage() {
         <PickDialog<Open>
           title={n.name}
           onClose={close}
-          onPick={(next) => setTimeout(() => (next === 'reveal' ? startReveal() : setOpen(next)))}
+          onPick={(next) => setTimeout(() => setOpen(next))}
           options={[
             { value: 'name', label: 'Rename' },
             ...(dm && hiddenFrom.length ? [{ value: 'reveal' as const, label: 'Reveal to players' }] : []),
@@ -165,30 +151,8 @@ export function NpcPage() {
       {open === 'status' && (
         <PickDialog<NpcStatus> title="Status" options={NPC_STATUSES} onClose={close} onPick={(status) => tap({ status })} />
       )}
-      {open === 'pick-campaign' && (
-        <PickDialog<Campaign>
-          title="Reveal to which campaign?"
-          options={hiddenFrom.map((c) => ({ value: c, label: c.name }))}
-          onClose={close}
-          onPick={(c) =>
-            setTimeout(() => {
-              setRevealTo(c)
-              setOpen('reveal')
-            })
-          }
-        />
-      )}
-      {open === 'reveal' && revealTo && (
-        <ConfirmDialog
-          title="Reveal NPC"
-          message={`Players in ${revealTo.name} will see “${n.name}” and can edit it. A revealed NPC can never be hidden again. DM secrets and stats stay yours.`}
-          confirmLabel="Reveal"
-          onClose={close}
-          onConfirm={async () => {
-            must(await supabase.from('npc_reveals').insert({ npc_id: n.id, campaign_id: revealTo.id }))
-            reveals.reload()
-          }}
-        />
+      {open === 'reveal' && hiddenFrom.length > 0 && (
+        <RevealDialogs where={REVEALS} id={n.id} name={n.name} hiddenFrom={hiddenFrom} onDone={reveals.reload} onClose={close} />
       )}
       {open === 'delete' && (
         <ConfirmDialog

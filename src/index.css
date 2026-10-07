@@ -1693,3 +1693,29 @@ button.party-rest {
 .mention-list button.on {
   background: #2a2a30;
 }
+
+/* ---------- The rest of World (1.14) ---------- */
+
+.type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: -0.25rem 0 1rem;
+}
+
+button.chip-button {
+  min-height: 2rem;
+  padding: 0.15rem 0.75rem;
+  border: 1px solid var(--muted);
+  border-radius: 999px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+button.chip-button.on {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: var(--bg);
+}
