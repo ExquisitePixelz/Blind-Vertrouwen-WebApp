@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). Also on 2026-10-07 the owner moved the Phase 4 group test to the next week and picked six roadmap items, in three phases: Phase 10 (at the table: conditions, hit dice and rests, a party overview; section 1.12), Phase 11 (lore and links) and Phase 12 (live combat) (section 1.13). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). Also on 2026-10-07 the owner moved the Phase 4 group test to the next week and picked six roadmap items, in three phases: Phase 10 (at the table: conditions, hit dice and rests, a party overview; section 1.12), Phase 11 (lore and links) and Phase 12 (live combat) (section 1.13). The same day the owner answered the Phase 11 questions: it became NPCs and links (section 1.13), with Phase 12 moved to 1.14. **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -861,12 +861,73 @@ Three things that help **during play**: conditions on a character, hit dice with
 - **Screens:** the sheet has a Hit dice card (Short rest, Long rest) below the hit points, and the Conditions row below Inspiration. The class dialog has the Hit die choice; it follows the name ("from the class name") until a die is tapped. Shared parts: `src/components/Conditions.tsx` and `src/components/Rest.tsx`. The party overview is `src/pages/PartyPage.tsx`; it reads only the columns it needs. A long rest first sends what the sheet has not saved yet, so the sheet's next save gets no false conflict.
 - **Checked in the browser** (2026-10-07) as DM, in a new **Stress test** campaign (Phase 4 step 1.1, made early) with the test characters Testra and Testor: the hit die from the class name, the dice line, damage then Short rest, conditions and exhaustion surviving a reload, Long rest, a save after the rest, the Dead tag at exhaustion 6 (sheet and Characters list), HP from the overview, and Long rest for the party skipping the dead character. No errors in the console.
 
-### 1.13 Phase 11 and Phase 12 *(order agreed with the owner, 2026-10-07; written out when started)*
+### 1.13 Phase 11: NPCs and links *(put in scope by the owner, 2026-10-07)*
 
-- **Phase 11: Lore and links.** NPC and lore notes (6, NPC / lore notes), then links to characters, gods and NPCs in notes (6, Session notes: character/god links). Links come last so they can point to NPCs from the start.
-- **Phase 12: Live combat.** The initiative tracker that players see live on their phones (6, Initiative tracker and Live combat). It is the hardest of the three: it adds Supabase Realtime (changes 3.6), needs privacy for monster HP, and must stay light on the battery (1.11). It reuses the conditions and the party overview from Phase 10. Started after Phase 11; probably not finished before the group test.
+An **NPC library** for Theros that the DM and the players write together, and **links** to characters, gods and NPCs inside notes. Links come last, so they can point to NPCs from the start. Later the World button will also hold places, towns, buildings and factions (roadmap, 6). **Phase 11 builds only NPCs** (owner, 2026-10-07), but puts them behind the World button already, so the dashboard does not change again.
 
-The owner answers the questions for each before it is written out, like the earlier phases.
+**World button** (owner decision, 2026-10-07)
+- A **World** button on the dashboard for everyone, directly below **Gods**. It opens `/world`, a page of full-width buttons like the dashboard. In Phase 11 it has one: **NPCs**.
+- **Gods stay on the dashboard** (owner, 2026-10-07).
+
+**World content, revealed per campaign** (owner decision, 2026-10-07)
+- NPCs belong to the **world**, like gods: one library for every campaign (3.3). The owner probably never makes a second campaign, but nothing depends on that.
+- An NPC the DM creates starts **hidden**. **Reveal** (confirm dialog) shows it to the players of the current campaign; with more than one campaign, a pick list asks which. **A reveal can never be undone**, as with quests (1.9): the database refuses it, even for the DM. Revealing to another campaign later is another Reveal.
+- A player sees an NPC that is revealed to a campaign they are in, and is not deleted.
+
+**A shared wiki** (owner decision, 2026-10-07)
+- **Players create NPCs too.** A player's new NPC is revealed to their current campaign at once.
+- **Players edit every NPC they can see**, including the DM's: name, role, status, location, faction and description. Never the DM secrets, the stats or the reveals.
+- **One shared text:** an edit shows in every campaign the NPC is revealed to (owner, 2026-10-07: fine, as there will probably be only one campaign).
+- Two people editing at once get the usual conflict warning (3.4). Nothing is overwritten silently.
+- **Only the DM deletes** (confirm dialog; soft delete), so nobody removes someone else's work by accident. *(Default chosen by the agent; the owner may change it.)*
+
+**An NPC has** (owner decision, 2026-10-07)
+- **Name** (required)
+- **Role:** one line, shown under the name, e.g. "Harbourmaster of Meletis" (may be empty)
+- **Status:** Alive (default), Dead, Missing or Unknown. A chip next to the name when it is not Alive; a Dead NPC's name is crossed out, like a dead character (1.10).
+- **Location** and **Faction:** one free-text line each (may be empty). They can become links once places and factions exist.
+- **Description:** markdown with Edit / Preview (`MarkdownNotes`, 1.8), saved through the save hook (3.4).
+
+**DM secrets and stats: DM only, always** (owner decisions, 2026-10-07)
+- **DM secrets:** a markdown section per NPC, e.g. "secretly a cultist of Erebos". Players never see it, not even that it exists.
+- **Stats are optional** ("some NPCs should have stats"). **Add stats** shows a simple, monster-style block:
+  - **AC**, **max HP** and **speed** (ft)
+  - the **six ability scores** (1–30) with their modifiers (B2)
+  - **challenge rating:** 0, 1/8, 1/4, 1/2, 1 … 30
+  - **Actions:** one markdown box for attacks, spells and traits, e.g. "Spear +4, 1d6+2 piercing"
+  
+  **Remove stats** (confirm dialog) hides the block again. Stats are hidden from players always, also on a revealed NPC. Phase 12 can take max HP from here.
+- Secrets and stats live in their **own row with audience `dm`** (the separate secret row, 3.3), so they never reach a player's phone.
+
+**The NPC list** (`/world/npcs`)
+- Sorted by name (case-insensitive). Each row: the **name** in bold with the status chip, the **role**, and a muted line `location · faction`, leaving out empty parts.
+- The DM sees a **Hidden** group at the top: the NPCs not revealed to the current campaign.
+- A **filter box** at the top narrows the list by name, role, location and faction as you type. It filters the loaded list; there is no server search.
+- **+** (everyone) asks for the name, creates the NPC and opens it.
+- With no NPCs: "No NPCs yet. Tap + to add one."
+
+**The NPC page** (`/world/npcs/:npcId`, the name as title)
+- Tappable rows for Role, Status (pick list), Location and Faction (text prompts), then the Description.
+- For the DM only, below: **DM secrets** and **Stats**.
+- The **…** menu: **Rename** (everyone), **Reveal** (DM, while hidden from a campaign) and **Delete** (DM).
+- A link to an NPC the user cannot see (hidden or deleted) shows "NPC not found".
+
+**Links in notes** (owner decision, 2026-10-07: type @ and pick)
+- In **every markdown notes box** (session notes, backstory, private notes, quest description, NPC description, DM secrets and NPC actions), typing **`@`** in Edit opens a short list below the text: the characters of the current campaign, the gods and the NPCs the user can see, matching the letters typed after `@`, at most 8, with the kind in muted text. Tapping one replaces the `@…` with a link. Escape, or a space with no match, closes the list.
+- **Stored as an ordinary markdown link with the target's ID**, e.g. `[Ilona](npc:3f2a…)`, `[Kraan](character:…)`, `[Phenax](god:…)`. No new table (6). Renaming the target does not break the link; Preview shows its current name.
+- **In Preview** a link is a tappable gold name that opens the character sheet, god page or NPC page. The names come from one small list (IDs and names only), loaded with the @ list.
+- **A link to something the reader cannot see** (a hidden NPC, a deleted one, a character in another campaign) shows as plain text: the name as written in the note. *Note for the DM:* linking a hidden NPC in a text players read (a quest description, a backstory) therefore still shows the name as written, without the link.
+- The god notes are a plain text box, not markdown, so they get no links in Phase 11.
+
+**Removed players and deleted accounts.** NPCs are shared world content, so they stay when a player leaves. When an account is deleted (1.6), the NPCs it created stay and lose their owner.
+
+**Not in Phase 11 (roadmap, 6):** places, towns, buildings, factions and other lore under World; a "Mentioned in" list of back-links on an NPC page; a history of wiki edits; NPC pictures; per-campaign party notes; links in the god notes and from the quest giver and location fields; an NPC's attitude toward the party; NPCs in live combat (Phase 12).
+
+**Tests.** Unit tests for the links (writing and reading the link format, which targets the `@` list offers, plain text for unknown targets), the challenge-rating list, and the NPC list (sort, filter, Hidden group). The permission test gains the cases in section 4.
+
+### 1.14 Phase 12: Live combat *(order agreed with the owner, 2026-10-07; written out when started)*
+
+The initiative tracker that players see live on their phones (6, Initiative tracker and Live combat). It is the hardest of the three phases: it adds Supabase Realtime (changes 3.6), needs privacy for monster HP, and must stay light on the battery (1.11). It reuses the conditions and the party overview from Phase 10, and can take NPC stats from Phase 11. Started after Phase 11; probably not finished before the group test. The owner answers the questions before it is written out, like the earlier phases.
 
 ---
 
@@ -935,6 +996,8 @@ This is the most important design in the app.
 - **Piety tracks:** campaign content, audience `members`. Players in the campaign read. Writing is restricted (section 4):
   - A player may create **one god track** for their own character, at creation, and it always starts at score 0.
   - Everything else is DM only: changing the score, changing the god later, custom sources, and deleting tracks.
+
+*Phase 11 (1.13, owner, 2026-10-07):* **NPCs** are world content written as a shared wiki: a player may edit NPCs they did not create, once revealed to their campaign. This is the one place where players write what they do not own. Deleting stays DM only, and the secret part (DM secrets and stats) is a separate `dm` row.
 
 **Secrets inside a visible thing.** RLS works on whole rows, not individual fields. When one part of a thing is secret, the secret part goes in its **own row** with a stricter audience.
 
@@ -1039,6 +1102,7 @@ Detailed columns for characters and gods come from the specification in section 
 | `inventory_items` | Campaign | A character's items, audience `owner` (Phase 6, below). |
 | `quests`, `quest_objectives`, `quest_rewards` | Campaign | The Quest Journal (Phase 7, below). |
 | `character_effects` | Campaign | What a character's counting items add (armor and bonuses), without item names. Read by the campaign, written only by the database (Phase 8, below). |
+| `npcs`, `npc_reveals`, `npc_secrets` | World | The NPC library, which campaigns see each NPC, and the DM-only secrets and stats (Phase 11, below). |
 
 **`piety_tracks` columns:**
 - `character_id`
@@ -1133,6 +1197,17 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 - `long_rest(characters uuid[])`, `security invoker`, so the characters policies decide. For each character that is not dead: `hp_cur` = `hp_max`, `hp_temp` = 0, death saves 0, `exhaustion` 1 lower (not below 0), and spent hit dice back up to half the total level (at least 1), the largest dice first. When the caller may not change one of the characters, the whole call is refused and nothing changes. It returns the number of characters rested.
 - **Permission test, new cases:** a player sets conditions, exhaustion and spent hit dice on their own character, but not on someone else's; others read them; refused: an unknown condition, a condition twice, exhaustion 7 or −1, an unknown die key, a spent count of 21, a `die` of 7, an extra key in a class entry; a class entry without `die` is still accepted. `long_rest`: a player rests their own character; resting someone else's character (alone or in a list with their own) is refused and changes nothing; the DM rests the whole party; a dead character is skipped; the results match the rules above (HP, temp HP, hit dice for an odd and an even level, exhaustion).
 
+**Phase 11 (section 1.13).** One migration, so one `db push`. The links need no table: they are text inside the existing notes.
+- `npcs`: world content. The standard columns with `world_id`, plus `name` (not empty, 100), `role`, `location`, `faction` (500 each, may be empty), `status` (`alive` / `dead` / `missing` / `unknown`, default `alive`) and `description` (100,000). `audience` is always `members`; a player's reading also needs a reveal (below). `owner_id` is the creator, and is cleared when that account is deleted (`delete_my_account` changes to allow this).
+- `npc_reveals`: `npc_id`, `campaign_id`, `created_at`, unique per pair. A row means: the players of that campaign see this NPC. **Nobody updates or deletes it through the API, the DM included** (a reveal is never undone, 1.13). The DM inserts it; for players it is made by `create_npc`. Players in the campaign read their campaign's rows. It disappears only when the NPC or the campaign is removed for good (cascade).
+- `npc_secrets`: one per NPC, audience `dm` only. The standard columns with `world_id`, plus `npc_id` (unique), `secrets` (100,000), `has_stats` (default false), `ac`, `hp_max`, `speed` (whole numbers, 0 to 9,999, may be empty), `strength` … `charisma` (1 to 30, default 10), `cr` (one of `0`, `1/8`, `1/4`, `1/2`, `1` … `30`, may be empty) and `actions` (100,000). A trigger creates it with every NPC; only the "dm all" policy exists, so players can neither read nor write it.
+- **Reading `npcs`:** the DM reads all. A player reads an NPC that is not deleted and has a reveal for a campaign they are a member of (`private.npc_visible`).
+- **Writing `npcs`:**
+  - `create_npc(campaign, name)`: a player must be a member of the campaign; it creates the NPC (owner: the caller) and its reveal to that campaign together. Called by the DM it creates a hidden NPC (no reveal). Direct inserts into `npcs` stay DM only.
+  - Players update any NPC they can read (the shared wiki, 1.13). A guard trigger stops them changing `world_id`, `owner_id`, `audience` or `deleted_at`.
+  - `delete_npc(id)`: DM only, soft-deletes the NPC and its secrets row.
+- **Permission test, new cases:** a player reads a revealed NPC and edits its text fields, but not a hidden one; a player in another campaign reads nothing of an NPC revealed only to the first; non-members read nothing; a player's `create_npc` reveals the NPC to their campaign, and is refused for a campaign they are not in; a player cannot insert into `npcs` or `npc_reveals` directly, nor change `world_id`, `owner_id`, `audience` or `deleted_at`, nor delete or soft-delete an NPC; nobody, the DM included, updates or deletes a reveal; players cannot read or write `npc_secrets`, not even on their own NPC; the DM reads and writes everything and `delete_npc` hides the NPC; refused: an empty name, an unknown status, an ability score of 31, an unknown CR; deleting the account of a player who created an NPC keeps the NPC without an owner.
+
 **Text length limits (all tables, 2026-09-27):** names 100 characters, one-line fields 500, notes and descriptions 100,000. Every new text column gets a limit in the migration that creates it.
 
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
@@ -1182,8 +1257,8 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 8: automatic character sheet (1.10): class list, race and background, proficiency, saving throws and skills, custom modifiers, armor and item bonuses, calculated AC and Passive Perception, death saves, inspiration | **Built** (2026-09-28), version `0.8.0-alpha`. Checked as DM in the browser; the player view is covered by the permission test. Fixes on 2026-09-30, version `0.8.1-alpha`: the tick boxes save again, death saves only at 0 HP, Dead tag. |
 | Phase 9: speed, data and battery (1.11): measured 2026-09-30; code split per screen, no white screen while loading, less data per screen, a size check in the build | **Built** (2026-10-07), version `0.9.0-alpha`. Login page 98 → 100, first text 1.8 → 0.8–1.1 s; character sheet 95 → 100; typing measured on the owner's phone. Since then, every push that changes the website raises the version (3.9). |
 | Phase 10: at the table (1.12): conditions, hit dice with Short and Long rest, party overview for the DM | **Built** (2026-10-07), version `0.10.0-alpha`. Checked as DM in the browser in the Stress test campaign; the player side is covered by the permission test. Tested by the group in Phase 4. |
-| Phase 11: lore and links (1.13): NPC and lore notes, then links in notes | After Phase 10; written out when started |
-| Phase 12: live combat (1.13): initiative tracker with Realtime | After Phase 11; written out when started |
+| Phase 11: NPCs and links (1.13): a World button with a shared NPC library (DM secrets and stats hidden), then `@` links to characters, gods and NPCs in notes | **Written out** (2026-10-07, owner's answers); next to build |
+| Phase 12: live combat (1.14): initiative tracker with Realtime | After Phase 11; written out when started |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (Lottie animations, session quiz, pictures, …) | Unordered |
 
@@ -1456,6 +1531,17 @@ One step per commit. **Do not add anything that is not in section 1.11.**
 
 One step per commit; each push that changes the website raises the last version number (3.9). **Do not add anything that is not in section 1.12.**
 
+### Phase 11: NPCs and links (section 1.13)
+1. **Migration**, with its new permission-test cases (section 4): `npcs`, `npc_reveals`, `npc_secrets`, `private.npc_visible`, `create_npc`, `delete_npc`, the guard trigger and the change to `delete_my_account`. Pushed alone first; the owner runs `db push`.
+2. **Rules** in `src/lib` with unit tests: the link format (write and read), the `@` matches, the challenge-rating list, and the NPC list (sort, filter, Hidden group).
+3. **World and the NPC list:** the World button on the dashboard (below Gods), `/world`, `/world/npcs` with the filter box, the Hidden group for the DM, and **+** New NPC.
+4. **NPC page:** role, status, location, faction, the description, and the **…** menu (Rename, Reveal, Delete).
+5. **DM secrets and stats** on the NPC page, for the DM only, with Add stats and Remove stats.
+6. **Links:** the `@` list in Edit and tappable links in Preview, in every `MarkdownNotes` box.
+7. **Finish:** check every step in the browser pane as DM, in the Stress test campaign. NPCs are world content, so test NPCs are revealed only to Stress test and deleted afterwards. Add Phase 11 lines to the Phase 4 checklist for players if the group test has not happened yet. Version `0.11.0-alpha`; update 3.9; fill in *As built* in 1.13.
+
+One step per commit; each push that changes the website raises the last version number (3.9). **Do not add anything that is not in section 1.13.**
+
 ---
 
 ## 6. Roadmap input (unordered; the owner decides what and when)
@@ -1467,16 +1553,18 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Inventory**, private to the owner and DM | The `owner` audience |
 | **Items with secret rules** (e.g. Longsword of Vengeance) | The separate-secret-row pattern in 3.3 |
 | **Lore database** with linked entries, written together | The world level, and Postgres suits linked data. Writing in the same document **at the same time** would need an extra technology (for example Yjs) and is a larger project. Taking turns editing works with the v1 conflict guard. |
-| **Live combat** with shared turn order *(Phase 12, 1.13)* | Add Supabase Realtime together with this feature |
+| **Live combat** with shared turn order *(Phase 12, 1.14)* | Add Supabase Realtime together with this feature |
 | **Image uploads** | `image_path` columns. Compress on the phone before upload. |
 | **Lottie animations** *(owner plan, 2026-09-24; the owner makes the files later, e.g. After Effects + Bodymovin)*: a splash screen and animated dashboard icons/buttons | The Phase 4.5 dashboard (1.5). Agreed behaviour: the splash shows on a cold start only, covers loading, fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**. Use the light SVG build of `lottie-web`, loaded lazily; pause off screen. Add an **Animations on/off** setting (per device, off by default when the phone asks for reduced motion) together with it. |
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
 | **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
 | **Player features: character notes and inventory** *(moved into Phase 6, see 1.8)* | |
-| **Session notes: character/god links** *(owner interest, 2026-09-24; Phase 11, 1.13)*: mention a character or god in the notes as a tappable link | The `sessions` table and markdown (1.4). Links can be stored as text markers, so no new table is needed. |
-| **Initiative tracker** *(owner interest; Phase 12, 1.13)*: turn order for combat that players see live on their phones | Needs Supabase Realtime, so this is the same project as Live combat |
-| **NPC / lore notes** *(owner interest; Phase 11, 1.13)*: NPCs, places and factions, each entry either DM only or shared with players, with secret parts in their own `dm` row | The world level, the `dm` / `members` audiences, and the separate-secret-row pattern in 3.3 |
+| **Session notes: character/god links** *(owner interest, 2026-09-24; in Phase 11 as `@` links in every notes box, 1.13)*: mention a character or god in the notes as a tappable link | The `sessions` table and markdown (1.4). Links can be stored as text markers, so no new table is needed. |
+| **Initiative tracker** *(owner interest; Phase 12, 1.14)*: turn order for combat that players see live on their phones | Needs Supabase Realtime, so this is the same project as Live combat |
+| **NPC / lore notes** *(owner interest; NPCs are Phase 11, 1.13)*: NPCs, places and factions, each entry either DM only or shared with players, with secret parts in their own `dm` row | The world level, the `dm` / `members` audiences, and the separate-secret-row pattern in 3.3 |
+| **More of the World button** *(owner plan, 2026-10-07; after Phase 11)*: places, towns, cities, buildings and factions as their own buttons under World, next to NPCs; the NPC's Location and Faction lines can then become links | The World button and the NPC library from Phase 11 (1.13): same world level, per-campaign reveals and shared wiki |
+| **NPC extras** *(left out of Phase 11, 2026-10-07)*: a "Mentioned in" list of back-links, a history of wiki edits, pictures, an attitude toward the party (the 7-step bar), links in the god notes and the quest giver and location fields | The `@` link format stores IDs, so back-links can be found by searching the notes |
 | **Tighter invites** *(offered 2026-09-25, not wanted for now)*: single-use links, or a maximum number of uses | `campaign_invites`; add a `max_uses` / used-by record |
 | **DM approves new players** *(offered 2026-09-25, not wanted for now)*: someone opening an invite waits until the DM taps Let in | `campaign_members`; add a pending state |
 | **Session quiz** *(owner idea, very future)*: a Kahoot-style quiz where players answer questions about the previous session, maybe with AI-generated questions | Needs Realtime for a live quiz. AI questions would read the DM-only notes, so the DM must approve every question before players see it (priority 2), and an AI API has a running cost (priority 3). |
@@ -1532,6 +1620,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 
 
 **Resolved:**
+- **Phase 11: NPCs and links** (owner decisions, 2026-10-07; see section 1.13): Phase 11 builds only NPCs, behind a new World button on the dashboard (places, towns, buildings and factions come there later); Gods stay on the dashboard; NPCs are one shared world library, revealed per campaign and never hidden again; a shared wiki where players create NPCs (revealed to their campaign at once) and edit every NPC they can see, with one shared text across campaigns; an NPC has a name, role, status, location, faction and description; DM secrets and optional stats (AC, HP, speed, the six abilities, CR, actions) are DM only, always; links are written by typing `@` and picking. Default chosen by the agent: only the DM deletes NPCs.
 - **Next phases** (owner, 2026-10-07): Phase 10 at the table (1.12), then Phase 11 lore and links and Phase 12 live combat (1.13). Phase 4 steps 1–3 this week, the group test next week, including Phase 10. Phase 10 decisions: conditions switched by the player and the DM, without rules text; the player types their hit die roll; the owner and the DM rest a character, and the DM also the whole party; the party overview is DM only.
 - **Version number on every website change** (owner, 2026-10-07; see 3.9): every push that changes the website raises the last number, a finished phase the middle one; the Deploy workflow refuses a website change without a new version.
 - **Phase 9: speed, data and battery** (owner decisions, 2026-09-30; see section 1.11): no reload on a return to the tab within 30 seconds; keep the full Supabase client; keep the local typing backup on every key press.
