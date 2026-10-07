@@ -5,12 +5,13 @@ import { EntryPickDialog } from '../components/EntryPickDialog'
 import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { RevealDialogs } from '../components/Reveal'
+import { SecretsSection } from '../components/Secrets'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
 import { forgetLinkTargets } from '../lib/linkTargets'
 import { useReveals, type RevealTable } from '../lib/reveals'
 import { useMe } from '../lib/me'
-import { useRowSaver } from '../lib/saver'
+import { useRowSaver, worstStatus, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import {
@@ -32,6 +33,7 @@ import { NAME_MAX } from '../lib/limits'
 type Open = 'menu' | 'name' | 'summary' | 'type' | 'parent' | 'reveal' | 'delete'
 
 const REVEALS: RevealTable = { table: 'world_entry_reveals', column: 'entry_id' }
+const SECRETS = { table: 'world_entry_secrets', column: 'entry_id' } as const
 
 /** /world/places/:entryId, …: one entry of any kind (ARCHITECTURE.md 1.14). */
 export function EntryPage() {
@@ -50,6 +52,7 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
   const navigate = useNavigate()
   const [open, setOpen] = useState<Open | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [secretsStatus, setSecretsStatus] = useState<SaveStatus>('saved')
   const close = () => setOpen(null)
   const list = `/world/${info.segment}`
   const dm = me.isDm
@@ -116,7 +119,7 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
         </button>
       </TopBar>
       <p className="page-status">
-        <SaveIndicator status={saver.status} />
+        <SaveIndicator status={dm ? worstStatus(saver.status, secretsStatus) : saver.status} />
       </p>
       {saver.status === 'conflict' && (
         <ConflictBanner onKeepMine={saver.keepMine} onUseTheirs={() => saver.discardMine(entry.reload)} />
@@ -183,6 +186,8 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
           </ul>
         </section>
       )}
+
+      {dm && <SecretsSection where={SECRETS} id={e.id} stats={e.kind === 'creature'} onStatus={setSecretsStatus} />}
 
       {open === 'menu' && (
         <PickDialog<Open>

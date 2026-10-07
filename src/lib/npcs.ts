@@ -23,11 +23,10 @@ export const NPC_COLUMNS = 'id, version, owner_id, name, role, status, location,
 export type NpcSummary = Omit<Npc, 'description' | 'version' | 'owner_id'>
 export const NPC_SUMMARY_COLUMNS = 'id, name, role, status, location, faction'
 
-/** The DM's own row per NPC: secrets and stats (audience 'dm'). */
-export type NpcSecrets = {
+/** The DM's own row per NPC or world entry: secrets and stats (audience 'dm'; 1.13, 1.14). */
+export type Secrets = {
   id: string
   version: number
-  npc_id: string
   secrets: string
   has_stats: boolean
   ac: number | null
@@ -37,8 +36,8 @@ export type NpcSecrets = {
   actions: string
 } & Record<Ability, number>
 
-export const NPC_SECRETS_COLUMNS =
-  'id, version, npc_id, secrets, has_stats, ac, hp_max, speed, cr, actions, ' +
+export const SECRETS_COLUMNS =
+  'id, version, secrets, has_stats, ac, hp_max, speed, cr, actions, ' +
   'strength, dexterity, constitution, intelligence, wisdom, charisma'
 
 export const NPC_STATUSES: { value: NpcStatus; label: string }[] = [

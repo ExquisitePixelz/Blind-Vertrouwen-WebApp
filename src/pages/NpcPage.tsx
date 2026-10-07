@@ -4,7 +4,7 @@ import { ConfirmDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { NpcName } from '../components/NpcName'
-import { NpcSecrets } from '../components/NpcSecrets'
+import { SecretsSection } from '../components/Secrets'
 import { RevealDialogs } from '../components/Reveal'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
@@ -20,6 +20,7 @@ import { NAME_MAX } from '../lib/limits'
 type Open = 'menu' | 'name' | 'role' | 'status' | 'location' | 'faction' | 'reveal' | 'delete'
 
 const REVEALS: RevealTable = { table: 'npc_reveals', column: 'npc_id' }
+const SECRETS = { table: 'npc_secrets', column: 'npc_id' } as const
 
 /**
  * One NPC (ARCHITECTURE.md 1.13). A shared wiki: everyone who can see it
@@ -115,7 +116,7 @@ export function NpcPage() {
         emptyText="No description yet. Tap Edit to write one."
       />
 
-      {dm && <NpcSecrets npcId={n.id} onStatus={setSecretsStatus} />}
+      {dm && <SecretsSection where={SECRETS} id={n.id} stats onStatus={setSecretsStatus} />}
 
       {open === 'menu' && (
         <PickDialog<Open>
