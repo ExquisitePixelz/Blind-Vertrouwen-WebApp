@@ -15,12 +15,15 @@ export type Npc = {
   location: string
   faction: string
   description: string
+  /** The place and faction entries (1.14); `location` and `faction` keep their names as text. */
+  place_id: string | null
+  faction_id: string | null
 }
 
-export const NPC_COLUMNS = 'id, version, owner_id, name, role, status, location, faction, description'
+export const NPC_COLUMNS = 'id, version, owner_id, name, role, status, location, faction, description, place_id, faction_id'
 
 /** An NPC without the description, for the list. */
-export type NpcSummary = Omit<Npc, 'description' | 'version' | 'owner_id'>
+export type NpcSummary = Omit<Npc, 'description' | 'version' | 'owner_id' | 'place_id' | 'faction_id'>
 export const NPC_SUMMARY_COLUMNS = 'id, name, role, status, location, faction'
 
 /** The DM's own row per NPC or world entry: secrets and stats (audience 'dm'; 1.13, 1.14). */

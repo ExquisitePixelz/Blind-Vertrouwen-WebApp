@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { ConfirmDialog, PickDialog, PromptDialog } from '../components/Dialog'
+import { EntryPickDialog } from '../components/EntryPickDialog'
 import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { NpcName } from '../components/NpcName'
@@ -15,6 +16,7 @@ import { NPC_COLUMNS, NPC_STATUSES, npcStatusLabel, type Npc, type NpcStatus } f
 import { useRowSaver, worstStatus, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
+import { entryPath, type WorldKind } from '../lib/world'
 import { NAME_MAX } from '../lib/limits'
 
 type Open = 'menu' | 'name' | 'role' | 'status' | 'location' | 'faction' | 'reveal' | 'delete'
@@ -47,6 +49,13 @@ export function NpcPage() {
   // The DM's reveal state: which campaigns do not see this NPC yet.
   const reveals = useReveals(REVEALS, npcId)
 
+  // The places and factions the user can see, for Location and Faction (1.14).
+  const entries = useLoad(async () => {
+    return must(
+      await supabase.from('world_entries').select('id, kind, name').in('kind', ['place', 'faction']).is('deleted_at', null),
+    ) as { id: string; kind: WorldKind; name: string }[]
+  }, [])
+
   const saver = useRowSaver<Npc>('npcs', npc.data ?? undefined, (saved) => npc.mutate(() => saved))
   const n = saver.view
   const tap = (patch: Partial<Npc>) => saver.change(patch, true)
@@ -69,6 +78,21 @@ export function NpcPage() {
   }
 
   const { hiddenFrom, current } = reveals
+  const all = entries.data ?? []
+  const sorted = (kind: WorldKind) => all.filter((x) => x.kind === kind).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+  const place = n.place_id ? all.find((x) => x.id === n.place_id) : undefined
+  const faction = n.faction_id ? all.find((x) => x.id === n.faction_id) : undefined
+
+  /** Create a place or faction from the picker: a player's is revealed to their campaign at once (1.14). */
+  async function createEntry(kind: WorldKind, name: string) {
+    if (!me.lastCampaignId) throw new Error('Open a campaign first.')
+    const created = must(
+      await supabase.rpc('create_world_entry', { p_campaign_id: me.lastCampaignId, p_kind: kind, p_name: name }),
+    ) as { id: string; kind: WorldKind; name: string }
+    entries.mutate((list) => [...(list ?? []), created])
+    forgetLinkTargets()
+    return created
+  }
 
   return (
     <main className="page">
@@ -98,6 +122,17 @@ export function NpcPage() {
       <h1 className="npc-heading">
         <NpcName npc={n} />
       </h1>
+      {(place || faction) && (
+        <p className="muted entry-chain">
+          {place && (
+            <>
+              At <Link to={entryPath('place', place.id)}>{place.name}</Link>
+            </>
+          )}
+          {place && faction && ' · '}
+          {faction && <Link to={entryPath('faction', faction.id)}>{faction.name}</Link>}
+        </p>
+      )}
 
       <div className="card">
         <FactRow label="Role" value={n.role} onClick={() => setOpen('role')} />
@@ -144,10 +179,24 @@ export function NpcPage() {
       )}
       {open === 'role' && <PromptDialog title="Role" initial={n.role} allowEmpty onClose={close} onSubmit={(role) => tap({ role })} />}
       {open === 'location' && (
-        <PromptDialog title="Location" initial={n.location} allowEmpty onClose={close} onSubmit={(location) => tap({ location })} />
+        <EntryPickDialog
+          title="Location"
+          options={sorted('place')}
+          currentId={n.place_id ?? (n.location ? '' : null)}
+          onClose={close}
+          onPick={(p) => tap({ place_id: p?.id ?? null, location: p?.name ?? '' })}
+          onCreate={(name) => createEntry('place', name)}
+        />
       )}
       {open === 'faction' && (
-        <PromptDialog title="Faction" initial={n.faction} allowEmpty onClose={close} onSubmit={(faction) => tap({ faction })} />
+        <EntryPickDialog
+          title="Faction"
+          options={sorted('faction')}
+          currentId={n.faction_id ?? (n.faction ? '' : null)}
+          onClose={close}
+          onPick={(f) => tap({ faction_id: f?.id ?? null, faction: f?.name ?? '' })}
+          onCreate={(name) => createEntry('faction', name)}
+        />
       )}
       {open === 'status' && (
         <PickDialog<NpcStatus> title="Status" options={NPC_STATUSES} onClose={close} onPick={(status) => tap({ status })} />

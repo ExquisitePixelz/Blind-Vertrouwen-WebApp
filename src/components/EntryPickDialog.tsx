@@ -7,7 +7,8 @@ type Option = { id: string; name: string }
 
 /**
  * Pick a world entry from a long list (1.14): a filter box on top, then the
- * matches by name. "None" clears the choice. With `onCreate`, a name that is
+ * matches by name. "None" clears the choice (shown when there is one; pass ""
+ * for a choice that is only text). With `onCreate`, a name that is
  * not in the list can be created and picked at once.
  */
 export function EntryPickDialog<O extends Option>({
@@ -76,7 +77,7 @@ export function EntryPickDialog<O extends Option>({
       </form>
       {error && <p className="error">{error}</p>}
       <div className="pick-list">
-        {currentId && (
+        {currentId !== null && (
           <button type="button" className="pick-option muted" onClick={() => pick(null)}>
             None
           </button>

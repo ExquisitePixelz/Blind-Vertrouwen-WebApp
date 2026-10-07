@@ -4,6 +4,7 @@ import { ConfirmDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { EntryPickDialog } from '../components/EntryPickDialog'
 import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
+import { NpcName } from '../components/NpcName'
 import { RevealDialogs } from '../components/Reveal'
 import { SecretsSection } from '../components/Secrets'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
@@ -11,6 +12,7 @@ import { TopBar } from '../components/TopBar'
 import { forgetLinkTargets } from '../lib/linkTargets'
 import { useReveals, type RevealTable } from '../lib/reveals'
 import { useMe } from '../lib/me'
+import { byName, type Npc } from '../lib/npcs'
 import { useRowSaver, worstStatus, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
@@ -79,6 +81,16 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
       await supabase.from('world_entries').select(ENTRY_SUMMARY_COLUMNS).eq('kind', 'place').is('deleted_at', null),
     ) as EntrySummary[]
   }, [isPlace, entryId])
+
+  // People here (a place) or Members (a faction): the NPCs the reader can see (1.14).
+  const npcColumn = info.kind === 'place' ? 'place_id' : info.kind === 'faction' ? 'faction_id' : null
+  const people = useLoad(async () => {
+    if (!npcColumn) return [] as Pick<Npc, 'id' | 'name' | 'status' | 'role'>[]
+    const rows = must(
+      await supabase.from('npcs').select('id, name, status, role').eq(npcColumn, entryId).is('deleted_at', null),
+    ) as Pick<Npc, 'id' | 'name' | 'status' | 'role'>[]
+    return rows.sort(byName)
+  }, [npcColumn, entryId])
 
   const saver = useRowSaver<WorldEntry>('world_entries', entry.data ?? undefined, (saved) => entry.mutate(() => saved))
   const e = saver.view
@@ -180,6 +192,24 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
                   <strong>{p.name}</strong>
                   {p.type && <span className="chip npc-status">{typeLabel('place', p.type)}</span>}
                   {p.summary && <div>{p.summary}</div>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {!!people.data?.length && (
+        <section>
+          <h2>{info.kind === 'place' ? 'People here' : 'Members'}</h2>
+          <ul className="list">
+            {people.data.map((npc) => (
+              <li key={npc.id}>
+                <Link to={`/world/npcs/${npc.id}`} className="row">
+                  <strong>
+                    <NpcName npc={npc} />
+                  </strong>
+                  {npc.role && <div>{npc.role}</div>}
                 </Link>
               </li>
             ))}
