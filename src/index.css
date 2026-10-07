@@ -291,6 +291,16 @@ button.popover-item {
   vertical-align: middle;
 }
 
+/* An NPC's status after its name (1.13): Missing and Unknown muted, Dead red. */
+.chip.npc-status {
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.chip.npc-status:not(.dead) {
+  color: var(--muted);
+}
+
 /* ---------- Lists ---------- */
 
 .list {
@@ -1626,4 +1636,11 @@ button.party-rest {
   margin-top: 0.5rem;
   padding: 0.8rem;
   font-weight: 600;
+}
+
+/* ---------- NPCs (1.13) ---------- */
+
+.npc-filter {
+  width: 100%;
+  margin-bottom: 1rem;
 }

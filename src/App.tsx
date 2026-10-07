@@ -33,6 +33,8 @@ const SessionPage = lazy(() => import('./pages/SessionPage').then((m) => ({ defa
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const GodsPage = lazy(() => import('./pages/GodsPage').then((m) => ({ default: m.GodsPage })))
 const GodPage = lazy(() => import('./pages/GodPage').then((m) => ({ default: m.GodPage })))
+const WorldPage = lazy(() => import('./pages/WorldPage').then((m) => ({ default: m.WorldPage })))
+const NpcsPage = lazy(() => import('./pages/NpcsPage').then((m) => ({ default: m.NpcsPage })))
 
 export default function App() {
   return (
@@ -154,6 +156,8 @@ function Screens() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/gods" element={<GodsPage />} />
         <Route path="/gods/:slug" element={<GodPage />} />
+        <Route path="/world" element={<WorldPage />} />
+        <Route path="/world/npcs" element={<NpcsPage />} />
         <Route path="/invite/:code" element={<InvitePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

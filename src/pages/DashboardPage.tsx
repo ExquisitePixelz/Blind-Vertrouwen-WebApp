@@ -92,6 +92,9 @@ function Dashboard({ campaign }: { campaign: Campaign }) {
         <Link className="dash-button" to="/gods">
           Gods
         </Link>
+        <Link className="dash-button" to="/world">
+          World
+        </Link>
         {me.isDm && (
           <>
             <Link className="dash-button" to={`${base}/party`}>
