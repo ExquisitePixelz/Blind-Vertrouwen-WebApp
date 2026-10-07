@@ -416,9 +416,27 @@ button.icon {
 
 .dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+
+/* A word never breaks inside a button; when the row is too narrow, a whole
+   button moves to a second line instead. */
+.dialog-actions button {
+  white-space: nowrap;
+}
+
+/* Several choices (Damage, Heal, Set): equal buttons across the full width,
+   with less padding so they fit side by side on a phone. */
+.dialog-actions.spread {
+  gap: 0.4rem;
+}
+
+.dialog-actions.spread button {
+  flex: 1 1 0;
+  padding-inline: 0.4rem;
 }
 
 /* ---------- Cards and fact rows ---------- */
@@ -1494,13 +1512,31 @@ button.pip:disabled {
   gap: 0.3rem;
 }
 
+/* Each condition its own colour (text, border and a faint fill), so the DM
+   reads the party at a glance. Invisible gets a dashed border. */
 .chip.condition {
   color: var(--text);
-  border-color: var(--muted);
+  background: color-mix(in srgb, currentColor 14%, transparent);
 }
+
+.chip.condition[data-condition='blinded'] { color: #a4a8af; }
+.chip.condition[data-condition='charmed'] { color: #f08cc8; }
+.chip.condition[data-condition='deafened'] { color: #c9a882; }
+.chip.condition[data-condition='frightened'] { color: #b48cf0; }
+.chip.condition[data-condition='grappled'] { color: #d9b45e; }
+.chip.condition[data-condition='incapacitated'] { color: #f2876b; }
+.chip.condition[data-condition='invisible'] { color: #9fe3f0; border-style: dashed; }
+.chip.condition[data-condition='paralyzed'] { color: #6fa8f0; }
+.chip.condition[data-condition='petrified'] { color: #c2b9a8; }
+.chip.condition[data-condition='poisoned'] { color: #7fcf6a; }
+.chip.condition[data-condition='prone'] { color: #b08a63; }
+.chip.condition[data-condition='restrained'] { color: #d6794a; }
+.chip.condition[data-condition='stunned'] { color: #f2dc5d; }
+.chip.condition[data-condition='unconscious'] { color: #8a94e6; }
 
 .chip.exhaustion {
   color: #e0a05c;
+  background: color-mix(in srgb, currentColor 14%, transparent);
 }
 
 /* A list inside a dialog: darker than the dialog, and scrolls on a small phone. */

@@ -187,7 +187,7 @@ export function NumberDialog({
           onFocus={(e) => e.target.select()}
           autoFocus
         />
-        <div className="dialog-actions">
+        <div className={`dialog-actions${actions.length > 1 ? ' spread' : ''}`}>
           <button type="button" className="secondary" onClick={onClose}>
             Cancel
           </button>

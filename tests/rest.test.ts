@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { isDead } from '../src/lib/character.ts'
 import {
-  conditionChips,
+  activeConditions,
   diceBack,
   dieForName,
   formatHitDice,
@@ -21,8 +21,11 @@ test('conditions keep the SRD order, each at most once', () => {
   assert.deepEqual(toggleCondition(['prone'], 'blinded', true), ['blinded', 'prone'])
   assert.deepEqual(toggleCondition(['blinded', 'prone'], 'prone', true), ['blinded', 'prone'])
   assert.deepEqual(toggleCondition(['blinded', 'prone'], 'blinded', false), ['prone'])
-  assert.deepEqual(conditionChips(['poisoned', 'charmed'], 0), ['Charmed', 'Poisoned'])
-  assert.deepEqual(conditionChips([], 3), ['Exhaustion 3'])
+  assert.deepEqual(
+    activeConditions(['poisoned', 'charmed']).map((c) => c.label),
+    ['Charmed', 'Poisoned'],
+  )
+  assert.deepEqual(activeConditions([]), [])
 })
 
 test('exhaustion 6 is death, like three failed death saves at 0 HP', () => {

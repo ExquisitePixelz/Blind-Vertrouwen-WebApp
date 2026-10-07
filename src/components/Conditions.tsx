@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Dialog } from './Dialog'
-import { CONDITIONS, conditionChips, MAX_EXHAUSTION, type ConditionKey } from '../lib/rest'
+import { activeConditions, CONDITIONS, MAX_EXHAUSTION, type ConditionKey } from '../lib/rest'
 
-/** The active conditions as chips, then `Exhaustion n` when above 0 (1.12). */
+/** The active conditions as chips, each in its own colour, then `Exhaustion n` when above 0 (1.12). */
 export function ConditionChips({ conditions, exhaustion }: { conditions: ConditionKey[]; exhaustion: number }) {
   return (
     <span className="chips">
-      {conditionChips(conditions, 0).map((label) => (
-        <span key={label} className="chip condition">
+      {activeConditions(conditions).map(({ key, label }) => (
+        <span key={key} className="chip condition" data-condition={key}>
           {label}
         </span>
       ))}

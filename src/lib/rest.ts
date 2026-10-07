@@ -49,10 +49,9 @@ export function toggleCondition(list: ConditionKey[], key: ConditionKey, on: boo
   return CONDITIONS.map((c) => c.key).filter((k) => next.has(k))
 }
 
-/** The labels of the active conditions, in the order above, plus "Exhaustion n" when above 0. */
-export function conditionChips(list: ConditionKey[], exhaustion: number): string[] {
-  const chips = CONDITIONS.filter((c) => list.includes(c.key)).map((c) => c.label)
-  return exhaustion > 0 ? [...chips, `Exhaustion ${exhaustion}`] : chips
+/** The active conditions, in the order above. */
+export function activeConditions(list: ConditionKey[]): { key: ConditionKey; label: string }[] {
+  return CONDITIONS.filter((c) => list.includes(c.key))
 }
 
 export type Die = 6 | 8 | 10 | 12
