@@ -1658,3 +1658,38 @@ button.party-rest {
 .npc-cr {
   margin-top: 0.5rem;
 }
+
+/* Links in notes (1.13): a tappable gold name, and the @ list below the text. */
+.markdown a.mention {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.mention-list {
+  list-style: none;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.25rem 0;
+  background: var(--surface);
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+}
+
+.mention-list button {
+  display: flex;
+  width: 100%;
+  min-height: var(--tap);
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 1rem;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.mention-list button.on {
+  background: #2a2a30;
+}
