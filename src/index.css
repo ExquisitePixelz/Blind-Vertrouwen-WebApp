@@ -1719,3 +1719,17 @@ button.chip-button.on {
   background: var(--gold);
   color: var(--bg);
 }
+
+.entry-chain {
+  margin: -0.5rem 0 1rem;
+}
+
+.entry-chain a {
+  color: var(--gold);
+  text-decoration: none;
+}
+
+button.pick-create {
+  width: 100%;
+  margin: 0.5rem 0;
+}
