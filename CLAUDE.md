@@ -9,4 +9,4 @@ Read ARCHITECTURE.md before doing any work. It is the plan and decision record f
 - Raise the version in package.json (and package-lock.json) in every push that changes the website; a finished phase raises the middle number (ARCHITECTURE.md 3.9). The Deploy workflow refuses a website change without a new version.
 - Never commit secrets: no Supabase service-role key, database password or data exports.
 
-Current phase: none being built. Phases 4.5 to 11 are built (Phase 11: NPCs and links, version 0.11.0-alpha). Phase 4 steps 1–3 run this week (the Stress test campaign already exists); its group test is next week and includes Phases 10 and 11 (section 5). Phase 12 (the rest of World, section 1.14) is written out and next to build. Phase 13 (live combat, section 1.15) follows: ask the owner's questions first.
+Current phase: none being built. Phases 4.5 to 12 are built (Phase 12: the rest of World, version 0.12.0-alpha). Phase 4 steps 1–3 run this week (the Stress test campaign already exists); its group test is next week and includes Phases 10 to 12 (section 5). Phase 13 (live combat, section 1.15) is next: ask the owner's questions first.
