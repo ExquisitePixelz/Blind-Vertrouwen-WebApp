@@ -1766,6 +1766,211 @@ describe('NPCs (Phase 11)', () => {
   })
 })
 
+describe('the rest of World (Phase 12)', () => {
+  type Row = Record<string, unknown> & { id: string; version: number }
+  let farPlayer: Awaited<ReturnType<typeof makeUser>> // only in the other campaign
+  let players: () => Awaited<ReturnType<typeof makeUser>>[]
+  let meletis: Row // the DM's place, revealed to the test campaign
+  let temple: Row // the DM's place, revealed, part of nothing yet
+  let cult: Row // the DM's faction, revealed
+  let hiddenLore: Row // the DM's, never revealed
+  const create = async (user: { db: SupabaseClient }, kind: string, name: string) =>
+    ok(await user.db.rpc('create_world_entry', { p_campaign_id: campaignId, p_kind: kind, p_name: name })) as Row
+  const reveal = async (entry: Row, campaign = campaignId) =>
+    ok(await dm.db.from('world_entry_reveals').insert({ entry_id: entry.id, campaign_id: campaign }))
+  const reads = async (user: { db: SupabaseClient }, entry: Row) =>
+    ok(await user.db.from('world_entries').select('id').eq('id', entry.id)).length === 1
+  const latest = async (entry: Row) => ok(await admin.from('world_entries').select('*').eq('id', entry.id).single()) as Row
+  const edit = async (user: { db: SupabaseClient }, entry: Row, fields: Record<string, unknown>) =>
+    user.db.from('world_entries').update({ ...fields, version: (await latest(entry)).version }).eq('id', entry.id).select()
+  const secretsOf = async (entry: Row) =>
+    ok(await admin.from('world_entry_secrets').select('*').eq('entry_id', entry.id).single()) as Row
+  const editSecrets = async (user: { db: SupabaseClient }, entry: Row, fields: Record<string, unknown>) => {
+    const row = await secretsOf(entry)
+    return user.db.from('world_entry_secrets').update({ ...fields, version: row.version }).eq('id', row.id).select()
+  }
+
+  before(async () => {
+    farPlayer = await makeUser('far-player-world')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: otherCampaignId, user_id: farPlayer.id }))
+    players = () => [playerA, playerB, farPlayer, outsider]
+    meletis = await create(dm, 'place', 'Meletis')
+    temple = await create(dm, 'place', 'Temple of Ephara')
+    cult = await create(dm, 'faction', 'Cult of Erebos')
+    hiddenLore = await create(dm, 'lore', 'The Silence')
+    for (const entry of [meletis, temple, cult]) await reveal(entry)
+  })
+
+  test('The DM’s new entry is hidden, with a DM-only secrets row; places and lore start as type "other"', async () => {
+    assert.equal(meletis.type, 'other')
+    assert.equal(hiddenLore.type, 'other')
+    assert.equal(cult.type, null)
+    for (const user of players()) assert.equal(await reads(user, hiddenLore), false, 'a player reads a hidden entry')
+    assert.equal(await reads(dm, hiddenLore), true)
+    assert.equal((await secretsOf(hiddenLore)).audience, 'dm')
+    noEffect(await edit(playerA, hiddenLore, { summary: 'Leaked' }), 'a player edits a hidden entry')
+  })
+
+  test('A revealed entry is read and edited by its campaign only (the shared wiki)', async () => {
+    assert.equal(await reads(playerA, meletis), true)
+    assert.equal(await reads(playerB, meletis), true)
+    assert.equal(await reads(farPlayer, meletis), false)
+    assert.equal(await reads(outsider, meletis), false)
+    const saved = ok(
+      await edit(playerB, meletis, { name: 'Meletis', summary: 'City of philosophers', type: 'city', description: 'Big.' }),
+    ) as Row[]
+    assert.equal(saved[0].type, 'city')
+    noEffect(await edit(farPlayer, meletis, { summary: 'Nope' }), 'a player of another campaign edits')
+    refused(
+      await playerA.db.from('world_entries').update({ summary: 'Old', version: 1 }).eq('id', meletis.id).select(),
+      'a save with an old version (conflict guard)',
+    )
+  })
+
+  test('A reveal is never undone, not even by the DM; only the DM reveals', async () => {
+    noEffect(await dm.db.from('world_entry_reveals').delete().eq('entry_id', meletis.id).select(), 'the DM deletes a reveal')
+    noEffect(
+      await dm.db.from('world_entry_reveals').update({ campaign_id: otherCampaignId }).eq('entry_id', meletis.id).select(),
+      'the DM moves a reveal',
+    )
+    refused(
+      await playerA.db.from('world_entry_reveals').insert({ entry_id: hiddenLore.id, campaign_id: campaignId }),
+      'a player reveals',
+    )
+    assert.equal(await reads(playerA, meletis), true)
+    assert.equal(await reads(playerA, hiddenLore), false)
+  })
+
+  test('A player’s new entry is revealed to their campaign at once; nowhere else', async () => {
+    for (const kind of ['place', 'faction', 'lore', 'creature', 'item']) {
+      const mine = await create(playerA, kind, `Mine ${kind}`)
+      assert.equal(mine.owner_id, playerA.id)
+      assert.equal(await reads(playerB, mine), true, kind)
+      assert.equal(await reads(farPlayer, mine), false, kind)
+    }
+    refused(
+      await playerA.db.rpc('create_world_entry', { p_campaign_id: otherCampaignId, p_kind: 'place', p_name: 'Sneaky' }),
+      'a campaign the player is not in',
+    )
+    refused(await outsider.db.rpc('create_world_entry', { p_campaign_id: campaignId, p_kind: 'place', p_name: 'X' }), 'outsider')
+    refused(await playerA.db.rpc('create_world_entry', { p_campaign_id: campaignId, p_kind: 'god', p_name: 'X' }), 'unknown kind')
+    refused(await playerA.db.rpc('create_world_entry', { p_campaign_id: campaignId, p_kind: 'place', p_name: ' ' }), 'empty name')
+    refused(
+      await playerA.db.from('world_entries').insert({ world_id: await firstWorldId(), kind: 'item', name: 'Direct' }),
+      'a direct insert by a player',
+    )
+  })
+
+  test('Nobody changes an entry’s kind; players cannot change who made it, its world, its audience, or delete it', async () => {
+    refused(await edit(dm, cult, { kind: 'item' }), 'the DM changes the kind')
+    refused(await edit(playerA, cult, { kind: 'item' }), 'a player changes the kind')
+    refused(await edit(playerA, cult, { owner_id: playerA.id }), 'owner_id')
+    refused(await edit(playerA, cult, { world_id: randomUUID() }), 'world_id')
+    refused(await edit(playerA, cult, { audience: 'dm' }), 'audience')
+    refused(await edit(playerA, cult, { deleted_at: new Date().toISOString() }), 'soft delete')
+    noEffect(await playerA.db.from('world_entries').delete().eq('id', cult.id).select(), 'a hard delete')
+    refused(await playerA.db.rpc('delete_world_entry', { p_entry_id: cult.id }), 'delete_world_entry by a player')
+    assert.equal(await reads(playerA, cult), true)
+  })
+
+  test('Types fit the kind: place and lore types, none for the rest', async () => {
+    refused(await edit(dm, meletis, { type: 'legend' }), 'a lore type on a place')
+    refused(await edit(dm, meletis, { type: null }), 'a place without a type')
+    refused(await edit(dm, hiddenLore, { type: 'city' }), 'a place type on lore')
+    ok(await edit(dm, hiddenLore, { type: 'prophecy' }))
+    refused(await edit(dm, cult, { type: 'other' }), 'a type on a faction')
+  })
+
+  test('A place is part of a live place of the same world, never of itself or of a place inside it', async () => {
+    ok(await edit(playerA, temple, { parent_id: meletis.id }))
+    const crypt = await create(playerA, 'place', 'The Crypt')
+    ok(await edit(playerA, crypt, { parent_id: temple.id }))
+    refused(await edit(playerA, meletis, { parent_id: meletis.id }), 'part of itself')
+    refused(await edit(dm, meletis, { parent_id: crypt.id }), 'part of a place inside it (a loop)')
+    refused(await edit(dm, crypt, { parent_id: cult.id }), 'part of a faction')
+    refused(await edit(dm, cult, { parent_id: meletis.id }), 'a faction that is part of a place')
+    refused(await edit(dm, crypt, { parent_id: randomUUID() }), 'an unknown place')
+    const ruin = await create(dm, 'place', 'Ruin')
+    ok(await dm.db.rpc('delete_world_entry', { p_entry_id: ruin.id }))
+    refused(await edit(dm, crypt, { parent_id: ruin.id }), 'a deleted place')
+    assert.equal((await latest(crypt)).parent_id, temple.id)
+  })
+
+  test('Secrets and stats are the DM’s only, also on a player’s own entry', async () => {
+    const beast = await create(playerB, 'creature', 'Hydra')
+    for (const entry of [meletis, beast]) {
+      for (const user of players()) {
+        assert.equal(ok(await user.db.from('world_entry_secrets').select('id').eq('entry_id', entry.id)).length, 0)
+        noEffect(await editSecrets(user, entry, { secrets: 'Leaked' }), 'a player writes secrets')
+      }
+    }
+    refused(
+      await playerB.db.from('world_entry_secrets').insert({ entry_id: beast.id, world_id: await firstWorldId() }),
+      'a player inserts secrets',
+    )
+    const saved = ok(
+      await editSecrets(dm, beast, { secrets: 'Five heads', has_stats: true, ac: 15, hp_max: 172, cr: '8', strength: 20 }),
+    ) as Row[]
+    assert.equal(saved[0].hp_max, 172)
+    refused(await editSecrets(dm, beast, { cr: '1/3' }), 'an unknown CR')
+    refused(await editSecrets(dm, beast, { dexterity: 31 }), 'an ability of 31')
+    refused(await editSecrets(dm, beast, { audience: 'members' }), 'secrets made visible')
+  })
+
+  test('An NPC’s place must be a place and its faction a faction', async () => {
+    const npc = ok(await playerA.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Priestess' })) as Row
+    const npcEdit = async (fields: Record<string, unknown>) => {
+      const row = ok(await admin.from('npcs').select('version').eq('id', npc.id).single())
+      return playerA.db.from('npcs').update({ ...fields, version: row.version }).eq('id', npc.id).select()
+    }
+    ok(await npcEdit({ place_id: temple.id, location: 'Temple of Ephara', faction_id: cult.id, faction: 'Cult of Erebos' }))
+    refused(await npcEdit({ place_id: cult.id }), 'a faction as location')
+    refused(await npcEdit({ faction_id: meletis.id }), 'a place as faction')
+    refused(await npcEdit({ place_id: randomUUID() }), 'an unknown place')
+    let row = ok(await admin.from('npcs').select('place_id, faction_id').eq('id', npc.id).single())
+    assert.equal(row.place_id, temple.id)
+    const shrine = await create(dm, 'place', 'Shrine')
+    ok(await npcEdit({ place_id: shrine.id }))
+    ok(await dm.db.from('world_entries').delete().eq('id', shrine.id)) // a hard delete by the DM
+    row = ok(await admin.from('npcs').select('place_id, faction_id').eq('id', npc.id).single())
+    assert.equal(row.place_id, null, 'a place removed for good clears the link')
+    assert.equal(row.faction_id, cult.id)
+  })
+
+  test('delete_world_entry hides the entry from players, not from the DM', async () => {
+    const doomed = await create(playerA, 'item', 'Cursed Blade')
+    ok(await dm.db.rpc('delete_world_entry', { p_entry_id: doomed.id }))
+    assert.equal(await reads(playerA, doomed), false)
+    noEffect(await edit(playerA, doomed, { summary: 'Back' }), 'a player edits a deleted entry')
+    assert.ok((await latest(doomed)).deleted_at)
+    assert.ok((await secretsOf(doomed)).deleted_at)
+    refused(
+      await dm.db.from('world_entry_reveals').insert({ entry_id: doomed.id, campaign_id: otherCampaignId }),
+      'revealing a deleted entry',
+    )
+  })
+
+  test('Deleting the account of a player who made an entry keeps it, without an owner', async () => {
+    const quitter = await makeUser('quitter-world')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: campaignId, user_id: quitter.id }))
+    const made = await create(quitter, 'faction', 'Left Behind')
+    ok(await quitter.db.rpc('delete_my_account'))
+    const row = await latest(made)
+    assert.equal(row.owner_id, null)
+    assert.equal(row.deleted_at, null)
+    assert.equal(await reads(playerA, made), true)
+  })
+
+  test('Someone not logged in cannot read or write world entries', async () => {
+    for (const table of ['world_entries', 'world_entry_reveals', 'world_entry_secrets']) {
+      const result = await anon.from(table).select('*')
+      assert.ok(result.error || result.data.length === 0, `anonymous sees ${table}`)
+    }
+    refused(await anon.rpc('create_world_entry', { p_campaign_id: campaignId, p_kind: 'place', p_name: 'Spam' }), 'create')
+    refused(await anon.rpc('delete_world_entry', { p_entry_id: meletis.id }), 'delete')
+  })
+})
+
 describe('text length limits (Phase 4)', () => {
   const long = (n: number) => 'x'.repeat(n)
 
