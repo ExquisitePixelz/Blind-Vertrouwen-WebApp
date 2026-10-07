@@ -1564,6 +1564,208 @@ describe('at the table (Phase 10)', () => {
   })
 })
 
+describe('NPCs (Phase 11)', () => {
+  type Row = Record<string, unknown> & { id: string; version: number }
+  let farPlayer: Awaited<ReturnType<typeof makeUser>> // only in the other campaign
+  let hidden: Row // the DM's, never revealed
+  let ilona: Row // the DM's, revealed to the test campaign
+  let farOnly: Row // the DM's, revealed only to the other campaign
+  let players: () => Awaited<ReturnType<typeof makeUser>>[]
+  const reads = async (user: { db: SupabaseClient }, npc: Row) =>
+    ok(await user.db.from('npcs').select('id').eq('id', npc.id)).length === 1
+  const latest = async (npc: Row) => ok(await admin.from('npcs').select('*').eq('id', npc.id).single()) as Row
+  const edit = async (user: { db: SupabaseClient }, npc: Row, fields: Record<string, unknown>) =>
+    user.db.from('npcs').update({ ...fields, version: (await latest(npc)).version }).eq('id', npc.id).select()
+  const secretsOf = async (npc: Row) =>
+    ok(await admin.from('npc_secrets').select('*').eq('npc_id', npc.id).single()) as Row
+  const editSecrets = async (user: { db: SupabaseClient }, npc: Row, fields: Record<string, unknown>) => {
+    const row = await secretsOf(npc)
+    return user.db.from('npc_secrets').update({ ...fields, version: row.version }).eq('id', row.id).select()
+  }
+
+  before(async () => {
+    farPlayer = await makeUser('far-player')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: otherCampaignId, user_id: farPlayer.id }))
+    players = () => [playerA, playerB, farPlayer, outsider]
+    hidden = ok(await dm.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: '  Secret Sage  ' }))
+    ilona = ok(await dm.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Ilona' }))
+    farOnly = ok(await dm.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Far Away' }))
+  })
+
+  test('The DM’s new NPC is hidden from everyone but the DM, with a DM-only secrets row', async () => {
+    assert.equal(hidden.name, 'Secret Sage')
+    assert.equal(hidden.status, 'alive')
+    assert.equal(hidden.owner_id, dm.id)
+    for (const user of players()) assert.equal(await reads(user, hidden), false, 'a player reads a hidden NPC')
+    assert.equal(await reads(dm, hidden), true)
+    assert.equal(ok(await admin.from('npc_reveals').select('npc_id').eq('npc_id', hidden.id)).length, 0)
+    const secrets = ok(await dm.db.from('npc_secrets').select('*').eq('npc_id', hidden.id).single())
+    assert.equal(secrets.audience, 'dm')
+    assert.equal(secrets.has_stats, false)
+    noEffect(await edit(playerA, hidden, { role: 'Spy' }), 'a player edits a hidden NPC')
+  })
+
+  test('A revealed NPC is read and edited by its campaign only (the shared wiki)', async () => {
+    ok(await dm.db.from('npc_reveals').insert({ npc_id: ilona.id, campaign_id: campaignId }))
+    ok(await dm.db.from('npc_reveals').insert({ npc_id: farOnly.id, campaign_id: otherCampaignId }))
+    assert.equal(await reads(playerA, ilona), true)
+    assert.equal(await reads(playerB, ilona), true)
+    assert.equal(await reads(farPlayer, ilona), false, 'a player of another campaign')
+    assert.equal(await reads(outsider, ilona), false)
+    assert.equal(await reads(playerA, farOnly), false, 'revealed only to the other campaign')
+    assert.equal(await reads(farPlayer, farOnly), true)
+
+    const edited = ok(
+      await edit(playerB, ilona, {
+        name: 'Ilona the Oracle',
+        role: 'Oracle of Meletis',
+        status: 'missing',
+        location: 'Meletis',
+        faction: 'Temple of Ephara',
+        description: 'We think she lies.',
+      }),
+    ) as Row[]
+    assert.equal(edited[0].role, 'Oracle of Meletis')
+    assert.equal(edited[0].owner_id, dm.id, 'the creator stays')
+    noEffect(await edit(farPlayer, ilona, { role: 'Nobody' }), 'a player of another campaign edits')
+    noEffect(await edit(outsider, ilona, { role: 'Nobody' }), 'an outsider edits')
+    refused(
+      await playerA.db.from('npcs').update({ role: 'Old', version: 1 }).eq('id', ilona.id).select(),
+      'a save with an old version (conflict guard)',
+    )
+  })
+
+  test('A reveal is never undone, not even by the DM; only the DM reveals', async () => {
+    noEffect(await dm.db.from('npc_reveals').delete().eq('npc_id', ilona.id).select(), 'the DM deletes a reveal')
+    noEffect(
+      await dm.db.from('npc_reveals').update({ campaign_id: otherCampaignId }).eq('npc_id', ilona.id).select(),
+      'the DM moves a reveal',
+    )
+    noEffect(await playerA.db.from('npc_reveals').delete().eq('npc_id', ilona.id).select(), 'a player deletes a reveal')
+    assert.equal(ok(await admin.from('npc_reveals').select('npc_id').eq('npc_id', ilona.id)).length, 1)
+    assert.equal(await reads(playerA, ilona), true)
+
+    refused(
+      await playerA.db.from('npc_reveals').insert({ npc_id: hidden.id, campaign_id: campaignId }),
+      'a player reveals a hidden NPC',
+    )
+    refused(
+      await farPlayer.db.from('npc_reveals').insert({ npc_id: ilona.id, campaign_id: otherCampaignId }),
+      'a player reveals an NPC to their own campaign',
+    )
+    assert.equal(await reads(playerA, hidden), false)
+    assert.equal(await reads(farPlayer, ilona), false)
+  })
+
+  test('A player’s new NPC is revealed to their campaign at once; nowhere else', async () => {
+    const mine = ok(await playerA.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Harbourmaster' })) as Row
+    assert.equal(mine.owner_id, playerA.id)
+    assert.equal(await reads(playerB, mine), true)
+    assert.equal(await reads(farPlayer, mine), false)
+    assert.equal(await reads(outsider, mine), false)
+    assert.equal(await reads(dm, mine), true)
+    ok(await edit(dm, mine, { role: 'Edited by the DM' }))
+    ok(await edit(playerB, mine, { role: 'Edited by Player B' }))
+
+    refused(
+      await playerA.db.rpc('create_npc', { p_campaign_id: otherCampaignId, p_name: 'Sneaky' }),
+      'create_npc for a campaign the player is not in',
+    )
+    refused(await outsider.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Sneaky' }), 'an outsider')
+    refused(await playerA.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: '   ' }), 'an empty name')
+    const world = await firstWorldId()
+    refused(await playerA.db.from('npcs').insert({ world_id: world, name: 'Direct' }), 'a direct insert by a player')
+  })
+
+  test('Players cannot change who made an NPC, its world, its audience, or delete it', async () => {
+    refused(await edit(playerA, ilona, { owner_id: playerA.id }), 'owner_id')
+    refused(await edit(playerA, ilona, { world_id: randomUUID() }), 'world_id')
+    refused(await edit(playerA, ilona, { audience: 'dm' }), 'audience')
+    refused(await edit(playerA, ilona, { deleted_at: new Date().toISOString() }), 'soft delete')
+    noEffect(await playerA.db.from('npcs').delete().eq('id', ilona.id).select(), 'a hard delete')
+    refused(await playerA.db.rpc('delete_npc', { p_npc_id: ilona.id }), 'delete_npc by a player')
+    assert.equal(await reads(playerA, ilona), true)
+  })
+
+  test('Secrets and stats are the DM’s only, also on a player’s own NPC', async () => {
+    const mine = ok(await playerB.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Fisher' })) as Row
+    for (const npc of [ilona, mine]) {
+      for (const user of players()) {
+        assert.equal(ok(await user.db.from('npc_secrets').select('id').eq('npc_id', npc.id)).length, 0, 'reads secrets')
+        noEffect(await editSecrets(user, npc, { secrets: 'Leaked' }), 'writes secrets')
+      }
+    }
+    refused(await playerB.db.from('npc_secrets').insert({ npc_id: mine.id, world_id: await firstWorldId() }), 'insert')
+    noEffect(await playerB.db.from('npc_secrets').delete().eq('npc_id', mine.id).select(), 'delete')
+
+    const saved = ok(
+      await editSecrets(dm, ilona, {
+        secrets: 'A cultist of Erebos.',
+        has_stats: true,
+        ac: 12,
+        hp_max: 22,
+        speed: 30,
+        wisdom: 18,
+        cr: '1/2',
+        actions: 'Staff +2, 1d6 bludgeoning',
+      }),
+    ) as Row[]
+    assert.equal(saved[0].cr, '1/2')
+    assert.equal(saved[0].secrets, 'A cultist of Erebos.')
+  })
+
+  test('Field checks hold, for the DM too', async () => {
+    refused(await edit(playerA, ilona, { status: 'undead' }), 'an unknown status')
+    refused(await edit(playerA, ilona, { name: '  ' }), 'an empty name')
+    refused(await edit(playerA, ilona, { name: 'x'.repeat(101) }), 'a name over 100')
+    refused(await edit(playerA, ilona, { role: 'x'.repeat(501) }), 'a role over 500')
+    refused(await edit(playerA, ilona, { description: 'x'.repeat(100_001) }), 'a description over 100,000')
+    refused(await editSecrets(dm, ilona, { strength: 31 }), 'an ability of 31')
+    refused(await editSecrets(dm, ilona, { strength: 0 }), 'an ability of 0')
+    refused(await editSecrets(dm, ilona, { cr: '31' }), 'a CR of 31')
+    refused(await editSecrets(dm, ilona, { cr: '1/3' }), 'a CR of 1/3')
+    refused(await editSecrets(dm, ilona, { ac: -1 }), 'a negative AC')
+    refused(await editSecrets(dm, ilona, { audience: 'members' }), 'secrets made visible')
+    refused(await edit(dm, ilona, { audience: 'dm' }), 'an NPC audience other than members')
+    ok(await editSecrets(dm, ilona, { cr: '30', ac: null }))
+  })
+
+  test('delete_npc hides the NPC from players, not from the DM', async () => {
+    const doomed = ok(await playerA.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Doomed' })) as Row
+    ok(await dm.db.rpc('delete_npc', { p_npc_id: doomed.id }))
+    assert.equal(await reads(playerA, doomed), false)
+    assert.equal(await reads(playerB, doomed), false)
+    noEffect(await edit(playerA, doomed, { role: 'Back' }), 'a player edits a deleted NPC')
+    assert.ok((await latest(doomed)).deleted_at, 'the DM still has it, marked deleted')
+    assert.ok((await secretsOf(doomed)).deleted_at, 'its secrets are deleted with it')
+    refused(
+      await dm.db.from('npc_reveals').insert({ npc_id: doomed.id, campaign_id: otherCampaignId }),
+      'revealing a deleted NPC',
+    )
+  })
+
+  test('Deleting the account of a player who made an NPC keeps the NPC, without an owner', async () => {
+    const quitter = await makeUser('quitter-npcs')
+    ok(await dm.db.from('campaign_members').insert({ campaign_id: campaignId, user_id: quitter.id }))
+    const made = ok(await quitter.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Left Behind' })) as Row
+    ok(await quitter.db.rpc('delete_my_account'))
+    const row = await latest(made)
+    assert.equal(row.owner_id, null)
+    assert.equal(row.deleted_at, null)
+    assert.equal(await reads(playerA, made), true)
+  })
+
+  test('Someone not logged in cannot read or write NPCs', async () => {
+    for (const table of ['npcs', 'npc_reveals', 'npc_secrets']) {
+      const result = await anon.from(table).select('*')
+      assert.ok(result.error || result.data.length === 0, `anonymous sees ${table}`)
+    }
+    refused(await anon.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Spam' }), 'anonymous create_npc')
+    refused(await anon.rpc('delete_npc', { p_npc_id: ilona.id }), 'anonymous delete_npc')
+    refused(await anon.from('npc_reveals').insert({ npc_id: hidden.id, campaign_id: campaignId }), 'anonymous reveal')
+  })
+})
+
 describe('text length limits (Phase 4)', () => {
   const long = (n: number) => 'x'.repeat(n)
 
