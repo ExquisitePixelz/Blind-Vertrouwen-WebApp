@@ -20,6 +20,11 @@ type Pending = { table: string; id: string; baseVersion: number; patch: Patch }
 
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'conflict'
 
+const SEVERITY: SaveStatus[] = ['saved', 'saving', 'unsaved', 'conflict']
+
+/** One indicator for a screen with two rows: show the least-saved. */
+export const worstStatus = (a: SaveStatus, b: SaveStatus) => (SEVERITY.indexOf(a) >= SEVERITY.indexOf(b) ? a : b)
+
 const ROOT = 'theros:pending:'
 let owner = 'nobody'
 // Keys include the user, so on a shared phone one person's unsent changes are

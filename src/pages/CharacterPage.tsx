@@ -31,7 +31,7 @@ import { loadGodNames } from '../lib/gods'
 import { ITEM_COLUMNS, byItemName, type Item } from '../lib/inventory'
 import { changeList, ListChangedError } from '../lib/listChange'
 import { useMe } from '../lib/me'
-import { useRowSaver, type SaveStatus } from '../lib/saver'
+import { useRowSaver, worstStatus, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
@@ -264,7 +264,7 @@ export function CharacterPage() {
       </TopBar>
       {canEdit && (
         <p className="page-status">
-          <SaveIndicator status={worst(saver.status, privateStatus)} />
+          <SaveIndicator status={worstStatus(saver.status, privateStatus)} />
         </p>
       )}
 
@@ -738,11 +738,6 @@ function statView(sheet: Sheet, key: StatKey): { title: string; shown: string; t
   if (key === 'speed') return { title: 'Speed', shown: `${sheet.speed.value} ft`, total: sheet.speed }
   return { title: 'Passive Perception', shown: String(sheet.passivePerception.value), total: sheet.passivePerception }
 }
-
-const SEVERITY: SaveStatus[] = ['saved', 'saving', 'unsaved', 'conflict']
-
-/** One indicator for the sheet: show the least-saved of its rows. */
-const worst = (a: SaveStatus, b: SaveStatus) => (SEVERITY.indexOf(a) >= SEVERITY.indexOf(b) ? a : b)
 
 /** The conditions and exhaustion (1.12); tappable for the owner and the DM. */
 function ConditionsRow({ c, onTap }: { c: Character; onTap?: () => void }) {

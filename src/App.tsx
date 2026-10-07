@@ -35,6 +35,7 @@ const GodsPage = lazy(() => import('./pages/GodsPage').then((m) => ({ default: m
 const GodPage = lazy(() => import('./pages/GodPage').then((m) => ({ default: m.GodPage })))
 const WorldPage = lazy(() => import('./pages/WorldPage').then((m) => ({ default: m.WorldPage })))
 const NpcsPage = lazy(() => import('./pages/NpcsPage').then((m) => ({ default: m.NpcsPage })))
+const NpcPage = lazy(() => import('./pages/NpcPage').then((m) => ({ default: m.NpcPage })))
 
 export default function App() {
   return (
@@ -158,6 +159,7 @@ function Screens() {
         <Route path="/gods/:slug" element={<GodPage />} />
         <Route path="/world" element={<WorldPage />} />
         <Route path="/world/npcs" element={<NpcsPage />} />
+        <Route path="/world/npcs/:npcId" element={<NpcPage />} />
         <Route path="/invite/:code" element={<InvitePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
