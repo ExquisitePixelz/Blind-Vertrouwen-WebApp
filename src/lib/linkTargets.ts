@@ -4,11 +4,13 @@ import { byName } from './gods'
 import type { LinkTarget } from './links'
 import { useMe } from './me'
 import { must, supabase } from './supabase'
+import { entryPath, type WorldKind } from './world'
 
-// What notes can link to (ARCHITECTURE.md 1.13): the characters of the
-// current campaign, the gods and the NPCs the user can see. IDs and names
-// only. One list is shared by every notes box on a screen and kept for 30
-// seconds, like a screen's data on a return to the tab (1.11).
+// What notes can link to (ARCHITECTURE.md 1.13, 1.14): the characters of
+// the current campaign, the gods, and the NPCs, places, factions, lore,
+// creatures and items the user can see. IDs and names only. One list is
+// shared by every notes box on a screen and kept for 30 seconds, like a
+// screen's data on a return to the tab (1.11).
 
 const FRESH_MS = 30_000
 let cache: { key: string; at: number; promise: Promise<LinkTarget[]> } | null = null
@@ -22,12 +24,13 @@ function loadLinkTargets(campaignId: string | null): Promise<LinkTarget[]> {
   const key = campaignId ?? ''
   if (cache && cache.key === key && Date.now() - cache.at < FRESH_MS) return cache.promise
   const promise = (async () => {
-    const [characters, gods, npcs] = await Promise.all([
+    const [characters, gods, npcs, entries] = await Promise.all([
       campaignId
         ? supabase.from('characters').select('id, name').eq('campaign_id', campaignId).is('deleted_at', null).then(must)
         : Promise.resolve([]),
       supabase.from('gods').select('id, name, slug').is('deleted_at', null).then(must),
       supabase.from('npcs').select('id, name').is('deleted_at', null).then(must),
+      supabase.from('world_entries').select('id, kind, name').is('deleted_at', null).then(must),
     ])
     return [
       ...(characters as { id: string; name: string }[]).map((c) => ({
@@ -47,6 +50,12 @@ function loadLinkTargets(campaignId: string | null): Promise<LinkTarget[]> {
         id: n.id,
         name: n.name,
         path: `/world/npcs/${n.id}`,
+      })),
+      ...(entries as { id: string; kind: WorldKind; name: string }[]).map((e) => ({
+        kind: e.kind,
+        id: e.id,
+        name: e.name,
+        path: entryPath(e.kind, e.id),
       })),
     ].sort(byName)
   })()

@@ -7,7 +7,7 @@ import { KIND_LABELS, findTarget, hasLinks, insertMention, mentionAt, mentionMat
 
 type NotesMode = 'edit' | 'preview'
 
-/** Our own links (character:, god:, npc:) pass; everything else gets the usual safety check. */
+/** Our own links (character:, god:, npc:, place: …) pass; everything else gets the usual safety check. */
 const urlTransform = (url: string) => (parseLinkHref(url) ? url : defaultUrlTransform(url))
 
 /**
@@ -17,9 +17,9 @@ const urlTransform = (url: string) => (parseLinkHref(url) ? url : defaultUrlTran
  * on Edit when there are none, and then stays where the user puts it (so
  * typing the first letter does not switch to Preview).
  *
- * Links (1.13): typing @ in Edit offers characters, gods and NPCs; Preview
- * shows a link as the target's current name, or as plain text when the
- * reader cannot see the target.
+ * Links (1.13, 1.14): typing @ in Edit offers characters, gods, NPCs and the
+ * rest of World; Preview shows a link as the target's current name, or as
+ * plain text when the reader cannot see the target.
  */
 export function MarkdownNotes({
   title,
@@ -155,7 +155,7 @@ export function MarkdownNotes({
           )}
           <p className="muted small">
             Formatting: <code># Heading</code>, <code>- list</code>, <code>**bold**</code>, <code>*italic*</code>,{' '}
-            <code>@</code> to link a character, god or NPC
+            <code>@</code> to link a character, god, NPC, place and more
           </p>
         </>
       ) : (
