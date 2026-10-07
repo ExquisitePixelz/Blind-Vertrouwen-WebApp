@@ -1,18 +1,31 @@
-// Links in notes (ARCHITECTURE.md 1.13). Typing @ in a notes box offers
-// characters, gods and NPCs; picking one writes an ordinary markdown link
+// Links in notes (ARCHITECTURE.md 1.13, 1.14). Typing @ in a notes box offers
+// characters, gods, NPCs and the rest of World (places, factions, lore,
+// creatures, items); picking one writes an ordinary markdown link
 // with the target's ID, e.g. [Ilona](npc:3f2a…). No table is needed, and a
 // rename does not break the link: Preview shows the current name.
 
 import { fold } from './npcs.ts'
+import type { WorldKind } from './world.ts'
 
-export type LinkKind = 'character' | 'god' | 'npc'
+export type LinkKind = 'character' | 'god' | 'npc' | WorldKind
 
 /** Something a note can link to, with where it opens. */
 export type LinkTarget = { kind: LinkKind; id: string; name: string; path: string }
 
-export const KIND_LABELS: Record<LinkKind, string> = { character: 'Character', god: 'God', npc: 'NPC' }
+export const KIND_LABELS: Record<LinkKind, string> = {
+  character: 'Character',
+  god: 'God',
+  npc: 'NPC',
+  place: 'Place',
+  faction: 'Faction',
+  lore: 'Lore',
+  creature: 'Creature',
+  item: 'Item',
+}
 
-const HREF = /^(character|god|npc):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
+const KINDS = Object.keys(KIND_LABELS).join('|')
+
+const HREF = new RegExp(`^(${KINDS}):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$`, 'i')
 
 /** The markdown for a link: [name](kind:id). Brackets in the name are escaped. */
 export function linkMarkdown(target: Pick<LinkTarget, 'kind' | 'id' | 'name'>) {
@@ -25,8 +38,10 @@ export function parseLinkHref(href: string | undefined): { kind: LinkKind; id: s
   return match ? { kind: match[1].toLowerCase() as LinkKind, id: match[2].toLowerCase() } : null
 }
 
+const HAS_LINKS = new RegExp(`\\]\\((${KINDS}):`, 'i')
+
 /** True when the text holds at least one of our links (then the names are worth loading). */
-export const hasLinks = (text: string) => /\]\((character|god|npc):/i.test(text)
+export const hasLinks = (text: string) => HAS_LINKS.test(text)
 
 const MAX_QUERY = 40
 

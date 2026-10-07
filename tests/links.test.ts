@@ -15,7 +15,7 @@ test('A link is written as markdown with the ID, and read back', () => {
   assert.deepEqual(parseLinkHref(`Character:${ID.toUpperCase()}`), { kind: 'character', id: ID })
   assert.equal(parseLinkHref('https://example.com'), null)
   assert.equal(parseLinkHref('npc:not-an-id'), null)
-  assert.equal(parseLinkHref(`place:${ID}`), null)
+  assert.equal(parseLinkHref(`town:${ID}`), null)
   assert.equal(parseLinkHref(undefined), null)
   assert.equal(hasLinks(`We met [Ilona](npc:${ID}).`), true)
   assert.equal(hasLinks('See [the map](https://example.com).'), false)
