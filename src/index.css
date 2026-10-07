@@ -1650,3 +1650,11 @@ button.party-rest {
   font-size: 1.5rem;
   line-height: 1.25;
 }
+
+.npc-abilities {
+  margin-top: 0.5rem;
+}
+
+.npc-cr {
+  margin-top: 0.5rem;
+}

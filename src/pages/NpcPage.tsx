@@ -4,13 +4,14 @@ import { ConfirmDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { NpcName } from '../components/NpcName'
+import { NpcSecrets } from '../components/NpcSecrets'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
 import { loadCampaigns, type Campaign } from '../lib/campaigns'
 import { forgetLinkTargets } from '../lib/linkTargets'
 import { useMe } from '../lib/me'
 import { NPC_COLUMNS, NPC_STATUSES, npcStatusLabel, type Npc, type NpcStatus } from '../lib/npcs'
-import { useRowSaver } from '../lib/saver'
+import { useRowSaver, worstStatus, type SaveStatus } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
@@ -29,6 +30,7 @@ export function NpcPage() {
   const [open, setOpen] = useState<Open | null>(null)
   const [revealTo, setRevealTo] = useState<Campaign | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [secretsStatus, setSecretsStatus] = useState<SaveStatus>('saved')
   const close = () => setOpen(null)
   const list = '/world/npcs'
   const dm = me.isDm
@@ -89,7 +91,7 @@ export function NpcPage() {
         </button>
       </TopBar>
       <p className="page-status">
-        <SaveIndicator status={saver.status} />
+        <SaveIndicator status={dm ? worstStatus(saver.status, secretsStatus) : saver.status} />
       </p>
       {saver.status === 'conflict' && (
         <ConflictBanner onKeepMine={saver.keepMine} onUseTheirs={() => saver.discardMine(npc.reload)} />
@@ -126,6 +128,8 @@ export function NpcPage() {
         placeholder="Who they are, what they want, what the party knows…"
         emptyText="No description yet. Tap Edit to write one."
       />
+
+      {dm && <NpcSecrets npcId={n.id} onStatus={setSecretsStatus} />}
 
       {open === 'menu' && (
         <PickDialog<Open>
