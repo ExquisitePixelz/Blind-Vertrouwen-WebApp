@@ -8,7 +8,8 @@ export type RevealTable = { table: 'npc_reveals'; column: 'npc_id' } | { table: 
 
 /**
  * The DM's reveal state of one NPC or world entry: the campaigns that do not
- * see it yet, and the current one among them. Players get nothing.
+ * see it yet (and the current one among them), and those that do. Players
+ * get nothing.
  */
 export function useReveals(where: RevealTable, id: string) {
   const me = useMe()
@@ -19,11 +20,15 @@ export function useReveals(where: RevealTable, id: string) {
       loadCampaigns(),
     ])
     const revealed = new Set((rows as { campaign_id: string }[]).map((r) => r.campaign_id))
-    return campaigns.filter((c) => !revealed.has(c.id))
+    return {
+      hiddenFrom: campaigns.filter((c) => !revealed.has(c.id)),
+      shownTo: campaigns.filter((c) => revealed.has(c.id)),
+    }
   }, [me.isDm, where.table, where.column, id])
-  const hiddenFrom = reveals.data ?? []
+  const hiddenFrom = reveals.data?.hiddenFrom ?? []
   return {
     hiddenFrom,
+    shownTo: reveals.data?.shownTo ?? [],
     current: hiddenFrom.find((c) => c.id === me.lastCampaignId),
     error: reveals.error,
     reload: reveals.reload,

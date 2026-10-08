@@ -30,7 +30,7 @@ import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
 
-type Open = 'menu' | 'title' | 'kind' | 'character' | 'status' | 'giver' | 'location' | 'reveal' | 'delete'
+type Open = 'menu' | 'title' | 'kind' | 'character' | 'status' | 'giver' | 'location' | 'reveal' | 'hide' | 'delete'
 
 /**
  * One quest (ARCHITECTURE.md 1.9). Players read it; for the DM it is the
@@ -138,7 +138,7 @@ export function QuestPage() {
           onClose={close}
           onPick={(next) => setTimeout(() => setOpen(next))}
           options={[
-            ...(hidden ? [{ value: 'reveal' as const, label: 'Reveal to players' }] : []),
+            hidden ? { value: 'reveal' as const, label: 'Reveal to players' } : { value: 'hide' as const, label: 'Hide again' },
             { value: 'delete', label: 'Delete quest', className: 'danger-text' },
           ]}
         />
@@ -180,10 +180,19 @@ export function QuestPage() {
       {open === 'reveal' && (
         <ConfirmDialog
           title="Reveal quest"
-          message={`Everyone in the campaign will see “${q.title}”. A revealed quest can never be hidden again.`}
+          message={`Everyone in the campaign will see “${q.title}”. You can hide it again later.`}
           confirmLabel="Reveal"
           onClose={close}
           onConfirm={() => tap({ audience: 'members' })}
+        />
+      )}
+      {open === 'hide' && (
+        <ConfirmDialog
+          title="Hide quest again"
+          message={`Players will no longer see “${q.title}”. What they already read, they may remember.`}
+          confirmLabel="Hide"
+          onClose={close}
+          onConfirm={() => tap({ audience: 'dm' })}
         />
       )}
       {open === 'delete' && (

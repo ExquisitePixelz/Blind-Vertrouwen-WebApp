@@ -6,7 +6,7 @@ import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { NpcName } from '../components/NpcName'
 import { SecretsSection } from '../components/Secrets'
-import { RevealDialogs } from '../components/Reveal'
+import { HideDialogs, RevealDialogs } from '../components/Reveal'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
 import { forgetLinkTargets } from '../lib/linkTargets'
@@ -19,7 +19,7 @@ import { useLoad } from '../lib/useLoad'
 import { entryPath, type WorldKind } from '../lib/world'
 import { NAME_MAX } from '../lib/limits'
 
-type Open = 'menu' | 'name' | 'role' | 'status' | 'location' | 'faction' | 'reveal' | 'delete'
+type Open = 'menu' | 'name' | 'role' | 'status' | 'location' | 'faction' | 'reveal' | 'hide' | 'delete'
 
 const REVEALS: RevealTable = { table: 'npc_reveals', column: 'npc_id' }
 const SECRETS = { table: 'npc_secrets', column: 'npc_id' } as const
@@ -77,7 +77,7 @@ export function NpcPage() {
     )
   }
 
-  const { hiddenFrom, current } = reveals
+  const { hiddenFrom, shownTo, current } = reveals
   const all = entries.data ?? []
   const sorted = (kind: WorldKind) => all.filter((x) => x.kind === kind).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
   const place = n.place_id ? all.find((x) => x.id === n.place_id) : undefined
@@ -161,6 +161,7 @@ export function NpcPage() {
           options={[
             { value: 'name', label: 'Rename' },
             ...(dm && hiddenFrom.length ? [{ value: 'reveal' as const, label: 'Reveal to players' }] : []),
+            ...(dm && shownTo.length ? [{ value: 'hide' as const, label: 'Hide again' }] : []),
             ...(dm ? [{ value: 'delete' as const, label: 'Delete NPC', className: 'danger-text' }] : []),
           ]}
         />
@@ -203,6 +204,9 @@ export function NpcPage() {
       )}
       {open === 'reveal' && hiddenFrom.length > 0 && (
         <RevealDialogs where={REVEALS} id={n.id} name={n.name} hiddenFrom={hiddenFrom} onDone={reveals.reload} onClose={close} />
+      )}
+      {open === 'hide' && shownTo.length > 0 && (
+        <HideDialogs where={REVEALS} id={n.id} name={n.name} shownTo={shownTo} onDone={reveals.reload} onClose={close} />
       )}
       {open === 'delete' && (
         <ConfirmDialog

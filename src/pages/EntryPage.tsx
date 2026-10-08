@@ -5,7 +5,7 @@ import { EntryPickDialog } from '../components/EntryPickDialog'
 import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { NpcName } from '../components/NpcName'
-import { RevealDialogs } from '../components/Reveal'
+import { HideDialogs, RevealDialogs } from '../components/Reveal'
 import { SecretsSection } from '../components/Secrets'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
@@ -32,7 +32,7 @@ import {
 } from '../lib/world'
 import { NAME_MAX } from '../lib/limits'
 
-type Open = 'menu' | 'name' | 'summary' | 'type' | 'parent' | 'reveal' | 'delete'
+type Open = 'menu' | 'name' | 'summary' | 'type' | 'parent' | 'reveal' | 'hide' | 'delete'
 
 const REVEALS: RevealTable = { table: 'world_entry_reveals', column: 'entry_id' }
 const SECRETS = { table: 'world_entry_secrets', column: 'entry_id' } as const
@@ -117,7 +117,7 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
     )
   }
 
-  const { hiddenFrom, current } = reveals
+  const { hiddenFrom, shownTo, current } = reveals
   const allPlaces = places.data ?? []
   const parent = e.parent_id ? allPlaces.find((p) => p.id === e.parent_id) : undefined
   const chain = parent ? [parent, ...placeChain(allPlaces, parent.id).filter((p) => p.id !== e.id)] : []
@@ -227,6 +227,7 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
           options={[
             { value: 'name', label: 'Rename' },
             ...(dm && hiddenFrom.length ? [{ value: 'reveal' as const, label: 'Reveal to players' }] : []),
+            ...(dm && shownTo.length ? [{ value: 'hide' as const, label: 'Hide again' }] : []),
             ...(dm ? [{ value: 'delete' as const, label: `Delete ${singular}`, className: 'danger-text' }] : []),
           ]}
         />
@@ -258,6 +259,9 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
       )}
       {open === 'reveal' && hiddenFrom.length > 0 && (
         <RevealDialogs where={REVEALS} id={e.id} name={e.name} hiddenFrom={hiddenFrom} onDone={reveals.reload} onClose={close} />
+      )}
+      {open === 'hide' && shownTo.length > 0 && (
+        <HideDialogs where={REVEALS} id={e.id} name={e.name} shownTo={shownTo} onDone={reveals.reload} onClose={close} />
       )}
       {open === 'delete' && (
         <ConfirmDialog

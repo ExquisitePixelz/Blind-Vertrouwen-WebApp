@@ -1109,7 +1109,7 @@ Realtime is added later together with the features that need it, such as live co
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
 ### 3.9 Version number. *Decided (owner, 2026-09-25; changed 2026-10-07)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.12.1-alpha` (2026-10-07: dialog buttons no longer break words, coloured condition chips).*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.12.2-alpha` (2026-10-08: the DM can hide revealed quests, NPCs and World entries again).*
 - **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …). **Every other push that changes the website adds 1 to the last number** (`0.9.1-alpha`, `0.9.2-alpha`, …), also a small fix and also a step of a phase that is still being built. *Changed 2026-10-07 (owner):* phones show "New version" whenever the website's files change, so the number in the footer must change with it. Before this, only a finished phase or fix raised it, and during Phase 9 phones showed "New version" several times on the same `0.8.1-alpha`.
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.
