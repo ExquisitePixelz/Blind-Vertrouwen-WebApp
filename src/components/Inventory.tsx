@@ -19,7 +19,7 @@ import {
 } from '../lib/inventory'
 import { changeList, ListChangedError } from '../lib/listChange'
 import { useRowSaver, type Row } from '../lib/saver'
-import { formatModifier } from '../lib/character'
+import { formatModifier, type Size } from '../lib/character'
 import {
   ARMOR,
   ARMOR_DEX,
@@ -48,6 +48,7 @@ export function Inventory({
   campaignId,
   items,
   strength,
+  size,
   coins,
   onItemsChanged,
 }: {
@@ -56,6 +57,7 @@ export function Inventory({
   /** Loaded once by the character sheet, which also takes the item names from it (1.11 B6). */
   items: Loaded<Item[]>
   strength: number
+  size: Size
   coins: Pick<CharacterPrivate, Coin>
   onItemsChanged: () => void
 }) {
@@ -71,7 +73,7 @@ export function Inventory({
     if (!before || addsKey(before) !== addsKey({ ...before, ...saved })) onItemsChanged()
   }
   const carried = carriedWeight(list, coins)
-  const capacity = carryingCapacity(strength)
+  const capacity = carryingCapacity(strength, size)
   const attuned = attunedCount(list)
   const current = list.find((i) => i.id === editing)
 
@@ -112,7 +114,7 @@ export function Inventory({
       {items.data && (
         <p className="muted small inventory-totals">
           <span className={carried > capacity ? 'error' : undefined}>
-            Carried {formatWeight(carried)} / {capacity} lb
+            Carried {formatWeight(carried)} / {formatWeight(capacity)} lb
           </span>
           {attuned > 0 && (
             <span className={attuned > MAX_ATTUNED ? 'error' : undefined}>

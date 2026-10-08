@@ -3,6 +3,18 @@
 import type { ConditionKey, SpentDice } from './rest.ts'
 import type { ClassEntry, Modifier, Proficiencies } from './sheet.ts'
 
+/** A creature's size (1.8, 2026-10-09); it sets the carrying capacity. */
+export type Size = 'tiny' | 'small' | 'medium' | 'large' | 'huge' | 'gargantuan'
+
+export const SIZES: { value: Size; label: string }[] = [
+  { value: 'tiny', label: 'Tiny' },
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+  { value: 'huge', label: 'Huge' },
+  { value: 'gargantuan', label: 'Gargantuan' },
+]
+
 export type Character = {
   id: string
   version: number
@@ -13,6 +25,7 @@ export type Character = {
   classes: ClassEntry[]
   race: string
   background: string
+  size: Size
   hp_max: number
   hp_cur: number
   hp_temp: number
@@ -37,7 +50,7 @@ export type Character = {
 }
 
 export const CHARACTER_COLUMNS =
-  'id, version, campaign_id, owner_id, name, player, classes, race, background, hp_max, hp_cur, hp_temp, speed, ' +
+  'id, version, campaign_id, owner_id, name, player, classes, race, background, size, hp_max, hp_cur, hp_temp, speed, ' +
   'strength, dexterity, constitution, intelligence, wisdom, charisma, backstory, ' +
   'set_ac, modifiers, proficiencies, death_saves_success, death_saves_failure, inspiration, ' +
   'conditions, exhaustion, hit_dice_spent'

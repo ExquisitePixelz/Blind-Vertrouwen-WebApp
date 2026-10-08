@@ -1,3 +1,4 @@
+import type { Size } from '../lib/character'
 import { useEffect, useState } from 'react'
 import { MarkdownNotes } from './MarkdownNotes'
 import { NumberDialog } from './Dialog'
@@ -18,14 +19,16 @@ export function PrivateSections({
   campaignId,
   items,
   strength,
+  size,
   onStatus,
   onItemsChanged,
 }: {
   characterId: string
   campaignId: string
   items: Loaded<Item[]>
-  /** The final STR score, for the carrying capacity (1.10). */
+  /** The final STR score and the size, for the carrying capacity (1.8, 1.10). */
   strength: number
+  size: Size
   onStatus: (status: SaveStatus) => void
   /** An item was added, changed or deleted: the sheet reloads what items add. */
   onItemsChanged: () => void
@@ -86,6 +89,7 @@ export function PrivateSections({
         campaignId={campaignId}
         items={items}
         strength={strength}
+        size={size}
         coins={p}
         onItemsChanged={onItemsChanged}
       />

@@ -1,5 +1,6 @@
 // Private notes, coins and inventory (ARCHITECTURE.md 1.8, 1.10).
 
+import type { Size } from './character.ts'
 import type { ArmorDex, ArmorKey, Bonus } from './sheet.ts'
 
 export type CharacterPrivate = {
@@ -90,8 +91,11 @@ export function carriedWeight(items: Pick<Item, 'quantity' | 'weight'>[], coins:
   return Math.round((itemWeight + coinCount / COINS_PER_LB) * 100) / 100
 }
 
-/** Carrying capacity: STR × 15 lb (PHB). */
-export const carryingCapacity = (strength: number) => strength * 15
+/** STR × this many lb per size (PHB): half for Tiny, double for each size above Medium. */
+const LB_PER_STR: Record<Size, number> = { tiny: 7.5, small: 15, medium: 15, large: 30, huge: 60, gargantuan: 120 }
+
+/** Carrying capacity: STR × 15 lb for a Small or Medium character (PHB), changed by size (1.8). */
+export const carryingCapacity = (strength: number, size: Size = 'medium') => strength * LB_PER_STR[size]
 
 /** Only items that require attunement count toward the limit of 3 (1.10). */
 export const attunedCount = (items: Pick<Item, 'attuned' | 'attunement_required'>[]) =>

@@ -24,6 +24,7 @@ import {
   isDead,
   setCurrentHp,
   setMaxHp,
+  SIZES,
   withDeathSaves,
   type Ability,
   type Character,
@@ -85,6 +86,7 @@ type Open =
   | { kind: 'stat'; key: StatKey }
   | { kind: 'setAc' }
   | { kind: 'conditions' }
+  | { kind: 'size' }
   | { kind: 'faith' }
   | { kind: 'shortRest' }
   | { kind: 'longRest' }
@@ -328,6 +330,7 @@ export function CharacterPage() {
           </span>
         </div>
         <FactRow label="Race" value={c.race} onClick={tap({ kind: 'text', field: 'race', label: 'Race' })} />
+        <FactRow label="Size" value={SIZES.find((x) => x.value === c.size)?.label ?? 'Medium'} onClick={tap({ kind: 'size' })} />
         <FactRow
           label="Background"
           value={c.background}
@@ -549,6 +552,7 @@ export function CharacterPage() {
           characterId={c.id}
           campaignId={c.campaign_id}
           strength={sheet.abilities.strength.value}
+          size={c.size}
           onStatus={setPrivateStatus}
           items={items}
           onItemsChanged={effects.reload}
@@ -634,6 +638,14 @@ export function CharacterPage() {
           customStart={devotion.data.customStart}
           onSaved={devotion.reload}
           onClose={close}
+        />
+      )}
+      {open?.kind === 'size' && (
+        <PickDialog
+          title="Size"
+          onClose={close}
+          onPick={(size) => save({ size })}
+          options={SIZES.map((x) => ({ value: x.value, label: `${x.label}${x.value === c.size ? ' •' : ''}` }))}
         />
       )}
       {open?.kind === 'conditions' && (

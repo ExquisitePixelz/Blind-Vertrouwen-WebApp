@@ -55,6 +55,14 @@ test('carried weight: quantity × weight, plus 50 coins to the pound', () => {
   assert.equal(carriedWeight([{ quantity: 3, weight: '1.5' as unknown as number }], noCoins), 4.5)
   assert.equal(carryingCapacity(10), 150)
   assert.equal(carryingCapacity(18), 270)
+  // Size (2026-10-09): half for Tiny, double for each size above Medium.
+  assert.equal(carryingCapacity(10, 'medium'), 150)
+  assert.equal(carryingCapacity(10, 'small'), 150)
+  assert.equal(carryingCapacity(10, 'tiny'), 75)
+  assert.equal(carryingCapacity(11, 'tiny'), 82.5)
+  assert.equal(carryingCapacity(10, 'large'), 300)
+  assert.equal(carryingCapacity(10, 'huge'), 600)
+  assert.equal(carryingCapacity(10, 'gargantuan'), 1200)
 })
 
 test('attunement count and item order', () => {
