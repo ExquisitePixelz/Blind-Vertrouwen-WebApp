@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). Also on 2026-10-07 the owner moved the Phase 4 group test to the next week and picked six roadmap items, in three phases: Phase 10 (at the table: conditions, hit dice and rests, a party overview; section 1.12), Phase 11 (lore and links) and Phase 12 (live combat) (section 1.13). The same day the owner answered the Phase 11 questions: it became NPCs and links (section 1.13), with Phase 12 moved to 1.14, and was built the same day (`0.11.0-alpha`). The owner then put the rest of World in scope as Phase 12 (section 1.14), before live combat, which became Phase 13 (1.15), and had it built the same day (`0.12.0-alpha`). On 2026-10-08 the owner decided the DM can hide revealed quests, NPCs and World entries again (`0.12.2-alpha`), and that players see [hidden] instead of the name of a linked hidden thing, while the DM sees such a link in grey-blue with a crossed-out eye (`0.12.3-alpha`). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). Also on 2026-10-07 the owner moved the Phase 4 group test to the next week and picked six roadmap items, in three phases: Phase 10 (at the table: conditions, hit dice and rests, a party overview; section 1.12), Phase 11 (lore and links) and Phase 12 (live combat) (section 1.13). The same day the owner answered the Phase 11 questions: it became NPCs and links (section 1.13), with Phase 12 moved to 1.14, and was built the same day (`0.11.0-alpha`). The owner then put the rest of World in scope as Phase 12 (section 1.14), before live combat, which became Phase 13 (1.15), and had it built the same day (`0.12.0-alpha`). On 2026-10-08 the owner decided the DM can hide revealed quests, NPCs and World entries again (`0.12.2-alpha`), and that players see [hidden] instead of the name of a linked hidden thing, while the DM sees such a link in grey-blue with a crossed-out eye (`0.12.3-alpha`). The same day the owner decided players change their own character's faith, and may type a custom faith such as Oracle themselves (1.1). **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -22,8 +22,13 @@ A small website at `https://dnd.yannickmul.nl` for a friend group playing in **T
 - **The player picks their god when creating the character.** The track starts at score 0.
 - Some characters gain piety a different way. For example, Seric does not believe in gods but is an oracle and gains piety by other rules.
 - So a piety track is attached **either to a god or to a custom source** (for example "Oracle"). A custom source has a name and a description of how it works.
-- A player who does not follow a god picks *"No god / other"* at creation, and the DM sets up the custom source.
-- A character normally has one track. The data allows more than one.
+- At creation the player picks a god, **Custom faith…** (they type its name and how it works) or **None**. *(Before 2026-10-08: "No god / other", and the DM set up the custom source.)*
+- **Changing faith** *(owner, 2026-10-08)*. The player (or the DM) changes the character's faith on the character page, under "Devoted to": a god, a custom faith, or None.
+  - The track they leave becomes **former**: it keeps its score, and the Piety page shows it greyed below the current one. "Devoted to" shows only current tracks.
+  - Choosing a god the character had before makes that track current again, with its score. A new god starts at 0. So a player can never move points from one god to another.
+  - **One custom faith per character.** Choosing a custom faith reuses the character's custom track: the player can rename it and edit its description, and it keeps its score. So switching between custom faiths cannot pile up tracks.
+  - The score stays the DM's. The DM can delete former tracks.
+- A character normally has one current track. The data allows more than one.
 - **The app does not calculate piety.** The DM sets the score by hand, whatever the rules for that track.
 - **Milestone bar** *(added to v1 by the owner, 2026-09-24)*. Players are rewarded at piety **3, 10, 25 and 50**. Every track shows the segmented milestone bar and the "next at" caption from 1.3 B5:
   - The bar has four equal segments: 0–3, 3–10, 10–25, 25–50.
@@ -34,7 +39,7 @@ A small website at `https://dnd.yannickmul.nl` for a friend group playing in **T
   - The − and + buttons, "Add track" and the track menu are DM-only.
 
 **Players can:**
-- Create, edit and delete **their own characters**, including picking a god at creation.
+- Create, edit and delete **their own characters**, including picking a god or a custom faith at creation, and changing it later (2026-10-08).
 - View other players' characters, but not change them.
 - View the **Gods** page.
 - View the **Piety** page, including everyone's piety scores and milestone bars. Nothing else on that page. It is linked in the header next to **Gods**.
@@ -43,8 +48,8 @@ A small website at `https://dnd.yannickmul.nl` for a friend group playing in **T
 - Do everything, everywhere:
   - Edit or delete any character.
   - Create and edit gods.
-  - Change a character's god after creation.
-  - Add custom sources.
+  - Change any character's faith, and change the god or custom source of any track.
+  - Add extra tracks and custom sources.
   - Change piety scores.
 - See everything, always.
 
@@ -1047,8 +1052,8 @@ This is the most important design in the app.
 - **Characters:** campaign content, audience `members`, owned by the creating player. Players in the campaign read. The owner and the DM write.
 - **Gods:** world content, audience `members`. Players read. Only the DM writes.
 - **Piety tracks:** campaign content, audience `members`. Players in the campaign read. Writing is restricted (section 4):
-  - A player may create **one god track** for their own character, at creation, and it always starts at score 0.
-  - Everything else is DM only: changing the score, changing the god later, custom sources, and deleting tracks.
+  - A player changes their own character's faith only through `change_faith` (and `create_character`), section 4. A new track always starts at score 0.
+  - Everything else is DM only: changing the score, extra tracks, and deleting tracks.
 
 *Phase 11 (1.13, owner, 2026-10-07):* **NPCs** are world content written as a shared wiki: a player may edit NPCs they did not create, once revealed to their campaign. This is the one place where players write what they do not own. Deleting stays DM only, and the secret part (DM secrets and stats) is a separate `dm` row.
 
@@ -1163,16 +1168,15 @@ Detailed columns for characters and gods come from the specification in section 
 - `god_id`: the god, for a normal believer such as Sopar and Phenax.
 - `custom_source_name` and `custom_source_rules`: a name and a description, for a character like Seric who gains piety another way.
 - `score`
+- `former` (default false; 2026-10-08): true for a faith the character left. It keeps its score.
 
 **Rules for `piety_tracks`, all enforced in the database, not only in the interface:**
 - Each row has **exactly one** of `god_id` or `custom_source_name`.
-- A player may insert a track only when **all** of these hold:
-  - it is for **their own** character,
-  - that character has **no track yet**,
-  - it uses a **god** (not a custom source).
-- The database **forces the score to 0** on any track a player creates, whatever the website sends.
-- All other changes are **DM only**: updating the score or the god, adding custom sources, and deleting tracks.
-- The simplest safe way to build this is one database function, *create character with chosen god*. It creates the character and its track together, so there is never a character left half-created. Direct inserts into `piety_tracks` stay DM only.
+- Players never write `piety_tracks` directly. They go through two database functions:
+  - `create_character(campaign, name, god, custom name, custom description)` creates the character and its first track together, so there is never a character left half-created.
+  - `change_faith(character, god | custom name and description | neither)` *(2026-10-08)*, for the character's owner or the DM. Every other current track becomes `former`. The chosen god's existing track becomes current again; a custom faith reuses the character's custom track (renamed, description replaced). Otherwise it adds a track. Choosing neither (None) only makes every track former.
+- The database **forces the score to 0** on any track a player creates, and `change_faith` never changes a score.
+- All other changes are **DM only**: updating the score, changing a track's god or custom source directly, extra tracks, and deleting tracks.
 - The Piety page lists every character in the campaign with their track or tracks and scores, and shows the god's name or the custom source's name.
 - Reusing custom sources across characters, or calculating piety automatically, is a roadmap item. It is not v1.
 
@@ -1276,7 +1280,7 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 **As built (Phase 2, 2026-09-24).** Schema: `supabase/migrations/`. Permission test: `tests/permissions.test.ts`.
 - **Policy helpers** live in a `private` schema that the API does not expose (`is_dm`, `is_campaign_member`, `is_world_member`, `shares_campaign`, `audience_allows`). Every table has one "DM can do everything" policy plus narrow player policies.
 - **Database functions the website calls:**
-  - `create_character(campaign, name, god or null)` creates the character and its score-0 track together.
+  - `create_character(campaign, name, god or null)` creates the character and its score-0 track together. *(Since 2026-10-08 it also takes a custom faith, and `change_faith` changes it later; see the `piety_tracks` rules above.)*
   - `delete_character(id)` soft-deletes the character and its tracks. Players cannot set `deleted_at` directly.
   - `accept_invite(code)` joins a campaign.
   - *Added later:* `check_access()` (1.6: is this user let in; deletes a stranger's empty account), `delete_my_account()` (1.6), `create_session(campaign, number or null)` (1.4), `delete_item(id)` (1.8; `delete_character` now also soft-deletes the private row and items). The *Before User Created* hook `private.before_user_created` (1.7) is called by Supabase Auth, not the website.
@@ -1286,7 +1290,7 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 - **Gods:** have a fixed `slug` (e.g. `phenax`) next to the `id`.
 - **`god_relationships`:** readable when both gods are readable. Value 4 (Neutral) is never stored.
 - **`piety_tracks.owner_id`:** set by the database to the character's owner.
-- **Character sheet:** the "Devoted to" row is read-only and lists the character's tracks. The DM changes gods and custom sources on the Piety page (Phase 3, step 4).
+- **Character sheet:** the "Devoted to" row lists the character's current tracks. *(Since 2026-10-08 the owner and the DM change the faith there with `change_faith`; the DM still edits single tracks on the Piety page.)*
 - **Seed data:** Theros and the 15 gods are in a migration. `worlds.dm_user_id` is set by hand once (see Phase 2 notes in the README).
 
 ---
@@ -1344,7 +1348,7 @@ A roadmap item becomes buildable only when the owner says to start it. At that p
    - Player B cannot edit or delete Player A's character.
    - Player B can read Player A's character and Player A's piety.
    - Player A can create a character with a chosen god, and the track starts at 0 **even if the request asks for a higher score**.
-   - Player A cannot change their own score, change their god afterwards, add a second track, add a custom source, or delete a track.
+   - Player A cannot change their own score, change their god afterwards, add a second track, add a custom source, or delete a track. *(Since 2026-10-08: not directly. Changing faith goes through `change_faith`, tested in its own block.)*
    - Player A cannot create a track for Player B's character.
    - The DM can do all of the above.
    - A track with both a god and a custom source, or neither, is rejected.
@@ -1748,7 +1752,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 - **God seed data:** checked against the book's "Gods of Theros" table (section 1.3, C2).
 - **God notes, relationships and party attitude:** visible to players (audience `members`), editable only by the DM. The owner wants players to see them. See section 1.3, C6.
 - **Specification:** Character and Gods specification filled in from the Unity code (section 1.3). It describes the code as written; the app has not been tested on a phone.
-- **Piety:** a score per character per track, where a track is a god or a custom source. The player picks a god at creation (score 0). Everything after that is the DM's.
+- **Piety:** a score per character per track, where a track is a god or a custom source. The player picks a god or a custom faith at creation (score 0), and may change it later (2026-10-08); a track they leave becomes former and keeps its score. The scores are the DM's.
 - **DM:** the owner is the only DM, now and in the future, with full access.
 - **Login:** Google, or email and password through an invite link (changed 2026-09-25, section 1.7). Contact is WhatsApp.
 - **Joining:** by a DM-shared invite link.

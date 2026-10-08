@@ -154,7 +154,7 @@ describe('creating characters', () => {
     )
   })
 
-  test('Player B can create a character with "No god / other" (no track)', async () => {
+  test('Player B can create a character with no faith (no track)', async () => {
     const created = ok(await playerB.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Seric' }))
     characterB = created
     const tracks = ok(await playerB.db.from('piety_tracks').select('id').eq('character_id', created.id))
@@ -263,7 +263,7 @@ describe('reading and editing characters', () => {
 })
 
 describe('piety is the DM’s', () => {
-  test('Player A cannot change their own score or god', async () => {
+  test('Player A cannot change their own score or god directly', async () => {
     noEffect(
       await playerA.db.from('piety_tracks').update({ score: 20, version: 1 }).eq('id', trackA.id).select(),
       'A sets score',
@@ -277,7 +277,7 @@ describe('piety is the DM’s', () => {
     assert.equal(row.god_id, phenaxId)
   })
 
-  test('Player A cannot add a second track or a custom source', async () => {
+  test('Player A cannot add a second track or a custom source directly', async () => {
     refused(
       await playerA.db.from('piety_tracks').insert({ campaign_id: campaignId, character_id: characterA.id, god_id: nyleaId }),
       'second god track',
@@ -1980,6 +1980,172 @@ describe('the rest of World (Phase 12)', () => {
     }
     refused(await anon.rpc('create_world_entry', { p_campaign_id: campaignId, p_kind: 'place', p_name: 'Spam' }), 'create')
     refused(await anon.rpc('delete_world_entry', { p_entry_id: meletis.id }), 'delete')
+  })
+})
+
+describe('changing faith (2026-10-08)', () => {
+  type FaithTrack = {
+    id: string
+    god_id: string | null
+    custom_source_name: string | null
+    custom_source_rules: string | null
+    score: number
+    former: boolean
+    version: number
+  }
+  const tracksOf = async (characterId: string) =>
+    ok(
+      await admin
+        .from('piety_tracks')
+        .select('id, god_id, custom_source_name, custom_source_rules, score, former, version')
+        .eq('character_id', characterId)
+        .is('deleted_at', null)
+        .order('created_at'),
+    ) as FaithTrack[]
+  const setScore = async (trackId: string, score: number) =>
+    ok(await admin.from('piety_tracks').update({ score }).eq('id', trackId).select('version').single())
+
+  test('A player changes god: the old track becomes former and keeps its score; going back brings it back', async () => {
+    const hero = ok(
+      await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Turncoat', p_god_id: phenaxId }),
+    )
+    const [phenax] = await tracksOf(hero.id)
+    await setScore(phenax.id, 2)
+
+    ok(await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: nyleaId }))
+    let tracks = await tracksOf(hero.id)
+    assert.equal(tracks.length, 2)
+    assert.deepEqual(
+      tracks.map((t) => [t.god_id, t.score, t.former]),
+      [
+        [phenaxId, 2, true],
+        [nyleaId, 0, false],
+      ],
+    )
+    assert.equal((await playerB.db.from('piety_tracks').select('id').eq('character_id', hero.id)).data?.length, 2, 'others read both')
+
+    ok(await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: phenaxId }))
+    tracks = await tracksOf(hero.id)
+    assert.equal(tracks.length, 2, 'no new track for a god the character had before')
+    assert.deepEqual(
+      tracks.map((t) => [t.god_id, t.score, t.former]),
+      [
+        [phenaxId, 2, false],
+        [nyleaId, 0, true],
+      ],
+    )
+
+    const before = await tracksOf(hero.id)
+    ok(await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: phenaxId }))
+    assert.deepEqual(await tracksOf(hero.id), before, 'choosing the current god again changes nothing, not even the version')
+  })
+
+  test('One custom faith per character: a new custom faith renames it and keeps its score; None makes everything former', async () => {
+    const seer = ok(
+      await playerB.db.rpc('create_character', {
+        p_campaign_id: campaignId,
+        p_name: 'Seer',
+        p_custom_name: '  Oracle  ',
+        p_custom_rules: 'Gains piety by fulfilling prophecies.',
+      }),
+    )
+    let tracks = await tracksOf(seer.id)
+    assert.equal(tracks.length, 1)
+    assert.equal(tracks[0].god_id, null)
+    assert.equal(tracks[0].custom_source_name, 'Oracle')
+    assert.equal(tracks[0].custom_source_rules, 'Gains piety by fulfilling prophecies.')
+    assert.equal(tracks[0].score, 0)
+    assert.equal(tracks[0].former, false)
+    await setScore(tracks[0].id, 3)
+
+    ok(await playerB.db.rpc('change_faith', { p_character_id: seer.id, p_god_id: phenaxId }))
+    ok(await playerB.db.rpc('change_faith', { p_character_id: seer.id, p_custom_name: 'Warlock pact' }))
+    tracks = await tracksOf(seer.id)
+    assert.equal(tracks.length, 2, 'the custom track is reused, not added')
+    const custom = tracks.find((t) => t.god_id === null)!
+    assert.equal(custom.custom_source_name, 'Warlock pact')
+    assert.equal(custom.custom_source_rules, null)
+    assert.equal(custom.score, 3)
+    assert.equal(custom.former, false)
+    assert.equal(tracks.find((t) => t.god_id === phenaxId)!.former, true)
+
+    ok(await playerB.db.rpc('change_faith', { p_character_id: seer.id }))
+    tracks = await tracksOf(seer.id)
+    assert.equal(tracks.length, 2)
+    assert.ok(tracks.every((t) => t.former), 'None: no current faith')
+  })
+
+  test('Changing faith never raises a score, and the old ways in stay closed', async () => {
+    const hero = ok(
+      await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Eager', p_god_id: phenaxId }),
+    )
+    refused(
+      await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: nyleaId, p_score: 50 }),
+      'change_faith with a score',
+    )
+    ok(await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: nyleaId }))
+    const nylea = (await tracksOf(hero.id)).find((t) => t.god_id === nyleaId)!
+    assert.equal(nylea.score, 0)
+
+    noEffect(
+      await playerA.db.from('piety_tracks').update({ former: false, version: nylea.version }).eq('id', nylea.id).select(),
+      'A sets former directly',
+    )
+    noEffect(
+      await playerA.db.from('piety_tracks').update({ score: 9, version: nylea.version }).eq('id', nylea.id).select(),
+      'A sets the score directly',
+    )
+    refused(
+      await playerA.db.from('piety_tracks').insert({
+        campaign_id: campaignId,
+        character_id: hero.id,
+        custom_source_name: 'Oracle',
+      }),
+      'A adds a custom track directly',
+    )
+  })
+
+  test('Only the owner and the DM change a faith; a bad choice is refused and creates nothing', async () => {
+    const hero = ok(
+      await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Faithful', p_god_id: phenaxId }),
+    )
+    refused(await playerB.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: nyleaId }), 'another player')
+    refused(await outsider.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: nyleaId }), 'a non-member')
+    refused(await anon.rpc('change_faith', { p_character_id: hero.id, p_god_id: nyleaId }), 'not logged in')
+    refused(
+      await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: nyleaId, p_custom_name: 'Oracle' }),
+      'both a god and a custom faith',
+    )
+    refused(
+      await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_custom_rules: 'No name' }),
+      'a description without a name',
+    )
+    refused(await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_god_id: randomUUID() }), 'unknown god')
+    refused(
+      await playerA.db.rpc('change_faith', { p_character_id: hero.id, p_custom_name: 'x'.repeat(101) }),
+      'a name over 100 characters',
+    )
+    const tracks = await tracksOf(hero.id)
+    assert.deepEqual(
+      tracks.map((t) => [t.god_id, t.former]),
+      [[phenaxId, false]],
+      'nothing changed',
+    )
+
+    ok(await dm.db.rpc('change_faith', { p_character_id: hero.id, p_custom_name: 'Oracle' }))
+    assert.equal((await tracksOf(hero.id)).filter((t) => !t.former)[0].custom_source_name, 'Oracle', 'the DM may')
+
+    refused(
+      await playerA.db.rpc('create_character', {
+        p_campaign_id: campaignId,
+        p_name: 'Half made',
+        p_god_id: phenaxId,
+        p_custom_name: 'Oracle',
+      }),
+      'create with both',
+    )
+    const halfMade = ok(await admin.from('characters').select('id').eq('name', 'Half made'))
+    assert.equal(halfMade.length, 0, 'no character left behind')
   })
 })
 
