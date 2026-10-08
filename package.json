@@ -1,7 +1,7 @@
 {
   "name": "theros-dm-companion",
   "private": true,
-  "version": "0.12.6-alpha",
+  "version": "0.12.7-alpha",
   "type": "module",
   "scripts": {
     "dev": "vite",

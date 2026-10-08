@@ -48,7 +48,6 @@ export function MarkdownNotes({
   tall?: boolean
   autoFocus?: boolean
 }) {
-  const me = useMe()
   const [mode, setMode] = useState<NotesMode>(() => (notes.trim() ? 'preview' : 'edit'))
   const shown = readOnly ? 'preview' : mode
   const area = useRef<HTMLTextAreaElement>(null)
@@ -165,48 +164,70 @@ export function MarkdownNotes({
       ) : (
         <div className="card markdown" onDoubleClick={readOnly ? undefined : () => setMode('edit')}>
           {notes.trim() ? (
-            <Markdown
-              skipHtml
-              urlTransform={urlTransform}
-              components={{
-                a: ({ href, children }) => {
-                  if (parseLinkHref(href)) {
-                    const target = targets && findTarget(targets, href)
-                    if (target?.hidden) {
-                      return (
-                        <Link to={target.path} className="mention hidden" title="Hidden from players">
-                          {target.name}
-                          <EyeOff />
-                        </Link>
-                      )
-                    }
-                    if (target) {
-                      return (
-                        <Link to={target.path} className="mention">
-                          {target.name}
-                        </Link>
-                      )
-                    }
-                    if (me.isDm) return <span>{children}</span>
-                    // A player never sees the name written in the link, not even while loading.
-                    return <span className="muted">{targets ? '[hidden]' : '…'}</span>
-                  }
-                  return (
-                    <a href={href} target="_blank" rel="noopener noreferrer">
-                      {children}
-                    </a>
-                  )
-                },
-              }}
-            >
-              {notes}
-            </Markdown>
+            <MarkdownText text={notes} targets={targets} />
           ) : (
             <p className="muted">{emptyText}</p>
           )}
         </div>
       )}
     </section>
+  )
+}
+
+/**
+ * Notes text with its formatting and links, read-only: for text shown
+ * outside a notes area, such as a custom faith's description on the Piety
+ * page (2026-10-09). It loads the link targets only when the text has links.
+ */
+export function FormattedText({ text, className }: { text: string; className?: string }) {
+  const targets = useLinkTargets(hasLinks(text))
+  return (
+    <div className={`markdown${className ? ` ${className}` : ''}`}>
+      <MarkdownText text={text} targets={targets} />
+    </div>
+  )
+}
+
+/** The markdown itself, with links shown as in MarkdownNotes. */
+function MarkdownText({ text, targets }: { text: string; targets: ReturnType<typeof useLinkTargets> }) {
+  const me = useMe()
+  return (
+    <Markdown
+      skipHtml
+      urlTransform={urlTransform}
+      components={{
+        a: ({ href, children }) => {
+          if (parseLinkHref(href)) {
+            const target = targets && findTarget(targets, href)
+            if (target?.hidden) {
+              return (
+                <Link to={target.path} className="mention hidden" title="Hidden from players">
+                  {target.name}
+                  <EyeOff />
+                </Link>
+              )
+            }
+            if (target) {
+              return (
+                <Link to={target.path} className="mention">
+                  {target.name}
+                </Link>
+              )
+            }
+            if (me.isDm) return <span>{children}</span>
+            // A player never sees the name written in the link, not even while loading.
+            return <span className="muted">{targets ? '[hidden]' : '…'}</span>
+          }
+          return (
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {children}
+            </a>
+          )
+        },
+      }}
+    >
+      {text}
+    </Markdown>
   )
 }
 

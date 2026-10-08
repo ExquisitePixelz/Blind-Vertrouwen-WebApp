@@ -795,6 +795,19 @@ select.text-input {
   white-space: pre-wrap;
 }
 
+/* A custom faith's description on the Piety page, formatted (2026-10-09):
+   compact, without the notes area's padding and height. */
+.rules.markdown {
+  padding: 0;
+  min-height: 0;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+.rules.markdown p {
+  margin: 0.2rem 0;
+}
+
 .piety-row {
   display: flex;
   align-items: flex-start;

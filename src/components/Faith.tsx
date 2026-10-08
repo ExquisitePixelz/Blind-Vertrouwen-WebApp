@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Dialog } from './Dialog'
 import type { GodName } from '../lib/gods'
-import { NAME_MAX, NOTES_MAX } from '../lib/limits'
+import { NAME_MAX } from '../lib/limits'
+import { MarkdownNotes } from './MarkdownNotes'
 import { faithParams, faithReady, type Faith } from '../lib/faith'
 import { supabase } from '../lib/supabase'
 
@@ -63,15 +64,14 @@ export function FaithFields({
               onChange={(e) => onChange({ ...value, name: e.target.value })}
             />
           </label>
-          <label className="field">
-            <span className="muted small">How it works</span>
-            <textarea
-              className="text-input notes"
-              value={value.rules}
-              maxLength={NOTES_MAX}
-              onChange={(e) => onChange({ ...value, rules: e.target.value })}
-            />
-          </label>
+          <MarkdownNotes
+            title="How it works"
+            notes={value.rules}
+            onChange={(rules) => onChange({ ...value, rules })}
+            onBlur={() => {}}
+            placeholder="How this character gains piety…"
+            emptyText="Nothing written yet."
+          />
         </>
       )}
     </>

@@ -9,7 +9,8 @@ import { caption, clampPiety, segments } from '../lib/piety'
 import { useRowSaver } from '../lib/saver'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
-import { NAME_MAX, NOTES_MAX } from '../lib/limits'
+import { NAME_MAX } from '../lib/limits'
+import { FormattedText, MarkdownNotes } from '../components/MarkdownNotes'
 
 type Track = {
   id: string
@@ -199,7 +200,7 @@ function TrackRow({
           </button>
         )}
       </div>
-      {!isGod && t.custom_source_rules && <p className="muted small rules">{t.custom_source_rules}</p>}
+      {!isGod && t.custom_source_rules && <FormattedText text={t.custom_source_rules} className="muted small rules" />}
 
       <div className="piety-row">
         {canEdit && (
@@ -314,10 +315,14 @@ function CustomSourceDialog({
           <span className="muted small">Name, e.g. Oracle</span>
           <input className="text-input" value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} autoFocus />
         </label>
-        <label className="field">
-          <span className="muted small">How it works</span>
-          <textarea className="text-input notes" value={rules} maxLength={NOTES_MAX} onChange={(e) => setRules(e.target.value)} />
-        </label>
+        <MarkdownNotes
+          title="How it works"
+          notes={rules}
+          onChange={setRules}
+          onBlur={() => {}}
+          placeholder="How this character gains piety…"
+          emptyText="Nothing written yet."
+        />
         {error && <p className="error">{error}</p>}
         <div className="dialog-actions">
           <button type="button" className="secondary" onClick={onClose}>

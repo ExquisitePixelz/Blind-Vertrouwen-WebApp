@@ -11,7 +11,8 @@ import { useRowSaver } from '../lib/saver'
 import { NEUTRAL, standing } from '../lib/standing'
 import { supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
-import { NAME_MAX, NOTES_MAX } from '../lib/limits'
+import { NAME_MAX } from '../lib/limits'
+import { MarkdownNotes } from '../components/MarkdownNotes'
 
 type TextField = 'name' | 'epithet' | 'alignment' | 'domains' | 'symbol'
 
@@ -150,21 +151,15 @@ export function GodPage() {
         </ul>
       )}
 
-      <h2>Notes</h2>
-      {canEdit ? (
-        <textarea
-          className="text-input notes"
-          value={god.notes}
-          maxLength={NOTES_MAX}
-          placeholder={`Your notes on ${god.name}… Players can read these.`}
-          onChange={(e) => saver.change({ notes: e.target.value })}
-          onBlur={() => void saver.flush()}
-        />
-      ) : god.notes ? (
-        <p className="notes-text">{god.notes}</p>
-      ) : (
-        <p className="muted">No notes.</p>
-      )}
+      <MarkdownNotes
+        title="Notes"
+        notes={god.notes}
+        onChange={(notes) => saver.change({ notes })}
+        onBlur={() => void saver.flush()}
+        placeholder={`Your notes on ${god.name}… Players can read these.`}
+        emptyText="No notes."
+        readOnly={!canEdit}
+      />
 
       {editing && (
         <PromptDialog

@@ -35,7 +35,8 @@ import {
 } from '../lib/sheet'
 import { must, supabase } from '../lib/supabase'
 import type { Loaded } from '../lib/useLoad'
-import { NAME_MAX, NOTES_MAX } from '../lib/limits'
+import { NAME_MAX } from '../lib/limits'
+import { MarkdownNotes } from './MarkdownNotes'
 
 /**
  * A character's inventory (1.8): only its player and the DM see it. Items
@@ -402,14 +403,13 @@ function ItemEditor({
         </div>
       </div>
       <p className="muted small">Armor and bonuses count while the item is equipped (and attuned, when it requires it).</p>
-      <textarea
-        className="text-input notes item-description"
-        aria-label="Description"
-        value={i.description}
-        maxLength={NOTES_MAX}
-        placeholder="Description…"
-        onChange={(e) => saver.change({ description: e.target.value })}
+      <MarkdownNotes
+        title="Description"
+        notes={i.description}
+        onChange={(description) => saver.change({ description })}
         onBlur={() => void saver.flush()}
+        placeholder="Description…"
+        emptyText="No description."
       />
       <div className="dialog-actions">
         <SaveIndicator status={saver.status} />
