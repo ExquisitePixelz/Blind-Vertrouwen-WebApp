@@ -75,6 +75,8 @@ export function StatDialog({
         </strong>{' '}
         = {formatParts(total, bonus)}
       </p>
+      {/* The base value or Set AC first, then the modifiers (1.10, 2026-10-09). */}
+      {children}
 
       <div className="card">
         {own.map((m) => (
@@ -91,7 +93,6 @@ export function StatDialog({
         {!own.length && !itemBonuses.length && <p className="muted small stat-empty">No modifiers yet.</p>}
       </div>
       {itemBonuses.length > 0 && <p className="muted small">Item bonuses are changed on the item, in the inventory.</p>}
-      {children}
 
       <div className="dialog-actions">
         <button
