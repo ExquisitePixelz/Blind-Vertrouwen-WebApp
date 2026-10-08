@@ -2226,6 +2226,30 @@ describe('armor values and Set AC (2026-10-09)', () => {
   })
 })
 
+describe('character size (2026-10-09)', () => {
+  test('A character starts Medium; the owner and the DM change the size, others cannot, unknown sizes are refused', async () => {
+    const hero = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Sized' }))
+    assert.equal(hero.size, 'medium')
+    const tiny = ok(
+      await playerA.db.from('characters').update({ size: 'tiny', version: hero.version }).eq('id', hero.id).select().single(),
+    )
+    assert.equal(tiny.size, 'tiny')
+    assert.equal(ok(await playerB.db.from('characters').select('size').eq('id', hero.id).single()).size, 'tiny', 'others read it')
+    noEffect(
+      await playerB.db.from('characters').update({ size: 'huge', version: tiny.version }).eq('id', hero.id).select(),
+      'B changes A’s size',
+    )
+    refused(
+      await playerA.db.from('characters').update({ size: 'colossal', version: tiny.version }).eq('id', hero.id).select(),
+      'an unknown size',
+    )
+    const large = ok(
+      await dm.db.from('characters').update({ size: 'large', version: tiny.version }).eq('id', hero.id).select().single(),
+    )
+    assert.equal(large.size, 'large')
+  })
+})
+
 describe('text length limits (Phase 4)', () => {
   const long = (n: number) => 'x'.repeat(n)
 
