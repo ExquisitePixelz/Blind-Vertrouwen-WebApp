@@ -19,9 +19,11 @@ type Track = {
   custom_source_name: string | null
   custom_source_rules: string | null
   score: number
+  /** A faith the character left (1.1, 2026-10-08). It keeps its score. */
+  former: boolean
 }
 
-const TRACK_COLUMNS = 'id, version, character_id, god_id, custom_source_name, custom_source_rules, score, created_at'
+const TRACK_COLUMNS = 'id, version, character_id, god_id, custom_source_name, custom_source_rules, score, former, created_at'
 
 /** A god, or "set up a custom source". */
 type Source = { god: GodName } | { custom: true }
@@ -89,7 +91,10 @@ export function PietyPage() {
       {error && <p className="error">{error}</p>}
 
       {characters.map((character) => {
-        const own = tracks.filter((t) => t.character_id === character.id)
+        // Current tracks first, then the faiths the character left.
+        const own = tracks
+          .filter((t) => t.character_id === character.id)
+          .sort((a, b) => Number(a.former) - Number(b.former))
         return (
           <section key={character.id} className="card piety-card">
             {own.length !== 1 && <strong className="piety-name">{character.name}</strong>}
@@ -178,13 +183,16 @@ function TrackRow({
   const setScore = (score: number) => saver.change({ score: clampPiety(score) }, true)
 
   return (
-    <div className="track">
+    <div className={`track${t.former ? ' former' : ''}`}>
       {saver.status === 'conflict' && (
         <ConflictBanner onKeepMine={saver.keepMine} onUseTheirs={() => saver.discardMine(onChanged)} />
       )}
       <div className="track-head">
         {title && <strong>{title}</strong>}
-        <span className={`track-source${isGod ? ' gold' : ''}${title ? ' right' : ''}`}>{sourceName}</span>
+        <span className={`track-source${isGod ? ' gold' : ''}${title ? ' right' : ''}`}>
+          {sourceName}
+          {t.former && <span className="muted small"> · former</span>}
+        </span>
         {canEdit && (
           <button className="icon secondary small-icon" aria-label="Track options" onClick={() => setOpen({ kind: 'menu' })}>
             …

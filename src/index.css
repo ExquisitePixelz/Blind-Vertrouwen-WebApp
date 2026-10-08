@@ -750,6 +750,13 @@ select.text-input {
   border-top: 1px solid #2a2a30;
 }
 
+.track.former .track-head,
+.track.former .rules,
+.track.former .piety-row,
+.track.former .piety-caption {
+  opacity: 0.5;
+}
+
 .track-head {
   display: flex;
   align-items: center;

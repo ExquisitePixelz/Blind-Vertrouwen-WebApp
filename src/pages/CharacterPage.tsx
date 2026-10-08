@@ -5,6 +5,7 @@ import { ClassDialog } from '../components/ClassDialog'
 import { ConditionChips, ConditionsDialog } from '../components/Conditions'
 import { LongRestDialog, ShortRestDialog } from '../components/Rest'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
+import { ChangeFaithDialog } from '../components/Faith'
 import { TopBar } from '../components/TopBar'
 import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
@@ -27,6 +28,7 @@ import {
   type Ability,
   type Character,
 } from '../lib/character'
+import { type Faith } from '../lib/faith'
 import { loadGodNames } from '../lib/gods'
 import { ITEM_COLUMNS, byItemName, type Item } from '../lib/inventory'
 import { changeList, ListChangedError } from '../lib/listChange'
@@ -83,6 +85,7 @@ type Open =
   | { kind: 'stat'; key: StatKey }
   | { kind: 'unarmored' }
   | { kind: 'conditions' }
+  | { kind: 'faith' }
   | { kind: 'shortRest' }
   | { kind: 'longRest' }
   | { kind: 'menu' }
@@ -113,21 +116,43 @@ export function CharacterPage() {
     ) as Character | null
   }, [characterId])
 
+  // "Devoted to": the current tracks. A faith the character left is a former
+  // track and shows only on the Piety page (1.1, 2026-10-08).
   const devotion = useLoad(async () => {
     const [tracks, gods] = await Promise.all([
       supabase
         .from('piety_tracks')
-        .select('god_id, custom_source_name')
+        .select('god_id, custom_source_name, custom_source_rules, former')
         .eq('character_id', characterId)
         .is('deleted_at', null)
+        .order('created_at')
         .then(must),
       loadGodNames(),
     ])
+    type Row = { god_id: string | null; custom_source_name: string | null; custom_source_rules: string | null; former: boolean }
+    const all = tracks as Row[]
+    const current = all.filter((t) => !t.former)
     const names = new Map(gods.map((g) => [g.id, g.name]))
-    return (tracks as { god_id: string | null; custom_source_name: string | null }[])
-      .map((t) => (t.god_id ? names.get(t.god_id) : t.custom_source_name) ?? '')
-      .filter(Boolean)
-      .join(', ')
+    // The one custom faith (the database reuses it), to start the fields with.
+    const custom = [...current, ...all].find((t) => t.god_id === null)
+    const only = current.length === 1 ? current[0] : null
+    const faith: Faith | null =
+      current.length === 0
+        ? { kind: 'none' }
+        : only?.god_id
+          ? { kind: 'god', godId: only.god_id }
+          : only
+            ? { kind: 'custom', name: only.custom_source_name ?? '', rules: only.custom_source_rules ?? '' }
+            : null
+    return {
+      text: current
+        .map((t) => (t.god_id ? names.get(t.god_id) : t.custom_source_name) ?? '')
+        .filter(Boolean)
+        .join(', '),
+      gods,
+      faith,
+      customStart: { name: custom?.custom_source_name ?? '', rules: custom?.custom_source_rules ?? '' },
+    }
   }, [characterId])
 
   // What the character's counting items add (1.10), for everyone ...
@@ -308,7 +333,12 @@ export function CharacterPage() {
           value={c.background}
           onClick={tap({ kind: 'text', field: 'background', label: 'Background' })}
         />
-        <FactRow label="Devoted to" value={devotion.data || 'None'} muted={!devotion.data} />
+        <FactRow
+          label="Devoted to"
+          value={devotion.data?.text || 'None'}
+          muted={!devotion.data?.text}
+          onClick={devotion.data ? tap({ kind: 'faith' }) : undefined}
+        />
       </div>
 
       <div className="card hp-card">
@@ -593,6 +623,16 @@ export function CharacterPage() {
             must(await supabase.rpc('long_rest', { p_characters: [c.id] }))
             await character.reload()
           }}
+          onClose={close}
+        />
+      )}
+      {open?.kind === 'faith' && devotion.data && (
+        <ChangeFaithDialog
+          characterId={c.id}
+          gods={devotion.data.gods}
+          current={devotion.data.faith}
+          customStart={devotion.data.customStart}
+          onSaved={devotion.reload}
           onClose={close}
         />
       )}

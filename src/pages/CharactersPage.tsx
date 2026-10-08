@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { CharacterName } from '../components/CharacterName'
 import { Dialog } from '../components/Dialog'
+import { FaithFields } from '../components/Faith'
+import { faithParams, faithReady, type Faith } from '../lib/faith'
 import { TopBar } from '../components/TopBar'
 import { byName, loadGodNames } from '../lib/gods'
 import { must, supabase } from '../lib/supabase'
@@ -75,34 +77,32 @@ export function CharactersPage() {
   )
 }
 
-const NO_GOD = 'none'
-
 /**
- * New character: the name, and the god the character believes in. The piety
- * track starts at 0. "No god / other" creates no track; the DM sets up a
- * custom source later (ARCHITECTURE.md 1.1).
+ * New character: the name, and what the character believes in: a god, a
+ * custom faith the player types (such as Oracle), or None. The piety track
+ * starts at 0 (ARCHITECTURE.md 1.1).
  */
 function NewCharacterDialog({ campaignId, onClose }: { campaignId: string; onClose: () => void }) {
   const navigate = useNavigate()
   const gods = useLoad(loadGodNames, [])
   const [name, setName] = useState('')
-  const [god, setGod] = useState('')
+  const [faith, setFaith] = useState<Faith | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const ready = name.trim() !== '' && god !== '' && !busy
+  const ready = name.trim() !== '' && faithReady(faith) && !busy
 
   return (
     <Dialog title="New character" onClose={onClose}>
       <form
         onSubmit={async (e) => {
           e.preventDefault()
-          if (!ready) return
+          if (!ready || !faith) return
           setBusy(true)
           setError(null)
           const result = await supabase.rpc('create_character', {
             p_campaign_id: campaignId,
             p_name: name.trim(),
-            p_god_id: god === NO_GOD ? null : god,
+            ...faithParams(faith),
           })
           if (result.error) {
             setError(result.error.message)
@@ -117,24 +117,7 @@ function NewCharacterDialog({ campaignId, onClose }: { campaignId: string; onClo
           <span className="muted small">Name</span>
           <input className="text-input" value={name} maxLength={NAME_MAX} onChange={(e) => setName(e.target.value)} autoFocus />
         </label>
-        <label className="field">
-          <span className="muted small">God</span>
-          <select className="text-input" value={god} onChange={(e) => setGod(e.target.value)}>
-            <option value="" disabled>
-              Choose…
-            </option>
-            {gods.data?.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-                {g.epithet ? `, ${g.epithet}` : ''}
-              </option>
-            ))}
-            <option value={NO_GOD}>No god / other</option>
-          </select>
-        </label>
-        {god === NO_GOD && (
-          <p className="muted small">The DM will set up how this character gains piety.</p>
-        )}
+        <FaithFields gods={gods.data ?? []} value={faith} onChange={setFaith} />
         {(error || gods.error) && <p className="error">{error ?? gods.error}</p>}
         <div className="dialog-actions">
           <button type="button" className="secondary" onClick={onClose}>

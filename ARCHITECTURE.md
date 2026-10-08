@@ -1509,6 +1509,11 @@ The DM, meanwhile, tests the DM-only parts on a second device: sessions, attenda
 - Open that place and faction: does the NPC show under People here and Members?
 - Link a place, a faction or a creature with @ in your backstory
 
+**Changing faith (new in 0.12.4)**
+- Tap "Devoted to" on your character and pick another god; on Piety Scores, is the old god greyed as former, with its piety?
+- Pick the old god again: does its piety come back? Pick a custom faith, rename it, then pick None
+- Try to change the faith of someone else's character
+
 **Report each problem** in the chat: what you did, what you expected, what happened, your phone and browser, the time, and a screenshot. Never send passwords.
 
 ### Phase 4.5: Look and navigation (section 1.5)
