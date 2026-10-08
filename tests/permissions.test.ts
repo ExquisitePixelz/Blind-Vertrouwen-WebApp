@@ -1050,18 +1050,14 @@ describe('quest journal (Phase 7)', () => {
     assert.equal(row.deleted_at, null)
   })
 
-  test('A revealed quest is read by the campaign, not by outsiders, and can never be hidden again', async () => {
+  test('A revealed quest is read by the campaign, not by outsiders; the DM can hide it again', async () => {
     assert.equal(ok(await questRows(playerA)).length, 1)
     assert.equal(ok(await questRows(playerB)).length, 1)
     assert.equal(ok(await questRows(outsider)).length, 0)
-    refused(
-      await dm.db
-        .from('quests')
-        .update({ audience: 'dm', version: await current('quests', quest.id) })
-        .eq('id', quest.id)
-        .select(),
-      'DM hides a revealed quest',
-    )
+    assert.equal((await dmUpdate('quests', quest.id, { audience: 'dm' })).audience, 'dm', 'the DM hides it again')
+    assert.equal(ok(await questRows(playerA)).length, 0, 'a player reads a quest hidden again')
+    assert.equal((await dmUpdate('quests', quest.id, { audience: 'members' })).audience, 'members')
+    assert.equal(ok(await questRows(playerA)).length, 1)
     const updated = await dmUpdate('quests', quest.id, { status: 'active', title: 'The Silent Oracle (edited)' })
     assert.equal(updated.status, 'active')
     assert.equal(updated.audience, 'members')
@@ -1635,15 +1631,23 @@ describe('NPCs (Phase 11)', () => {
     )
   })
 
-  test('A reveal is never undone, not even by the DM; only the DM reveals', async () => {
-    noEffect(await dm.db.from('npc_reveals').delete().eq('npc_id', ilona.id).select(), 'the DM deletes a reveal')
+  test('Only the DM reveals and hides again; nobody moves a reveal', async () => {
     noEffect(
       await dm.db.from('npc_reveals').update({ campaign_id: otherCampaignId }).eq('npc_id', ilona.id).select(),
       'the DM moves a reveal',
     )
-    noEffect(await playerA.db.from('npc_reveals').delete().eq('npc_id', ilona.id).select(), 'a player deletes a reveal')
+    noEffect(await playerA.db.from('npc_reveals').delete().eq('npc_id', ilona.id).select(), 'a player hides an NPC')
     assert.equal(ok(await admin.from('npc_reveals').select('npc_id').eq('npc_id', ilona.id)).length, 1)
     assert.equal(await reads(playerA, ilona), true)
+
+    const gone = ok(
+      await dm.db.from('npc_reveals').delete().eq('npc_id', ilona.id).eq('campaign_id', campaignId).select(),
+    )
+    assert.equal(gone.length, 1, 'the DM hides an NPC again')
+    assert.equal(await reads(playerA, ilona), false, 'a player reads an NPC hidden again')
+    noEffect(await edit(playerA, ilona, { role: 'Nobody' }), 'a player edits an NPC hidden again')
+    ok(await dm.db.from('npc_reveals').insert({ npc_id: ilona.id, campaign_id: campaignId }))
+    assert.equal(await reads(playerA, ilona), true, 'revealed once more')
 
     refused(
       await playerA.db.from('npc_reveals').insert({ npc_id: hidden.id, campaign_id: campaignId }),
@@ -1827,12 +1831,20 @@ describe('the rest of World (Phase 12)', () => {
     )
   })
 
-  test('A reveal is never undone, not even by the DM; only the DM reveals', async () => {
-    noEffect(await dm.db.from('world_entry_reveals').delete().eq('entry_id', meletis.id).select(), 'the DM deletes a reveal')
+  test('Only the DM reveals and hides again; nobody moves a reveal', async () => {
     noEffect(
       await dm.db.from('world_entry_reveals').update({ campaign_id: otherCampaignId }).eq('entry_id', meletis.id).select(),
       'the DM moves a reveal',
     )
+    noEffect(
+      await playerA.db.from('world_entry_reveals').delete().eq('entry_id', meletis.id).select(),
+      'a player hides an entry',
+    )
+    assert.equal(await reads(playerA, meletis), true)
+    const gone = ok(await dm.db.from('world_entry_reveals').delete().eq('entry_id', meletis.id).select())
+    assert.equal(gone.length, 1, 'the DM hides an entry again')
+    assert.equal(await reads(playerA, meletis), false, 'a player reads an entry hidden again')
+    await reveal(meletis)
     refused(
       await playerA.db.from('world_entry_reveals').insert({ entry_id: hiddenLore.id, campaign_id: campaignId }),
       'a player reveals',
