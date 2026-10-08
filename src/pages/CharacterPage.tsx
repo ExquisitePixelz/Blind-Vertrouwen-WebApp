@@ -821,7 +821,6 @@ function StatExtra({
     return (
       <div className="card stat-extra">
         <FactRow label="Set AC" value={c.set_ac === null ? 'Calculated' : String(c.set_ac)} muted={c.set_ac === null} onClick={onSetAc} />
-        <p className="muted small">For a fixed AC, such as a Tortle's 17. It replaces armor and DEX; a shield and modifiers still add.</p>
       </div>
     )
   }
