@@ -82,6 +82,9 @@ export function NpcPage() {
   const sorted = (kind: WorldKind) => all.filter((x) => x.kind === kind).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
   const place = n.place_id ? all.find((x) => x.id === n.place_id) : undefined
   const faction = n.faction_id ? all.find((x) => x.id === n.faction_id) : undefined
+  /** A player sees [hidden] for a picked place or faction they cannot see, never its name (owner, 2026-10-08). */
+  const shownName = (id: string | null, found: unknown, name: string) =>
+    dm || !id || found ? name : entries.data ? '[hidden]' : '…'
 
   /** Create a place or faction from the picker: a player's is revealed to their campaign at once (1.14). */
   async function createEntry(kind: WorldKind, name: string) {
@@ -137,8 +140,8 @@ export function NpcPage() {
       <div className="card">
         <FactRow label="Role" value={n.role} onClick={() => setOpen('role')} />
         <FactRow label="Status" value={npcStatusLabel(n.status)} onClick={() => setOpen('status')} />
-        <FactRow label="Location" value={n.location} onClick={() => setOpen('location')} />
-        <FactRow label="Faction" value={n.faction} onClick={() => setOpen('faction')} />
+        <FactRow label="Location" value={shownName(n.place_id, place, n.location)} onClick={() => setOpen('location')} />
+        <FactRow label="Faction" value={shownName(n.faction_id, faction, n.faction)} onClick={() => setOpen('faction')} />
       </div>
 
       <MarkdownNotes

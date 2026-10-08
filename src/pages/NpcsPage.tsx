@@ -5,7 +5,7 @@ import { NpcName } from '../components/NpcName'
 import { TopBar } from '../components/TopBar'
 import { forgetLinkTargets } from '../lib/linkTargets'
 import { useMe } from '../lib/me'
-import { NPC_SUMMARY_COLUMNS, filterNpcs, groupNpcs, npcPlace, type NpcSummary } from '../lib/npcs'
+import { NPC_SUMMARY_COLUMNS, filterNpcs, groupNpcs, maskHiddenPicks, npcPlace, type NpcSummary } from '../lib/npcs'
 import { must, supabase } from '../lib/supabase'
 import { useLoad } from '../lib/useLoad'
 import { NAME_MAX } from '../lib/limits'
@@ -23,14 +23,20 @@ export function NpcsPage() {
   const [adding, setAdding] = useState(false)
 
   const data = useLoad(async () => {
-    const [npcs, reveals] = await Promise.all([
+    const [npcs, reveals, entries] = await Promise.all([
       supabase.from('npcs').select(NPC_SUMMARY_COLUMNS).is('deleted_at', null).then(must),
       me.isDm && campaignId
         ? supabase.from('npc_reveals').select('npc_id').eq('campaign_id', campaignId).then(must)
         : Promise.resolve(null),
+      // A player's visible places and factions, so hidden ones show as [hidden].
+      me.isDm
+        ? Promise.resolve(null)
+        : supabase.from('world_entries').select('id').in('kind', ['place', 'faction']).is('deleted_at', null).then(must),
     ])
     const revealed = reveals ? new Set((reveals as { npc_id: string }[]).map((r) => r.npc_id)) : null
-    return { npcs: npcs as NpcSummary[], revealed }
+    const visible = entries && new Set((entries as { id: string }[]).map((e) => e.id))
+    const list = npcs as NpcSummary[]
+    return { npcs: visible ? list.map((n) => maskHiddenPicks(n, visible)) : list, revealed }
   }, [me.isDm, campaignId])
 
   const all = data.data?.npcs ?? []

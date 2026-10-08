@@ -9,8 +9,11 @@ import type { WorldKind } from './world.ts'
 
 export type LinkKind = 'character' | 'god' | 'npc' | WorldKind
 
-/** Something a note can link to, with where it opens. */
-export type LinkTarget = { kind: LinkKind; id: string; name: string; path: string }
+/**
+ * Something a note can link to, with where it opens. `hidden` (the DM's list
+ * only): an NPC or World entry the current campaign's players cannot see.
+ */
+export type LinkTarget = { kind: LinkKind; id: string; name: string; path: string; hidden?: boolean }
 
 export const KIND_LABELS: Record<LinkKind, string> = {
   character: 'Character',

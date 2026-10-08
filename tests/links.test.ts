@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { findTarget, hasLinks, insertMention, linkMarkdown, mentionAt, mentionMatches, parseLinkHref, type LinkTarget } from '../src/lib/links.ts'
-import { CR_VALUES, filterNpcs, groupNpcs, npcPlace } from '../src/lib/npcs.ts'
+import { CR_VALUES, filterNpcs, groupNpcs, maskHiddenPicks, npcPlace } from '../src/lib/npcs.ts'
 
 const ID = '3f2a8c4e-1b2d-4e5f-8a9b-0c1d2e3f4a5b'
 const target = (kind: LinkTarget['kind'], name: string, id = ID): LinkTarget => ({ kind, id, name, path: `/${kind}/${id}` })
@@ -80,6 +80,14 @@ test('The NPC list: sorted by name, filtered on name, role, location and faction
   assert.equal(filterNpcs(list, '  ').length, 3)
   assert.equal(npcPlace(list[1]), 'Meletis · Temple of Ephara')
   assert.equal(npcPlace(list[0]), '')
+})
+
+test('A player sees [hidden] for a picked place or faction they cannot see, never its name', () => {
+  const npc = { location: 'Temple of Ephara', faction: 'Cult of Erebos', place_id: 'p1', faction_id: 'f1' }
+  assert.deepEqual(maskHiddenPicks(npc, new Set(['p1'])), { ...npc, faction: '[hidden]' })
+  assert.deepEqual(maskHiddenPicks(npc, new Set()), { ...npc, location: '[hidden]', faction: '[hidden]' })
+  const typed = { location: 'Meletis', faction: '', place_id: null, faction_id: null }
+  assert.deepEqual(maskHiddenPicks(typed, new Set()), typed, 'free text without a pick stays')
 })
 
 test('Challenge ratings match the database: 0, 1/8, 1/4, 1/2, 1 to 30', () => {

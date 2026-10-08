@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { ConfirmDialog, PickDialog } from './Dialog'
 import type { Campaign } from '../lib/campaigns'
+import { forgetLinkTargets } from '../lib/linkTargets'
 import type { RevealTable } from '../lib/reveals'
 import { must, supabase } from '../lib/supabase'
 
@@ -35,6 +36,7 @@ export function RevealDialogs({
       onClose={onClose}
       onConfirm={async (to) => {
         must(await supabase.from(where.table).insert({ [where.column]: id, campaign_id: to.id }))
+        forgetLinkTargets() // links to it change colour for the DM
         onDone()
       }}
     />
@@ -72,6 +74,7 @@ export function HideDialogs({
       onClose={onClose}
       onConfirm={async (from) => {
         must(await supabase.from(where.table).delete().eq(where.column, id).eq('campaign_id', from.id))
+        forgetLinkTargets() // links to it change colour for the DM
         onDone()
       }}
     />

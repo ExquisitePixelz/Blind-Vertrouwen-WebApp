@@ -23,8 +23,8 @@ export type Npc = {
 export const NPC_COLUMNS = 'id, version, owner_id, name, role, status, location, faction, description, place_id, faction_id'
 
 /** An NPC without the description, for the list. */
-export type NpcSummary = Omit<Npc, 'description' | 'version' | 'owner_id' | 'place_id' | 'faction_id'>
-export const NPC_SUMMARY_COLUMNS = 'id, name, role, status, location, faction'
+export type NpcSummary = Omit<Npc, 'description' | 'version' | 'owner_id'>
+export const NPC_SUMMARY_COLUMNS = 'id, name, role, status, location, faction, place_id, faction_id'
 
 /** The DM's own row per NPC or world entry: secrets and stats (audience 'dm'; 1.13, 1.14). */
 export type Secrets = {
@@ -57,6 +57,19 @@ export const CR_VALUES: string[] = ['0', '1/8', '1/4', '1/2', ...Array.from({ le
 
 /** "location · faction", leaving out empty parts. */
 export const npcPlace = (npc: Pick<Npc, 'location' | 'faction'>) => [npc.location, npc.faction].filter(Boolean).join(' · ')
+
+/**
+ * For a player: a picked place or faction they cannot see (hidden or
+ * deleted) shows as [hidden], never its name (owner, 2026-10-08). `visible`
+ * holds the IDs of the places and factions the player can see.
+ */
+export function maskHiddenPicks<N extends Pick<Npc, 'location' | 'faction' | 'place_id' | 'faction_id'>>(
+  npc: N,
+  visible: Set<string>,
+): N {
+  const mask = (id: string | null, name: string) => (id && !visible.has(id) ? '[hidden]' : name)
+  return { ...npc, location: mask(npc.place_id, npc.location), faction: mask(npc.faction_id, npc.faction) }
+}
 
 /** Lower case without accents, for matching typed text ("Éphara" finds "ephara"). */
 export function fold(text: string) {

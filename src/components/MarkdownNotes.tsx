@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import { NOTES_MAX } from '../lib/limits'
 import { useLinkTargets } from '../lib/linkTargets'
 import { KIND_LABELS, findTarget, hasLinks, insertMention, mentionAt, mentionMatches, parseLinkHref } from '../lib/links'
+import { useMe } from '../lib/me'
 
 type NotesMode = 'edit' | 'preview'
 
@@ -18,8 +19,10 @@ const urlTransform = (url: string) => (parseLinkHref(url) ? url : defaultUrlTran
  * typing the first letter does not switch to Preview).
  *
  * Links (1.13, 1.14): typing @ in Edit offers characters, gods, NPCs and the
- * rest of World; Preview shows a link as the target's current name, or as
- * plain text when the reader cannot see the target.
+ * rest of World; Preview shows a link as the target's current name. A
+ * player sees [hidden] for a target they cannot see (hidden or deleted); the
+ * DM sees a link hidden from the campaign's players in grey-blue with a
+ * crossed-out eye, and a deleted target as plain text.
  */
 export function MarkdownNotes({
   title,
@@ -45,6 +48,7 @@ export function MarkdownNotes({
   tall?: boolean
   autoFocus?: boolean
 }) {
+  const me = useMe()
   const [mode, setMode] = useState<NotesMode>(() => (notes.trim() ? 'preview' : 'edit'))
   const shown = readOnly ? 'preview' : mode
   const area = useRef<HTMLTextAreaElement>(null)
@@ -168,13 +172,24 @@ export function MarkdownNotes({
                 a: ({ href, children }) => {
                   if (parseLinkHref(href)) {
                     const target = targets && findTarget(targets, href)
-                    return target ? (
-                      <Link to={target.path} className="mention">
-                        {target.name}
-                      </Link>
-                    ) : (
-                      <span>{children}</span>
-                    )
+                    if (target?.hidden) {
+                      return (
+                        <Link to={target.path} className="mention hidden" title="Hidden from players">
+                          {target.name}
+                          <EyeOff />
+                        </Link>
+                      )
+                    }
+                    if (target) {
+                      return (
+                        <Link to={target.path} className="mention">
+                          {target.name}
+                        </Link>
+                      )
+                    }
+                    if (me.isDm) return <span>{children}</span>
+                    // A player never sees the name written in the link, not even while loading.
+                    return <span className="muted">{targets ? '[hidden]' : '…'}</span>
                   }
                   return (
                     <a href={href} target="_blank" rel="noopener noreferrer">
@@ -192,5 +207,16 @@ export function MarkdownNotes({
         </div>
       )}
     </section>
+  )
+}
+
+/** A small crossed-out eye after a link the players cannot see (DM only). */
+function EyeOff() {
+  return (
+    <svg className="eye-off" viewBox="0 0 24 24" aria-label="hidden from players" role="img">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M4 20 20 4" />
+    </svg>
   )
 }

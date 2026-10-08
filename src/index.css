@@ -1701,6 +1701,26 @@ button.party-rest {
   text-decoration: none;
 }
 
+/* DM only: a link to something the campaign's players cannot see. Grey-blue
+   with a dashed underline and a crossed-out eye, still tappable. */
+.markdown a.mention.hidden {
+  color: #8fa3bf;
+  text-decoration: underline dashed;
+  text-underline-offset: 0.2em;
+}
+
+.eye-off {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin-left: 0.2em;
+  vertical-align: -0.1em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
 .mention-list {
   list-style: none;
   margin: 0.25rem 0 0.5rem;

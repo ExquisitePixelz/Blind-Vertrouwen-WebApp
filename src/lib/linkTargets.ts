@@ -8,7 +8,8 @@ import { entryPath, type WorldKind } from './world'
 
 // What notes can link to (ARCHITECTURE.md 1.13, 1.14): the characters of
 // the current campaign, the gods, and the NPCs, places, factions, lore,
-// creatures and items the user can see. IDs and names only. One list is
+// creatures and items the user can see. IDs and names only; for the DM also
+// which NPCs and entries the current campaign's players cannot see. One list is
 // shared by every notes box on a screen and kept for 30 seconds, like a
 // screen's data on a return to the tab (1.11).
 
@@ -20,18 +21,28 @@ export function forgetLinkTargets() {
   cache = null
 }
 
-function loadLinkTargets(campaignId: string | null): Promise<LinkTarget[]> {
-  const key = campaignId ?? ''
+function loadLinkTargets(campaignId: string | null, isDm: boolean): Promise<LinkTarget[]> {
+  const key = `${campaignId ?? ''}:${isDm}`
   if (cache && cache.key === key && Date.now() - cache.at < FRESH_MS) return cache.promise
   const promise = (async () => {
-    const [characters, gods, npcs, entries] = await Promise.all([
+    const revealsFor = isDm && campaignId
+    const [characters, gods, npcs, entries, npcReveals, entryReveals] = await Promise.all([
       campaignId
         ? supabase.from('characters').select('id, name').eq('campaign_id', campaignId).is('deleted_at', null).then(must)
         : Promise.resolve([]),
       supabase.from('gods').select('id, name, slug').is('deleted_at', null).then(must),
       supabase.from('npcs').select('id, name').is('deleted_at', null).then(must),
       supabase.from('world_entries').select('id, kind, name').is('deleted_at', null).then(must),
+      revealsFor
+        ? supabase.from('npc_reveals').select('npc_id').eq('campaign_id', campaignId).then(must)
+        : Promise.resolve(null),
+      revealsFor
+        ? supabase.from('world_entry_reveals').select('entry_id').eq('campaign_id', campaignId).then(must)
+        : Promise.resolve(null),
     ])
+    // The DM reads everything; mark what this campaign's players cannot see.
+    const shownNpcs = npcReveals && new Set((npcReveals as { npc_id: string }[]).map((r) => r.npc_id))
+    const shownEntries = entryReveals && new Set((entryReveals as { entry_id: string }[]).map((r) => r.entry_id))
     return [
       ...(characters as { id: string; name: string }[]).map((c) => ({
         kind: 'character' as const,
@@ -50,12 +61,14 @@ function loadLinkTargets(campaignId: string | null): Promise<LinkTarget[]> {
         id: n.id,
         name: n.name,
         path: `/world/npcs/${n.id}`,
+        hidden: shownNpcs ? !shownNpcs.has(n.id) : undefined,
       })),
       ...(entries as { id: string; kind: WorldKind; name: string }[]).map((e) => ({
         kind: e.kind,
         id: e.id,
         name: e.name,
         path: entryPath(e.kind, e.id),
+        hidden: shownEntries ? !shownEntries.has(e.id) : undefined,
       })),
     ].sort(byName)
   })()
@@ -74,19 +87,19 @@ export function useLinkTargets(wanted: boolean): LinkTarget[] | null {
   const me = useMe()
   const campaignId = useParams().campaignId ?? me.lastCampaignId
   const [loaded, setLoaded] = useState<{ key: string; targets: LinkTarget[] } | null>(null)
-  const key = campaignId ?? ''
+  const key = `${campaignId ?? ''}:${me.isDm}`
 
   useEffect(() => {
     if (!wanted) return
     let cancelled = false
-    loadLinkTargets(campaignId).then(
+    loadLinkTargets(campaignId, me.isDm).then(
       (targets) => !cancelled && setLoaded({ key, targets }),
       () => {}, // links then show as plain text
     )
     return () => {
       cancelled = true
     }
-  }, [wanted, campaignId, key])
+  }, [wanted, campaignId, me.isDm, key])
 
   return loaded?.key === key ? loaded.targets : null
 }
