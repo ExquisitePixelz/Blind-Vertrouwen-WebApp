@@ -1,6 +1,6 @@
 // Private notes, coins and inventory (ARCHITECTURE.md 1.8, 1.10).
 
-import type { ArmorKey, Bonus } from './sheet.ts'
+import type { ArmorDex, ArmorKey, Bonus } from './sheet.ts'
 
 export type CharacterPrivate = {
   id: string
@@ -39,11 +39,15 @@ export type Item = {
   attuned: boolean
   attunement_required: boolean
   armor: ArmorKey | null
+  /** The item's own armor values (1.10, 2026-10-09); empty: as the armor table. */
+  armor_ac: number | null
+  armor_dex: ArmorDex | null
+  armor_stealth: boolean | null
   effects: Bonus[]
 }
 
 export const ITEM_COLUMNS = 
-  'id, version, character_id, name, quantity, weight, description, equipped, attuned, attunement_required, armor, effects'
+  'id, version, character_id, name, quantity, weight, description, equipped, attuned, attunement_required, armor, armor_ac, armor_dex, armor_stealth, effects'
 
 export const MAX_QUANTITY = 9999
 export const MAX_WEIGHT = 99999.99

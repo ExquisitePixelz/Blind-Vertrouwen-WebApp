@@ -20,7 +20,19 @@ import {
 import { changeList, ListChangedError } from '../lib/listChange'
 import { useRowSaver, type Row } from '../lib/saver'
 import { formatModifier } from '../lib/character'
-import { ARMOR, armorInfo, MAX_ITEM_BONUSES, targetLabel, type ArmorKey, type Bonus } from '../lib/sheet'
+import {
+  ARMOR,
+  ARMOR_DEX,
+  armorDefaults,
+  armorInfo,
+  armorText,
+  armorValues,
+  MAX_ITEM_BONUSES,
+  targetLabel,
+  type ArmorDex,
+  type ArmorKey,
+  type Bonus,
+} from '../lib/sheet'
 import { must, supabase } from '../lib/supabase'
 import type { Loaded } from '../lib/useLoad'
 import { NAME_MAX, NOTES_MAX } from '../lib/limits'
@@ -145,11 +157,22 @@ export function Inventory({
   )
 }
 
-type Sub = 'name' | 'quantity' | 'weight' | 'delete' | 'armor' | { bonus: number | null }
+type Sub = 'name' | 'quantity' | 'weight' | 'delete' | 'armor' | 'armorAc' | 'armorDex' | { bonus: number | null }
 
 /** The fields of an item that change what it adds to the sheet (and its name, shown there). */
 const addsKey = (i: Item) =>
-  JSON.stringify([i.name, i.quantity, i.equipped, i.attuned, i.attunement_required, i.armor, i.effects])
+  JSON.stringify([
+    i.name,
+    i.quantity,
+    i.equipped,
+    i.attuned,
+    i.attunement_required,
+    i.armor,
+    i.armor_ac,
+    i.armor_dex,
+    i.armor_stealth,
+    i.effects,
+  ])
 
 /**
  * One item. Taps save at once, the description 1 s after typing stops
@@ -174,6 +197,7 @@ function ItemEditor({
   const i = saver.view ?? item
   const back = () => setSub(null)
   const tap = (patch: Partial<Item>) => saver.change(patch, true)
+  const armor = i.armor ? armorValues(i.armor, i) : null
 
   /** Bonuses are saved one change at a time on the latest list (1.10, "Saving"). */
   async function changeBonuses(change: (latest: Bonus[]) => Bonus[]) {
@@ -196,14 +220,44 @@ function ItemEditor({
       <PickDialog<ArmorKey | null>
         title="Armor"
         onClose={back}
-        onPick={(armor) => tap({ armor })}
+        // Another armor starts from the table's values again.
+        onPick={(armor) => tap({ armor, armor_ac: null, armor_dex: null, armor_stealth: null })}
         options={[
           { value: null, label: `None${i.armor === null ? ' •' : ''}` },
           ...ARMOR.map((a) => ({
             value: a.key,
-            label: `${a.label}, ${armorText(a.key)}${a.key === i.armor ? ' •' : ''}`,
+            label: `${a.label}, AC ${armorText(a.key)}${a.key === i.armor ? ' •' : ''}`,
           })),
         ]}
+      />
+    )
+  }
+  if (sub === 'armorAc' && armor) {
+    return (
+      <NumberDialog
+        title={armor.type === 'shield' ? 'Shield bonus' : 'Base AC'}
+        initial={armor.base}
+        onClose={back}
+        actions={[
+          {
+            label: 'Set',
+            onApply: (x) => {
+              const value = Math.min(30, Math.max(0, x))
+              // The table's own value is stored as empty, so it follows the table.
+              tap({ armor_ac: value === armorDefaults(i.armor!).base ? null : value })
+            },
+          },
+        ]}
+      />
+    )
+  }
+  if (sub === 'armorDex' && armor) {
+    return (
+      <PickDialog<ArmorDex>
+        title="DEX on AC"
+        onClose={back}
+        onPick={(dex) => tap({ armor_dex: dex === armorDefaults(i.armor!).dex ? null : dex })}
+        options={ARMOR_DEX.map((d) => ({ value: d.value, label: `${d.label}${d.value === armor.dex ? ' •' : ''}` }))}
       />
     )
   }
@@ -301,10 +355,37 @@ function ItemEditor({
         )}
         <FactRow
           label="Armor"
-          value={i.armor ? `${armorInfo(i.armor).label}, ${armorText(i.armor)}` : 'None'}
+          value={i.armor ? `${armorInfo(i.armor).label}, AC ${armorText(i.armor, i)}` : 'None'}
           muted={!i.armor}
           onClick={() => setSub('armor')}
         />
+        {armor && (
+          <FactRow
+            label={armor.type === 'shield' ? 'Shield bonus' : 'Base AC'}
+            value={armor.type === 'shield' ? `+${armor.base}` : String(armor.base)}
+            onClick={() => setSub('armorAc')}
+          />
+        )}
+        {armor && armor.type !== 'shield' && (
+          <>
+            <FactRow
+              label="DEX on AC"
+              value={ARMOR_DEX.find((d) => d.value === armor.dex)!.label}
+              onClick={() => setSub('armorDex')}
+            />
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={armor.stealth}
+                onChange={(e) => {
+                  const on = e.target.checked
+                  tap({ armor_stealth: on === armorDefaults(i.armor!).stealth ? null : on })
+                }}
+              />
+              <span>Disadvantage on Stealth</span>
+            </label>
+          </>
+        )}
         {i.effects.map((b, n) => (
           <FactRow key={n} label={n === 0 ? 'Bonuses' : ''} value={`${targetLabel(b.target)} ${formatModifier(b.value)}`} onClick={() => setSub({ bonus: n })} />
         ))}
@@ -341,14 +422,6 @@ function ItemEditor({
       </div>
     </Dialog>
   )
-}
-
-/** "AC 18", "AC 12 + DEX", "AC 14 + DEX (max 2)" or "AC +2". */
-function armorText(key: ArmorKey) {
-  const a = armorInfo(key)
-  if (a.type === 'shield') return `AC +${a.base}`
-  if (a.type === 'heavy') return `AC ${a.base}`
-  return `AC ${a.base} + DEX${a.type === 'medium' ? ' (max 2)' : ''}`
 }
 
 /** Weight per item in lb: a decimal, with a comma or a dot. */

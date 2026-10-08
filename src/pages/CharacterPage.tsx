@@ -58,7 +58,6 @@ import {
   tickSave,
   tickSkill,
   totalLevel,
-  UNARMORED,
   type ClassEntry,
   type EffectItem,
   type Modifier,
@@ -78,12 +77,13 @@ type Open =
   | { kind: 'damage' }
   | { kind: 'heal' }
   | { kind: 'max' }
-  | { kind: 'number'; field: NumberField; label: string }
+  /** `back`: the number's dialog to return to (its Base row opened this). */
+  | { kind: 'number'; field: NumberField; label: string; back?: StatKey }
   | { kind: 'text'; field: 'name' | 'player' | 'race' | 'background'; label: string }
   | { kind: 'class'; index: number | null }
   | { kind: 'removeClass'; index: number }
   | { kind: 'stat'; key: StatKey }
-  | { kind: 'unarmored' }
+  | { kind: 'setAc' }
   | { kind: 'conditions' }
   | { kind: 'faith' }
   | { kind: 'shortRest' }
@@ -194,7 +194,7 @@ export function CharacterPage() {
       c?.classes,
       c?.modifiers,
       c?.proficiencies,
-      c?.unarmored_ac,
+      c?.set_ac,
       effects.data,
       names,
     ],
@@ -435,8 +435,7 @@ export function CharacterPage() {
           label="Speed"
           value={`${sheet.speed.value} ft`}
           total={sheet.speed}
-          onTap={tap({ kind: 'number', field: 'speed', label: 'Speed (base)' })}
-          onLongPress={stat('speed')}
+          onTap={stat('speed')}
         />
         <Tile
           label="Passive Perc."
@@ -459,12 +458,11 @@ export function CharacterPage() {
             value={sheet.abilities[field].value}
             sub={formatModifier(sheet.abilities[field].modifier)}
             total={sheet.abilities[field]}
-            onTap={tap({ kind: 'number', field, label: `${label} (base score)` })}
-            onLongPress={stat(`ability.${field}`)}
+            onTap={stat(`ability.${field}`)}
           />
         ))}
       </div>
-      {canEdit && <p className="muted small sheet-hint">Tap a score or speed to set it; hold it to add modifiers.</p>}
+      {canEdit && <p className="muted small sheet-hint">Tap a number to change it or add modifiers.</p>}
 
       {notice && <p className="error">{notice}</p>}
 
@@ -505,6 +503,7 @@ export function CharacterPage() {
               name={label}
               ability={ABILITIES.find((a) => a.field === ability)!.label}
               total={skill}
+              disadvantage={skill.disadvantage.length > 0}
               onTap={stat(`skill.${key}`)}
               boxes={
                 <>
@@ -578,23 +577,24 @@ export function CharacterPage() {
           }
           onDelete={(id) => changeModifiers((list) => list.filter((m) => m.id !== id))}
         >
-          {open.key === 'ac' && (
-            <div className="card stat-extra">
-              <FactRow
-                label="Without armor"
-                value={UNARMORED.find((u) => u.value === c.unarmored_ac)!.label}
-                onClick={() => setOpen({ kind: 'unarmored' })}
-              />
-            </div>
-          )}
+          <StatExtra
+            sheet={sheet}
+            target={open.key}
+            c={c}
+            onBase={(field, label) => setOpen({ kind: 'number', field, label, back: open.key })}
+            onSetAc={() => setOpen({ kind: 'setAc' })}
+          />
         </StatDialog>
       )}
-      {open?.kind === 'unarmored' && (
-        <PickDialog
-          title="Unarmored AC"
+      {open?.kind === 'setAc' && (
+        <NumberDialog
+          title="Set AC"
+          initial={c.set_ac ?? sheet.ac.value}
           onClose={() => setTimeout(() => setOpen({ kind: 'stat', key: 'ac' }))}
-          onPick={(unarmored_ac) => save({ unarmored_ac })}
-          options={UNARMORED.map((u) => ({ value: u.value, label: `${u.label}${u.value === c.unarmored_ac ? ' •' : ''}` }))}
+          actions={[
+            ...(c.set_ac !== null ? [{ label: 'Clear', onApply: () => save({ set_ac: null }) }] : []),
+            { label: 'Set', onApply: (x) => save({ set_ac: Math.min(30, Math.max(0, x)) }) },
+          ]}
         />
       )}
       {open?.kind === 'shortRest' && (
@@ -685,7 +685,11 @@ export function CharacterPage() {
         <NumberDialog
           title={open.label}
           initial={c[open.field]}
-          onClose={close}
+          onClose={() => {
+            const back = open.back
+            if (back) setTimeout(() => setOpen({ kind: 'stat', key: back }))
+            else close()
+          }}
           actions={[{ label: 'Set', onApply: (x) => save({ [open.field]: clampField(open.field, x) }) }]}
         />
       )}
@@ -779,6 +783,60 @@ function statView(sheet: Sheet, key: StatKey): { title: string; shown: string; t
   return { title: 'Passive Perception', shown: String(sheet.passivePerception.value), total: sheet.passivePerception }
 }
 
+/**
+ * Extra rows at the top of a number's dialog (1.10, 2026-10-09): the base
+ * score or speed (tap for the keypad), Set AC, and which armor gives
+ * disadvantage on Stealth.
+ */
+function StatExtra({
+  sheet,
+  target,
+  c,
+  onBase,
+  onSetAc,
+}: {
+  sheet: Sheet
+  target: StatKey
+  c: Character
+  onBase: (field: NumberField, label: string) => void
+  onSetAc: () => void
+}) {
+  const [kind, name] = target.split('.')
+  if (kind === 'ability') {
+    const a = ABILITIES.find((x) => x.field === name)!
+    return (
+      <div className="card stat-extra">
+        <FactRow label="Base score" value={String(c[a.field])} onClick={() => onBase(a.field, `${a.label} (base score)`)} />
+      </div>
+    )
+  }
+  if (target === 'speed') {
+    return (
+      <div className="card stat-extra">
+        <FactRow label="Base speed" value={`${c.speed} ft`} onClick={() => onBase('speed', 'Speed (base)')} />
+      </div>
+    )
+  }
+  if (target === 'ac') {
+    return (
+      <div className="card stat-extra">
+        <FactRow label="Set AC" value={c.set_ac === null ? 'Calculated' : String(c.set_ac)} muted={c.set_ac === null} onClick={onSetAc} />
+        <p className="muted small">For a fixed AC, such as a Tortle's 17. It replaces armor and DEX; a shield and modifiers still add.</p>
+      </div>
+    )
+  }
+  if (target === 'skill.stealth' && sheet.skills.stealth.disadvantage.length) {
+    return (
+      <div className="card stat-extra">
+        <p className="small">
+          <span className="chip disadvantage">Disadvantage</span> from {sheet.skills.stealth.disadvantage.join(', ')}
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 /** The conditions and exhaustion (1.12); tappable for the owner and the DM. */
 function ConditionsRow({ c, onTap }: { c: Character; onTap?: () => void }) {
   const none = c.conditions.length === 0 && c.exhaustion === 0
@@ -869,12 +927,15 @@ function StatRow({
   ability,
   total,
   boxes,
+  disadvantage,
   onTap,
 }: {
   name: string
   ability?: string
   total: Total
   boxes: ReactNode
+  /** Armor gives disadvantage (Stealth, 1.10): a reminder, not a number. */
+  disadvantage?: boolean
   onTap?: () => void
 }) {
   return (
@@ -884,6 +945,7 @@ function StatRow({
         <span>
           {name}
           {ability && <span className="muted small"> {ability}</span>}
+          {disadvantage && <span className="chip disadvantage">Disadvantage</span>}
         </span>
         <span className="stat-total">{formatModifier(total.value)}</span>
         {total.extra && <span className="stat-parts muted small">{formatParts(total, true)}</span>}

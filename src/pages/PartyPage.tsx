@@ -17,7 +17,7 @@ import { useLoad } from '../lib/useLoad'
 const PARTY_COLUMNS =
   'id, version, name, classes, hp_max, hp_cur, hp_temp, death_saves_success, death_saves_failure, ' +
   'conditions, exhaustion, hit_dice_spent, strength, dexterity, constitution, intelligence, wisdom, charisma, ' +
-  'speed, modifiers, proficiencies, unarmored_ac'
+  'speed, modifiers, proficiencies, set_ac'
 
 type Member = Pick<
   Character,
@@ -42,7 +42,7 @@ type Member = Pick<
   | 'speed'
   | 'modifiers'
   | 'proficiencies'
-  | 'unarmored_ac'
+  | 'set_ac'
 > & { ac: number; passive: number }
 
 /** DM only (ARCHITECTURE.md 1.12): every character in the campaign at a glance. */

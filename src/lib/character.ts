@@ -1,7 +1,7 @@
 // Character fields and rules (ARCHITECTURE.md 1.3 B1 and B2, 1.10).
 
 import type { ConditionKey, SpentDice } from './rest.ts'
-import type { ClassEntry, Modifier, Proficiencies, UnarmoredAc } from './sheet.ts'
+import type { ClassEntry, Modifier, Proficiencies } from './sheet.ts'
 
 export type Character = {
   id: string
@@ -24,7 +24,8 @@ export type Character = {
   wisdom: number
   charisma: number
   backstory: string
-  unarmored_ac: UnarmoredAc
+  /** A fixed AC (1.10, 2026-10-09); empty: calculated. */
+  set_ac: number | null
   modifiers: Modifier[]
   proficiencies: Proficiencies
   death_saves_success: number
@@ -38,7 +39,7 @@ export type Character = {
 export const CHARACTER_COLUMNS =
   'id, version, campaign_id, owner_id, name, player, classes, race, background, hp_max, hp_cur, hp_temp, speed, ' +
   'strength, dexterity, constitution, intelligence, wisdom, charisma, backstory, ' +
-  'unarmored_ac, modifiers, proficiencies, death_saves_success, death_saves_failure, inspiration, ' +
+  'set_ac, modifiers, proficiencies, death_saves_success, death_saves_failure, inspiration, ' +
   'conditions, exhaustion, hit_dice_spent'
 
 export type Ability = 'strength' | 'dexterity' | 'constitution' | 'intelligence' | 'wisdom' | 'charisma'

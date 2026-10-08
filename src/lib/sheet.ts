@@ -76,7 +76,6 @@ export type ClassEntry = { name: string; level: number; die?: 6 | 8 | 10 | 12 }
 export type Modifier = { id: string; target: Target; label: string; value: number }
 export type SkillProficiency = 'proficient' | 'expertise'
 export type Proficiencies = { saves: Ability[]; skills: Partial<Record<SkillKey, SkillProficiency>> }
-export type UnarmoredAc = 'normal' | 'barbarian' | 'monk' | 'base13'
 export type Bonus = { target: Target; value: number }
 
 export const MAX_LEVEL = 20
@@ -106,38 +105,76 @@ export type ArmorKey =
 
 export type ArmorType = 'light' | 'medium' | 'heavy' | 'shield'
 
+/** How much of the DEX modifier an armor adds to AC. */
+export type ArmorDex = 'full' | 'max2' | 'max3' | 'none'
+
+export const ARMOR_DEX: { value: ArmorDex; label: string }[] = [
+  { value: 'full', label: 'Full DEX' },
+  { value: 'max2', label: 'DEX, max +2' },
+  { value: 'max3', label: 'DEX, max +3' },
+  { value: 'none', label: 'No DEX' },
+]
+
+const DEX_BY_TYPE: Record<ArmorType, ArmorDex> = { light: 'full', medium: 'max2', heavy: 'none', shield: 'none' }
+
 /** The armor table from SRD 5.1 (ARCHITECTURE.md 1.10). */
-export const ARMOR: { key: ArmorKey; label: string; type: ArmorType; base: number }[] = [
-  { key: 'padded', label: 'Padded', type: 'light', base: 11 },
-  { key: 'leather', label: 'Leather', type: 'light', base: 11 },
-  { key: 'studded_leather', label: 'Studded leather', type: 'light', base: 12 },
-  { key: 'hide', label: 'Hide', type: 'medium', base: 12 },
-  { key: 'chain_shirt', label: 'Chain shirt', type: 'medium', base: 13 },
-  { key: 'scale_mail', label: 'Scale mail', type: 'medium', base: 14 },
-  { key: 'breastplate', label: 'Breastplate', type: 'medium', base: 14 },
-  { key: 'half_plate', label: 'Half plate', type: 'medium', base: 15 },
-  { key: 'ring_mail', label: 'Ring mail', type: 'heavy', base: 14 },
-  { key: 'chain_mail', label: 'Chain mail', type: 'heavy', base: 16 },
-  { key: 'splint', label: 'Splint', type: 'heavy', base: 17 },
-  { key: 'plate', label: 'Plate', type: 'heavy', base: 18 },
-  { key: 'shield', label: 'Shield', type: 'shield', base: 2 },
+export const ARMOR: { key: ArmorKey; label: string; type: ArmorType; base: number; stealth: boolean }[] = [
+  { key: 'padded', label: 'Padded', type: 'light', base: 11, stealth: true },
+  { key: 'leather', label: 'Leather', type: 'light', base: 11, stealth: false },
+  { key: 'studded_leather', label: 'Studded leather', type: 'light', base: 12, stealth: false },
+  { key: 'hide', label: 'Hide', type: 'medium', base: 12, stealth: false },
+  { key: 'chain_shirt', label: 'Chain shirt', type: 'medium', base: 13, stealth: false },
+  { key: 'scale_mail', label: 'Scale mail', type: 'medium', base: 14, stealth: true },
+  { key: 'breastplate', label: 'Breastplate', type: 'medium', base: 14, stealth: false },
+  { key: 'half_plate', label: 'Half plate', type: 'medium', base: 15, stealth: true },
+  { key: 'ring_mail', label: 'Ring mail', type: 'heavy', base: 14, stealth: true },
+  { key: 'chain_mail', label: 'Chain mail', type: 'heavy', base: 16, stealth: true },
+  { key: 'splint', label: 'Splint', type: 'heavy', base: 17, stealth: true },
+  { key: 'plate', label: 'Plate', type: 'heavy', base: 18, stealth: true },
+  { key: 'shield', label: 'Shield', type: 'shield', base: 2, stealth: false },
 ]
 
 export const armorInfo = (key: ArmorKey) => ARMOR.find((a) => a.key === key)!
 
-export const UNARMORED: { value: UnarmoredAc; label: string }[] = [
-  { value: 'normal', label: 'Normal (10 + DEX)' },
-  { value: 'barbarian', label: 'Barbarian (10 + DEX + CON)' },
-  { value: 'monk', label: 'Monk (10 + DEX + WIS, no shield)' },
-  { value: 'base13', label: '13 + DEX (Mage Armor, natural armor)' },
-]
+/** An item's own armor values (2026-10-09); empty means "as the armor table". */
+export type ArmorValues = {
+  armor_ac?: number | null
+  armor_dex?: ArmorDex | null
+  armor_stealth?: boolean | null
+}
+
+/** What an armor item gives: the table's values, changed by the item's own. */
+export function armorValues(key: ArmorKey, own: ArmorValues = {}) {
+  const info = armorInfo(key)
+  return {
+    type: info.type,
+    base: own.armor_ac ?? info.base,
+    dex: own.armor_dex ?? DEX_BY_TYPE[info.type],
+    stealth: info.type !== 'shield' && (own.armor_stealth ?? info.stealth),
+  }
+}
+
+/** The table's values for an armor, to compare an item's own values with. */
+export const armorDefaults = (key: ArmorKey) => armorValues(key)
+
+/** The DEX an armor adds, for a DEX modifier. */
+export const dexFor = (rule: ArmorDex, dex: number) =>
+  rule === 'full' ? dex : rule === 'none' ? 0 : Math.min(dex, rule === 'max2' ? 2 : 3)
+
+/** "18", "11 + DEX", "15 + DEX (max 2)", or "+2" for a shield. */
+export function armorText(key: ArmorKey, own: ArmorValues = {}) {
+  const a = armorValues(key, own)
+  if (a.type === 'shield') return `+${a.base}`
+  if (a.dex === 'none') return `${a.base}`
+  return a.dex === 'full' ? `${a.base} + DEX` : `${a.base} + DEX (max ${a.dex === 'max2' ? 2 : 3})`
+}
 
 // ------------------------------------------------------------------
 // Items
 // ------------------------------------------------------------------
 
 /** What an item adds, as the character_effects row lists it. */
-export type EffectItem = { item_id: string; armor: ArmorKey | null; effects: Bonus[] }
+export type EffectItem = { item_id: string; armor: ArmorKey | null; effects: Bonus[] } & ArmorValues
 
 type ItemState = {
   equipped: boolean
@@ -220,7 +257,8 @@ export type SheetInput = Record<Ability, number> & {
   classes: ClassEntry[]
   modifiers: Modifier[]
   proficiencies: Proficiencies
-  unarmored_ac: UnarmoredAc
+  /** A fixed AC (a Tortle's 17): replaces armor + DEX (2026-10-09). */
+  set_ac: number | null
 }
 
 export type Sheet = {
@@ -228,7 +266,8 @@ export type Sheet = {
   proficiencyBonus: number
   abilities: Record<Ability, Total & { modifier: number }>
   saves: Record<Ability, Total & { proficient: boolean }>
-  skills: Record<SkillKey, Total & { proficiency: SkillProficiency | null }>
+  /** `disadvantage` names the armor that gives it (Stealth only); it changes no number. */
+  skills: Record<SkillKey, Total & { proficiency: SkillProficiency | null; disadvantage: string[] }>
   ac: Total & { warnings: string[] }
   passivePerception: Total
   speed: Total
@@ -286,8 +325,13 @@ export function buildSheet(c: SheetInput, items: EffectItem[], itemNames: Map<st
       ...(proficiency === 'expertise' ? [{ label: 'Expertise', value: 2 * pb }] : []),
       ...extra,
     ]
-    skills[key] = { value: sum(parts), parts, extra: extra.length > 0, proficiency }
+    skills[key] = { value: sum(parts), parts, extra: extra.length > 0, proficiency, disadvantage: [] }
   }
+
+  // Body armor with Stealth disadvantage (1.10): a reminder, not a number.
+  skills.stealth.disadvantage = items
+    .filter((i) => i.armor !== null && armorValues(i.armor, i).stealth)
+    .map((i) => itemLabel(i.item_id, 'Armor'))
 
   const passiveExtra = bonuses('passive_perception')
   const passivePerception = limited(
@@ -305,7 +349,7 @@ export function buildSheet(c: SheetInput, items: EffectItem[], itemNames: Map<st
     abilities,
     saves,
     skills,
-    ac: armorClass(c.unarmored_ac, mod, items, itemLabel, bonuses('ac')),
+    ac: armorClass(c.set_ac, mod('dexterity'), items, itemLabel, bonuses('ac')),
     passivePerception,
     speed,
     initiative: mod('dexterity'),
@@ -313,47 +357,44 @@ export function buildSheet(c: SheetInput, items: EffectItem[], itemNames: Map<st
 }
 
 /**
- * AC (1.10): the best equipped body armor, or the Unarmored AC choice; +2
- * for a shield; then custom modifiers and item bonuses. Never below 0.
+ * AC (1.10): a Set AC, or the best equipped body armor, or 10 + DEX; then a
+ * shield; then custom modifiers and item bonuses. Never below 0.
  */
 function armorClass(
-  unarmored: UnarmoredAc,
-  mod: (a: Ability) => number,
+  setAc: number | null,
+  dex: number,
   items: EffectItem[],
   itemLabel: (id: string, fallback: string) => string,
   extra: Part[],
 ): Total & { warnings: string[] } {
-  const dex = mod('dexterity')
-  const worn = items.filter((i) => i.armor !== null).map((i) => ({ id: i.item_id, ...armorInfo(i.armor!) }))
+  const worn = items.filter((i) => i.armor !== null).map((i) => ({ id: i.item_id, ...armorValues(i.armor!, i) }))
   const bodies = worn.filter((a) => a.type !== 'shield')
   const shields = worn.filter((a) => a.type === 'shield')
 
   const bodyParts = (a: (typeof bodies)[number]): Part[] => {
     const armor = { label: itemLabel(a.id, 'Armor'), value: a.base }
-    if (a.type === 'heavy') return [armor]
-    return [armor, { label: 'DEX', value: a.type === 'medium' ? Math.min(dex, 2) : dex }]
+    return a.dex === 'none' ? [armor] : [armor, { label: 'DEX', value: dexFor(a.dex, dex) }]
   }
 
   let base: Part[]
-  if (bodies.length) {
+  if (setAc !== null) {
+    base = [{ label: 'Set AC', value: setAc }]
+  } else if (bodies.length) {
     // The one that gives the highest AC with this DEX counts.
     base = bodies.map(bodyParts).reduce((best, parts) => (sum(parts) > sum(best) ? parts : best))
-  } else if (unarmored === 'barbarian') {
-    base = [{ label: '', value: 10 }, { label: 'DEX', value: dex }, { label: 'CON', value: mod('constitution') }]
-  } else if (unarmored === 'monk' && !shields.length) {
-    base = [{ label: '', value: 10 }, { label: 'DEX', value: dex }, { label: 'WIS', value: mod('wisdom') }]
-  } else if (unarmored === 'base13') {
-    base = [{ label: '', value: 13 }, { label: 'DEX', value: dex }]
   } else {
     base = [{ label: '', value: 10 }, { label: 'DEX', value: dex }]
   }
 
-  const shield: Part[] = shields.length ? [{ label: itemLabel(shields[0].id, 'Shield'), value: 2 }] : []
+  // With several shields, the best one counts.
+  const best = shields.reduce<(typeof shields)[number] | null>((b, x) => (b && b.base >= x.base ? b : x), null)
+  const shield: Part[] = best ? [{ label: itemLabel(best.id, 'Shield'), value: best.base }] : []
   const warnings = [
-    ...(bodies.length > 1 ? ['More than one armor is equipped; the best one counts.'] : []),
+    ...(setAc !== null && bodies.length ? ['Set AC is on, so the armor does not count.'] : []),
+    ...(setAc === null && bodies.length > 1 ? ['More than one armor is equipped; the best one counts.'] : []),
     ...(shields.length > 1 ? ['More than one shield is equipped; one counts.'] : []),
   ]
-  const plain = !bodies.length && !shields.length && !extra.length && unarmored === 'normal'
+  const plain = setAc === null && !bodies.length && !shields.length && !extra.length
   return { ...limited([...base, ...shield, ...extra], !plain, 0), warnings }
 }
 

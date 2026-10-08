@@ -291,6 +291,14 @@ button.popover-item {
   vertical-align: middle;
 }
 
+/* Armor gives disadvantage on Stealth (1.10): a reminder after the skill. */
+.chip.disadvantage {
+  margin-left: 0.4rem;
+  color: #e0675c;
+  font-size: 0.7rem;
+  vertical-align: middle;
+}
+
 /* An NPC's status after its name (1.13): Missing and Unknown muted, Dead red. */
 .chip.npc-status {
   margin-left: 0.5rem;

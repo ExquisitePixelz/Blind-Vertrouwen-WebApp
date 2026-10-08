@@ -680,7 +680,7 @@ Other players see all of it read-only, including the breakdown lines, but nothin
 - the proficiency bonus at every level
 - final ability scores, including the 1 and 30 limits
 - saves and skills with and without proficiency and expertise, and "all saving throws"
-- AC for each armor type (with low and high DEX), the shield, the four unarmored choices (Monk with a shield), two armors equipped, and the 0 minimum
+- AC for each armor type (with low and high DEX), the shield, two armors equipped, and the 0 minimum; since 2026-10-09 also Set AC, an armor item's own values and Stealth disadvantage (the four unarmored choices are gone)
 - Passive Perception
 - which items count
 - how the class list is shown
@@ -690,7 +690,7 @@ The permission test gains the cases in section 4.
 **As built (2026-09-28):**
 - **Database:** two migrations. `20260928120000_automatic_sheet.sql` adds the fields, `character_effects` and the checks; `20260928130000_drop_old_character_fields.sql` removes `class_level`, `ac` and `passive_perception`. The JSON checks are small `immutable` functions in `private` (`valid_classes`, `valid_modifiers`, `valid_proficiencies`, `valid_item_effects`), called by CHECK constraints. The class conversion checks itself with `assert`s inside the migration before it touches data. On the live database, "Barbarian" became one entry at level 1. When old class text passes 20 levels, the later entries are lowered and any that would drop below 1 are left out.
 - **Rules:** `src/lib/sheet.ts` (unit-tested in `tests/sheet.test.ts`) builds the whole sheet from the character, the `character_effects` list and, for the owner and the DM, the item names.
-- **Screens:** the sheet follows the order above. The dialog for a number (`StatDialog`) shows `{name} {total} = {parts}`, the modifiers, and the item bonuses, which are changed in the inventory. The AC dialog has the Unarmored AC choice. Long-press is `Press` (500 ms, with a finger or a mouse button; the phone's own long-press menu is blocked there). A modifier's value has a ± button, because phone number pads often have no minus key. The Characters list calculates AC from the same rules.
+- **Screens:** the sheet follows the order above. The dialog for a number (`StatDialog`) shows `{name} {total} = {parts}`, the modifiers, and the item bonuses, which are changed in the inventory. The AC dialog has the Unarmored AC choice. Long-press is `Press` (500 ms, with a finger or a mouse button; the phone's own long-press menu is blocked there). *(Since 2026-10-09, `0.12.5-alpha`: the Unarmored AC choice is gone and the AC dialog has Set AC; abilities and speed open their dialog with one tap, with a Base row on top (`StatExtra`); the Stealth row shows a Disadvantage tag; the item editor shows Base AC, DEX on AC and Disadvantage on Stealth once an armor is picked, storing a value only when it differs from the table.)* A modifier's value has a ± button, because phone number pads often have no minus key. The Characters list calculates AC from the same rules.
 - **Saving lists:** `src/lib/listChange.ts` reads the latest list, applies one change and saves it with the conflict guard, trying again up to 3 times. A change that no longer fits (the entry was changed or removed by someone else) is cancelled with a message, and the sheet reloads.
 - **Order of work:** steps 4 to 8 went live together, because the owner was the only one testing. Step 9 went live the same day at the owner's request, instead of a few days later.
 - **Fixes (2026-09-30, `0.8.1-alpha`):**
@@ -1500,6 +1500,8 @@ The DM, meanwhile, tests the DM-only parts on a second device: sessions, attenda
 - Switch a few conditions on and off, and set exhaustion; refresh: are they still there?
 - Set your class (or classes) and check the hit die; take damage, then a Short rest with a real die roll
 - Take a Long rest: HP full, hit dice back, exhaustion 1 lower
+- Tap an ability score: set the base and add a modifier in the same dialog
+- Give an item Plate armor: does Stealth show Disadvantage? Change its Base AC to 16 and DEX to Full: is the AC right?
 - Try to change conditions or rest someone else's character
 
 **NPCs and links (new in 0.11)**

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   ARMOR,
+  armorText,
   buildSheet,
   canAddClass,
   formatClasses,
@@ -29,7 +30,7 @@ const base: SheetInput = {
   classes: [{ name: '', level: 1 }],
   modifiers: [],
   proficiencies: { saves: [], skills: {} },
-  unarmored_ac: 'normal',
+  set_ac: null,
 }
 
 const character = (changes: Partial<SheetInput>): SheetInput => ({ ...base, ...changes })
@@ -108,22 +109,62 @@ test('Passive Perception is 10 + Perception, plus its own modifiers', () => {
   assert.equal(low.passivePerception.value, 0, 'never below 0')
 })
 
-test('AC without armor: the four Unarmored AC choices', () => {
-  const stats = { dexterity: 14, constitution: 16, wisdom: 18 }
-  const ac = (unarmored_ac: SheetInput['unarmored_ac'], items: EffectItem[] = []) =>
-    buildSheet(character({ ...stats, unarmored_ac }), items).ac
-  assert.equal(ac('normal').value, 12)
-  assert.equal(ac('normal').extra, false, 'plain 10 + DEX needs no breakdown line')
-  assert.equal(ac('barbarian').value, 15)
-  assert.equal(formatParts(ac('barbarian')), '10 + DEX 2 + CON 3')
-  assert.equal(ac('monk').value, 16)
-  assert.equal(ac('monk', [armor('shield')]).value, 14, 'a monk with a shield counts as Normal, plus the shield')
-  assert.equal(ac('barbarian', [armor('shield')]).value, 17, 'a barbarian may use a shield')
-  assert.equal(ac('base13').value, 15)
+test('AC without armor is 10 + DEX', () => {
+  const ac = buildSheet(character({ dexterity: 14, constitution: 16 }), []).ac
+  assert.equal(ac.value, 12)
+  assert.equal(ac.extra, false, 'plain 10 + DEX needs no breakdown line')
+  assert.equal(buildSheet(character({ dexterity: 14 }), [armor('shield')]).ac.value, 14, 'plus a shield')
+})
+
+test('Set AC replaces armor and DEX; a shield and modifiers still add', () => {
+  const tortle = buildSheet(character({ dexterity: 18, set_ac: 17 }), []).ac
+  assert.equal(tortle.value, 17)
+  assert.equal(formatParts(tortle), 'Set AC 17')
+  assert.equal(tortle.extra, true)
+  const names = new Map([['ring', 'Ring of Protection']])
+  const shielded = buildSheet(
+    character({ dexterity: 18, set_ac: 17, modifiers: [mod('ac', 1, 'Defense')] }),
+    [armor('shield', 'shield-item'), { item_id: 'ring', armor: null, effects: [{ target: 'ac', value: 1 }] }],
+    names,
+  ).ac
+  assert.equal(shielded.value, 17 + 2 + 1 + 1)
+  assert.equal(formatParts(shielded), 'Set AC 17 + Shield 2 + Defense 1 + Ring of Protection 1')
+  const plated = buildSheet(character({ set_ac: 17 }), [armor('plate')]).ac
+  assert.equal(plated.value, 17, 'body armor does not count with a Set AC')
+  assert.equal(plated.warnings.length, 1)
+})
+
+test("An armor item's own values: magic plate with full DEX, a +3 shield, Medium Armor Master", () => {
+  const magic: EffectItem = { ...armor('plate'), armor_ac: 16, armor_dex: 'full' }
+  assert.equal(buildSheet(character({ dexterity: 20 }), [magic]).ac.value, 16 + 5)
+  assert.equal(formatParts(buildSheet(character({ dexterity: 20 }), [magic]).ac), 'Armor 16 + DEX 5')
+  assert.equal(armorText('plate', magic), '16 + DEX')
+  const master: EffectItem = { ...armor('half_plate'), armor_dex: 'max3' }
+  assert.equal(buildSheet(character({ dexterity: 18 }), [master]).ac.value, 15 + 3)
+  assert.equal(armorText('half_plate', master), '15 + DEX (max 3)')
+  const shield: EffectItem = { ...armor('shield'), armor_ac: 3 }
+  assert.equal(buildSheet(character({}), [shield, armor('shield', 'plain')]).ac.value, 10 + 3, 'the best shield counts')
+  const light: EffectItem = { ...armor('leather'), armor_dex: 'none' }
+  assert.equal(buildSheet(character({ dexterity: 18 }), [light]).ac.value, 11)
+})
+
+test('Stealth disadvantage comes from body armor, and changes no number', () => {
+  const names = new Map([['mail', 'Chain mail of Ages']])
+  const sheet = buildSheet(character({ dexterity: 14 }), [armor('chain_mail', 'mail'), armor('shield')], names)
+  assert.deepEqual(sheet.skills.stealth.disadvantage, ['Chain mail of Ages'])
+  assert.equal(sheet.skills.stealth.value, 2)
+  assert.deepEqual(sheet.skills.acrobatics.disadvantage, [])
+  assert.deepEqual(buildSheet(character({}), [armor('leather')]).skills.stealth.disadvantage, [], 'leather has none')
+  assert.deepEqual(buildSheet(character({}), [armor('padded')]).skills.stealth.disadvantage, ['Armor'], 'another player sees no name')
+  const quiet: EffectItem = { ...armor('plate'), armor_stealth: false }
+  assert.deepEqual(buildSheet(character({}), [quiet]).skills.stealth.disadvantage, [], 'an item can drop it')
+  const loud: EffectItem = { ...armor('leather'), armor_stealth: true }
+  assert.deepEqual(buildSheet(character({}), [loud]).skills.stealth.disadvantage, ['Armor'], 'or add it')
+  assert.deepEqual(buildSheet(character({ set_ac: 17 }), [armor('plate')]).skills.stealth.disadvantage, ['Armor'], 'also with a Set AC')
 })
 
 test('AC with armor: light, medium and heavy, with low and high DEX', () => {
-  const ac = (dexterity: number, key: ArmorKey) => buildSheet(character({ dexterity, unarmored_ac: 'monk' }), [armor(key)]).ac.value
+  const ac = (dexterity: number, key: ArmorKey) => buildSheet(character({ dexterity }), [armor(key)]).ac.value
   assert.equal(ac(18, 'studded_leather'), 16)
   assert.equal(ac(8, 'leather'), 10, 'light armor takes a negative DEX too')
   assert.equal(ac(18, 'half_plate'), 17, 'medium armor: DEX at most +2')
