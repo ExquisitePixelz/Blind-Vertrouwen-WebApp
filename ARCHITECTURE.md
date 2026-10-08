@@ -4,7 +4,7 @@
 
 *If you are a model reading this: follow the decisions below. You may challenge one if you have a concrete, better reason, but say so explicitly and explain the trade-off **before** changing course. Check all pricing, free-tier limits and platform rules against current documentation before relying on them, because they change.*
 
-*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). Also on 2026-10-07 the owner moved the Phase 4 group test to the next week and picked six roadmap items, in three phases: Phase 10 (at the table: conditions, hit dice and rests, a party overview; section 1.12), Phase 11 (lore and links) and Phase 12 (live combat) (section 1.13). The same day the owner answered the Phase 11 questions: it became NPCs and links (section 1.13), with Phase 12 moved to 1.14, and was built the same day (`0.11.0-alpha`). The owner then put the rest of World in scope as Phase 12 (section 1.14), before live combat, which became Phase 13 (1.15), and had it built the same day (`0.12.0-alpha`). On 2026-10-08 the owner decided the DM can hide revealed quests, NPCs and World entries again (`0.12.2-alpha`), and that players see [hidden] instead of the name of a linked hidden thing, while the DM sees such a link in grey-blue with a crossed-out eye (`0.12.3-alpha`). The same day the owner decided players change their own character's faith, and may type a custom faith such as Oracle themselves (1.1). **Section 5, "Where we are", shows the current state and order of work.***
+*History: this plan was reviewed and reworked in a separate chat. The decisions below are the result. The specification in section 1.3 is filled in, and the owner decisions it raised are resolved (section 8). On 2026-09-24 the owner skipped Phase 4 for now and put two new phases in scope: 4.5 (look and navigation, section 1.5) and 5 (session notes, section 1.4). The same day the roadmap gained a character builder (6.1) and a Quest Journal (6.2). On 2026-09-25 Phases 4.5, 4.6 (invite-only access, section 1.6), 4.7 (email login, section 1.7) and 5 were built; the app got a footer, a terms page and a version number (3.9), and was renamed **DnD Companion App**. Phase 6 (player features, section 1.8) was built the same day. On 2026-09-27 the owner started the Quest Journal as Phase 7 (section 1.9) and had Phase 4 written out in depth, with a security part (section 5). On 2026-09-28 the owner had Phase 8 written out and built the same day: the automatic character sheet (section 1.10), the first part of the character builder (6.1). On 2026-09-30 a fix made the saving throw and skill tick boxes work, and death saves changed to appear only at 0 HP, with a Dead tag after three failures (`0.8.1-alpha`). The same day the owner asked for a performance check and had it written out as Phase 9 (section 1.11). On 2026-10-06 and 2026-10-07 Phase 9 was built (`0.9.0-alpha`), and the owner changed the version rule: every push that changes the website raises the version, checked by the Deploy workflow (3.9). Also on 2026-10-07 the owner moved the Phase 4 group test to the next week and picked six roadmap items, in three phases: Phase 10 (at the table: conditions, hit dice and rests, a party overview; section 1.12), Phase 11 (lore and links) and Phase 12 (live combat) (section 1.13). The same day the owner answered the Phase 11 questions: it became NPCs and links (section 1.13), with Phase 12 moved to 1.14, and was built the same day (`0.11.0-alpha`). The owner then put the rest of World in scope as Phase 12 (section 1.14), before live combat, which became Phase 13 (1.15), and had it built the same day (`0.12.0-alpha`). On 2026-10-08 the owner decided the DM can hide revealed quests, NPCs and World entries again (`0.12.2-alpha`), and that players see [hidden] instead of the name of a linked hidden thing, while the DM sees such a link in grey-blue with a crossed-out eye (`0.12.3-alpha`). The same day the owner decided players change their own character's faith, and may type a custom faith such as Oracle themselves (1.1). On 2026-10-09 the owner changed the AC rules (1.10): the Unarmored AC choice is gone, armor items get their own values (magic armor), armor's Stealth disadvantage shows on the sheet, a character can have a Set AC, and one tap opens a number's dialog with its base and its modifiers. **Section 5, "Where we are", shows the current state and order of work.***
 
 ---
 
@@ -593,33 +593,32 @@ The character sheet **calculates** the proficiency bonus, saving throws, skills,
 
 **AC** (owner decisions, 2026-09-28)
 - **With armor:** the equipped body armor gives the base (table below). Light armor adds the full DEX modifier, medium armor at most +2, heavy armor none.
-- **Without armor:** the **Unarmored AC** choice in the AC dialog:
-  - **Normal:** `10 + DEX` (the default)
-  - **Barbarian:** `10 + DEX + CON`
-  - **Monk:** `10 + DEX + WIS`, only without a shield; with a shield it counts as Normal
-  - **13 + DEX:** for Mage Armor, Draconic Resilience or natural armor
-- **Shield:** +2 while a shield is equipped.
+- **Armor values per item** *(owner, 2026-10-09)*. Picking an armor fills in its **Base AC**, its **DEX** rule (Full, Max +2, Max +3 or None) and **Stealth** (disadvantage or not) from the table. The player can change each of them on that item, for magic armor such as "16 + DEX". A shield's Base AC is its bonus (+2). Changing the armor type puts the table's values back.
+- **Without armor:** `10 + DEX`. *(Until 2026-10-09 there was an Unarmored AC choice: Barbarian, Monk, 13 + DEX. The owner removed it: such bonuses come with the class and race bonuses of 6.1. Until then, a player adds a modifier.)*
+- **Set AC** *(owner, 2026-10-09)*: a fixed AC for a character such as a Tortle (17), in the AC dialog. It replaces armor + DEX; body armor then does not count. A shield and modifiers still add. Empty means "calculate".
+- **Shield:** +2 (or its own Base AC) while a shield is equipped.
 - Then custom modifiers and item bonuses on AC are added. AC is never below 0.
 - **More than one body armor or shield equipped:** the one that gives the highest AC counts, and the sheet shows a red line, like `Attuned 4 / 3`.
-- **Not yet** (6.1): heavy armor's Strength requirement and Stealth disadvantage, and bonuses that only work without armor (Bracers of Defense).
+- **Stealth disadvantage** *(owner, 2026-10-09)*: while body armor with Stealth disadvantage is equipped, the Stealth row shows a **Disadvantage** tag, and its dialog names the armor. It changes no number. Other advantages and disadvantages from items are not calculated or shown; they stay in the item's description, for the players to read.
+- **Not yet** (6.1): heavy armor's Strength requirement, and bonuses that only work without armor (Bracers of Defense).
 
 **Armor table** (SRD 5.1, the free 2014 rules; shipping it is allowed with the credit line on the terms page, see 6.1):
 
-| Armor | Key | Type | AC |
-|---|---|---|---|
-| Padded | `padded` | Light | 11 + DEX |
-| Leather | `leather` | Light | 11 + DEX |
-| Studded leather | `studded_leather` | Light | 12 + DEX |
-| Hide | `hide` | Medium | 12 + DEX (max 2) |
-| Chain shirt | `chain_shirt` | Medium | 13 + DEX (max 2) |
-| Scale mail | `scale_mail` | Medium | 14 + DEX (max 2) |
-| Breastplate | `breastplate` | Medium | 14 + DEX (max 2) |
-| Half plate | `half_plate` | Medium | 15 + DEX (max 2) |
-| Ring mail | `ring_mail` | Heavy | 14 |
-| Chain mail | `chain_mail` | Heavy | 16 |
-| Splint | `splint` | Heavy | 17 |
-| Plate | `plate` | Heavy | 18 |
-| Shield | `shield` | Shield | +2 |
+| Armor | Key | Type | AC | Stealth |
+|---|---|---|---|---|
+| Padded | `padded` | Light | 11 + DEX | Disadvantage |
+| Leather | `leather` | Light | 11 + DEX | |
+| Studded leather | `studded_leather` | Light | 12 + DEX | |
+| Hide | `hide` | Medium | 12 + DEX (max 2) | |
+| Chain shirt | `chain_shirt` | Medium | 13 + DEX (max 2) | |
+| Scale mail | `scale_mail` | Medium | 14 + DEX (max 2) | Disadvantage |
+| Breastplate | `breastplate` | Medium | 14 + DEX (max 2) | |
+| Half plate | `half_plate` | Medium | 15 + DEX (max 2) | Disadvantage |
+| Ring mail | `ring_mail` | Heavy | 14 | Disadvantage |
+| Chain mail | `chain_mail` | Heavy | 16 | Disadvantage |
+| Splint | `splint` | Heavy | 17 | Disadvantage |
+| Plate | `plate` | Heavy | 18 | Disadvantage |
+| Shield | `shield` | Shield | +2 | |
 
 The credit line (check the current wording on Wizards of the Coast's SRD page when building): *"This work includes material taken from the System Reference Document 5.1 ("SRD 5.1") by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode."*
 
@@ -628,15 +627,15 @@ The credit line (check the current wording on Wizards of the Coast's SRD page wh
 **Speed** = the base speed (keypad, as today) + custom modifiers and item bonuses. Never below 0. **Initiative** stays read-only: the modifier of the final DEX score.
 
 **Custom modifiers** (owner decision, 2026-09-28)
-- **Long-press** (about half a second, with a finger or a mouse button) on an ability, speed, a saving throw, a skill, AC or Passive Perception opens that number's dialog.
-- Abilities and speed keep a normal tap for the keypad, which sets the base value. Saving throws, skills, AC and Passive Perception have nothing to type, so a normal tap opens the dialog too.
+- **A tap** on an ability, speed, a saving throw, a skill, AC or Passive Perception opens that number's dialog. *(Changed 2026-10-09, owner: abilities and speed had a tap for the keypad and a long-press for the dialog; now there is one tap.)*
+- For an ability and speed, the dialog starts with a **Base** row; tapping it opens the keypad for the base value. The AC dialog has a **Set AC** row the same way.
 - The dialog shows the calculation at the top (for example `Stealth +6 = DEX +3 + Proficiency +2 + Lucky charm +1`) and a list of that number's modifiers. Tap a modifier to edit or delete it. **Add modifier** adds one. On a saving throw, a new modifier can be for **this save** or for **all saving throws**.
 - A modifier is a **label** (free text, up to 100 characters, may be empty) and a **value** (a whole number, −30 to +30). A character holds at most 100.
 - Under a total, one muted line shows its breakdown whenever something beyond the plain calculation is in it (custom modifiers, item bonuses, armor or a shield), for example `AC 19 = Chain mail 16 + Shield 2 + Ring of Protection 1`.
 
 **Items** (a slice of 6.1 part 2, owner decisions, 2026-09-28). The item editor (1.8) gets:
 - **Requires attunement** (on/off). The **Attuned** box only shows when it is on. Items that are attuned today get it switched on by the migration.
-- **Armor:** a pick list from the armor table, "None" by default.
+- **Armor:** a pick list from the armor table, "None" by default. With an armor picked: **Base AC**, **DEX** and **Stealth**, filled in from the table and changeable (2026-10-09, above).
 - **Bonuses:** up to 5. Each is a target (any number a custom modifier can go on, including "all saving throws") and a whole number (−30 to +30). For example, a Cloak of Protection: AC +1 and all saving throws +1. Magic armor is an armor type plus a bonus, such as Plate with AC +1.
 
 An item **counts** while it is equipped, not deleted, has a quantity above 0 and, when it requires attunement, is attuned. It counts once, whatever its quantity. Every attuned item counts; the limit of 3 stays a red reminder (1.8), and `Attuned n / 3` counts only items that require attunement. Adding items to the inventory stays manual.
@@ -672,7 +671,7 @@ Other players see all of it read-only, including the breakdown lines, but nothin
 
 **Not in Phase 8 (roadmap, 6.1):**
 - content from 5e: races, classes, backgrounds, feats and what they grant, including class saving throw and skill proficiencies
-- conditions ("no armor"), "set" and "at least" effects (Belt of Giant Strength), heavy armor's Strength requirement and Stealth disadvantage
+- conditions ("no armor"), "set" and "at least" effects (Belt of Giant Strength), heavy armor's Strength requirement *(Stealth disadvantage is shown since 2026-10-09)*
 - modifiers on maximum HP and on initiative
 - spells, hit dice, passive Investigation and Insight, Jack of All Trades
 - a library of items
@@ -1272,6 +1271,12 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 - `create_world_entry(campaign, kind, name)` and `delete_world_entry(id)`, like `create_npc` and `delete_npc`. A guard trigger stops players changing `world_id`, `owner_id`, `audience`, `kind` or `deleted_at`.
 - `npcs` gets `place_id` and `faction_id` (may be empty; `on delete set null`), which must point to a place or a faction of the same world. `location` and `faction` stay as the text shown to whoever cannot see the entry.
 - **Permission test, new cases:** the NPC cases again for the new tables (hidden, revealed per campaign, shared wiki, secrets DM only, delete DM only, refused fields, a deleted account); a place cannot be part of itself, of a place inside it, of an entry that is not a place, or of a place in another world; `parent_id` on a non-place is refused; an NPC's `place_id` must be a place and `faction_id` a faction; a player cannot change `kind`.
+
+**Armor values and Set AC (2026-10-09, section 1.10).** One migration.
+- `inventory_items` gets `armor_ac` (0 to 30), `armor_dex` (`full` / `max2` / `max3` / `none`) and `armor_stealth` (true/false), all may be empty (empty: as the armor table) and only allowed with an armor. A trigger clears them when the armor type changes without them, so the older website never keeps another armor's values.
+- `character_effects` lists them for an item only when they are set.
+- `characters.set_ac` (0 to 30, may be empty). `characters.unarmored_ac` is no longer used; a later migration removes it once no phone runs the older website.
+- **Permission test, new cases:** a player sets armor values on their own item and the campaign sees them in the effects; an item without values looks as before; changing only the type clears them; refused: a base AC of 31 or −1, an unknown DEX rule, values without an armor; the owner and the DM set Set AC, another player cannot, 31 is refused.
 
 **Text length limits (all tables, 2026-09-27):** names 100 characters, one-line fields 500, notes and descriptions 100,000. Every new text column gets a limit in the migration that creates it.
 

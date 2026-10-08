@@ -2149,6 +2149,83 @@ describe('changing faith (2026-10-08)', () => {
   })
 })
 
+describe('armor values and Set AC (2026-10-09)', () => {
+  type ItemRow = { id: string; version: number; armor: string | null; armor_ac: number | null; armor_dex: string | null; armor_stealth: boolean | null }
+  let hero: { id: string; version: number }
+  const editItem = async (item: { id: string; version: number }, fields: Record<string, unknown>) =>
+    ok(
+      await playerA.db.from('inventory_items').update({ ...fields, version: item.version }).eq('id', item.id).select().single(),
+    ) as ItemRow
+  const effectOf = async (characterId: string, itemId: string) =>
+    (ok(await playerB.db.from('character_effects').select('items').eq('character_id', characterId).single()).items as {
+      item_id: string
+    }[]).find((i) => i.item_id === itemId)
+
+  before(async () => {
+    hero = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Armored up' }))
+  })
+
+  test('A player gives their armor its own values; the campaign sees them in the effects', async () => {
+    const plate = ok(
+      await playerA.db
+        .from('inventory_items')
+        .insert({ character_id: hero.id, campaign_id: campaignId, name: 'Sun plate', armor: 'plate', equipped: true })
+        .select()
+        .single(),
+    ) as ItemRow
+    assert.deepEqual(await effectOf(hero.id, plate.id), { item_id: plate.id, armor: 'plate', effects: [] }, 'no values: as before')
+
+    const magic = await editItem(plate, { armor_ac: 16, armor_dex: 'full', armor_stealth: false })
+    assert.deepEqual(await effectOf(hero.id, plate.id), {
+      item_id: plate.id,
+      armor: 'plate',
+      effects: [],
+      armor_ac: 16,
+      armor_dex: 'full',
+      armor_stealth: false,
+    })
+
+    const kept = await editItem(magic, { armor: 'splint', armor_ac: 15 })
+    assert.deepEqual([kept.armor, kept.armor_ac, kept.armor_dex, kept.armor_stealth], ['splint', 15, 'full', false], 'type and values together')
+    const reset = await editItem(kept, { armor: 'chain_mail' })
+    assert.deepEqual([reset.armor_ac, reset.armor_dex, reset.armor_stealth], [null, null, null], 'only the type: table values again')
+    const values = await editItem(reset, { armor_stealth: true })
+    const none = await editItem(values, { armor: null })
+    assert.deepEqual([none.armor_ac, none.armor_dex, none.armor_stealth], [null, null, null], 'no armor: no values')
+  })
+
+  test('Armor values are checked', async () => {
+    const insert = (fields: Record<string, unknown>) =>
+      playerA.db.from('inventory_items').insert({ character_id: hero.id, campaign_id: campaignId, name: 'Odd armor', ...fields })
+    refused(await insert({ armor: 'plate', armor_ac: 31 }), 'base AC 31')
+    refused(await insert({ armor: 'plate', armor_ac: -1 }), 'base AC −1')
+    refused(await insert({ armor: 'plate', armor_dex: 'max9' }), 'an unknown DEX rule')
+    refused(await insert({ armor_ac: 16 }), 'values without armor')
+    refused(await insert({ armor_stealth: true }), 'Stealth without armor')
+  })
+
+  test('Set AC: the owner and the DM set it, others cannot, and it stays between 0 and 30', async () => {
+    const set = ok(
+      await playerA.db.from('characters').update({ set_ac: 17, version: hero.version }).eq('id', hero.id).select().single(),
+    )
+    assert.equal(set.set_ac, 17)
+    assert.equal(ok(await playerB.db.from('characters').select('set_ac').eq('id', hero.id).single()).set_ac, 17, 'others read it')
+    noEffect(
+      await playerB.db.from('characters').update({ set_ac: 30, version: set.version }).eq('id', hero.id).select(),
+      'B sets A’s AC',
+    )
+    refused(
+      await playerA.db.from('characters').update({ set_ac: 31, version: set.version }).eq('id', hero.id).select(),
+      'Set AC 31',
+    )
+    const cleared = ok(
+      await dm.db.from('characters').update({ set_ac: null, version: set.version }).eq('id', hero.id).select().single(),
+    )
+    assert.equal(cleared.set_ac, null)
+    hero = cleared
+  })
+})
+
 describe('text length limits (Phase 4)', () => {
   const long = (n: number) => 'x'.repeat(n)
 
