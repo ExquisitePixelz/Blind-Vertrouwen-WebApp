@@ -93,11 +93,38 @@ export function mentionMatches<T extends Pick<LinkTarget, 'name'>>(targets: T[],
 // The Edit box: @[Name] instead of the saved [](kind:id)
 // ------------------------------------------------------------------
 
-/** A saved link, old ([Ilona](npc:…)) or new ([](npc:…)). */
-const SAVED_LINK = new RegExp(
-  `\\[(?:\\\\.|[^\\]\\\\])*\\]\\((${KINDS}):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\\)`,
-  'gi',
-)
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+
+/** A saved link, old ([Ilona](npc:…)) or new ([](npc:…)), or a spoiler's marker ([](spoiler:…)). */
+const SAVED_LINK = new RegExp(`\\[(?:\\\\.|[^\\]\\\\])*\\]\\((${KINDS}|spoiler):(${UUID})\\)`, 'gi')
+
+const SPOILER_HREF = new RegExp(`^spoiler:(${UUID})$`, 'i')
+const SPOILER_MARK = new RegExp(`\\(spoiler:(${UUID})\\)`, 'gi')
+
+/** A spoiler marker's href as the spoiler's id (1.13, 2026-10-09), or null. */
+export function parseSpoilerHref(href: string | undefined): string | null {
+  const match = href ? SPOILER_HREF.exec(href) : null
+  return match ? match[1].toLowerCase() : null
+}
+
+/** The ids of the spoilers in a saved text, each once, in order. */
+export function spoilerIds(text: string): string[] {
+  return [...new Set([...text.matchAll(SPOILER_MARK)].map((m) => m[1].toLowerCase()))]
+}
+
+/**
+ * Make the selected passage a spoiler in the Edit box: it is replaced by
+ * @[spoiler n], which stands for the new spoiler's marker. Returns the new
+ * text and caret.
+ */
+export function insertSpoiler(text: string, start: number, end: number, id: string, labels: LinkLabels) {
+  let n = 1
+  while (labels.has(`spoiler ${n}`)) n++
+  const label = `spoiler ${n}`
+  labels.set(label, `spoiler:${id.toLowerCase()}`)
+  const token = `@[${label}]`
+  return { text: text.slice(0, start) + token + text.slice(end), caret: start + token.length }
+}
 
 /** A link as the Edit box shows it: @[label]. */
 const TOKEN = /@\[([^\]\n]+)\]/g
@@ -128,12 +155,18 @@ export function toEditable(saved: string, targets: LinkTarget[], isDm: boolean):
   const labels: LinkLabels = new Map()
   const byHref = new Map<string, string>()
   let unknown = 0
+  let spoilers = 0
   const text = saved.replace(SAVED_LINK, (_, kind: string, id: string) => {
     const href = `${kind.toLowerCase()}:${id.toLowerCase()}`
     let label = byHref.get(href)
     if (!label) {
       const target = findTarget(targets, href)
-      label = target ? freeLabel(labels, target.name, href) : `${isDm ? 'deleted' : 'hidden'} ${++unknown}`
+      label =
+        kind.toLowerCase() === 'spoiler'
+          ? `spoiler ${++spoilers}`
+          : target
+            ? freeLabel(labels, target.name, href)
+            : `${isDm ? 'deleted' : 'hidden'} ${++unknown}`
       labels.set(label, href)
       byHref.set(href, label)
     }

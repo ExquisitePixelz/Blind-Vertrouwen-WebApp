@@ -7,7 +7,10 @@ import {
   fromEditable,
   hasLinks,
   insertMention,
+  insertSpoiler,
   linkMarkdown,
+  parseSpoilerHref,
+  spoilerIds,
   mentionAt,
   mentionMatches,
   parseLinkHref,
@@ -142,4 +145,19 @@ test('Challenge ratings match the database: 0, 1/8, 1/4, 1/2, 1 to 30', () => {
   assert.equal(CR_VALUES.length, 34)
   assert.deepEqual(CR_VALUES.slice(0, 5), ['0', '1/8', '1/4', '1/2', '1'])
   assert.equal(CR_VALUES.at(-1), '30')
+})
+
+test('Spoilers: the marker shows as @[spoiler n] in Edit, and a selected passage becomes one (2026-10-09)', () => {
+  const saved = `She is [](spoiler:${OTHER}) and [](spoiler:${SECRET}) and again [](spoiler:${OTHER}).`
+  assert.deepEqual(spoilerIds(saved), [OTHER, SECRET])
+  assert.equal(parseSpoilerHref(`spoiler:${OTHER}`), OTHER)
+  assert.equal(parseSpoilerHref(`npc:${OTHER}`), null)
+  assert.equal(parseLinkHref(`spoiler:${OTHER}`), null, 'a spoiler is not a link')
+  const edit = toEditable(saved, [], false)
+  assert.equal(edit.text, 'She is @[spoiler 1] and @[spoiler 2] and again @[spoiler 1].')
+  assert.equal(fromEditable(edit.text, edit.labels), saved)
+  const made = insertSpoiler('Ilona is secretly a queen.', 9, 25, ID, edit.labels)
+  assert.equal(made.text, 'Ilona is @[spoiler 3].')
+  assert.equal(made.caret, 9 + '@[spoiler 3]'.length)
+  assert.equal(fromEditable(made.text, edit.labels), `Ilona is [](spoiler:${ID}).`)
 })

@@ -1817,3 +1817,45 @@ button.pick-create {
   width: 100%;
   margin: 0.5rem 0;
 }
+
+/* Spoilers (1.13, 2026-10-09). Locked: others see only that one is here.
+   Open: the author, the DM and those who know it read it, with who knows. */
+.spoiler {
+  display: inline;
+  padding: 0.05rem 0.4rem;
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.spoiler.locked {
+  background: repeating-linear-gradient(-45deg, #2a2a30, #2a2a30 6px, #232328 6px, #232328 12px);
+  color: var(--muted);
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+.spoiler.open {
+  border: 1px dashed var(--gold);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.spoiler.open.tappable {
+  cursor: pointer;
+}
+
+.spoiler-known {
+  margin-left: 0.4rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.spoiler-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}

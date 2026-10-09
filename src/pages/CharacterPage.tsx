@@ -545,6 +545,7 @@ export function CharacterPage() {
         placeholder="Backstory, goals, personality…"
         emptyText={canEdit ? 'Nothing written yet. Tap Edit to start.' : 'No backstory yet.'}
         readOnly={!canEdit}
+        spoilerParent={{ kind: 'character', id: c.id }}
       />
 
       {canEdit && (

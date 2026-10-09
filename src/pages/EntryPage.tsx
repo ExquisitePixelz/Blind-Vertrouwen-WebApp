@@ -180,6 +180,7 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
         onBlur={() => void saver.flush()}
         placeholder="What it is, its history, what the party knows…"
         emptyText="No description yet. Tap Edit to write one."
+        spoilerParent={{ kind: 'world_entry', id: e.id }}
       />
 
       {inside.length > 0 && (

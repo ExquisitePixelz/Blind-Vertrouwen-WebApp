@@ -152,6 +152,7 @@ export function NpcPage() {
         onBlur={() => void saver.flush()}
         placeholder="Who they are, what they want, what the party knows…"
         emptyText="No description yet. Tap Edit to write one."
+        spoilerParent={{ kind: 'npc', id: n.id }}
       />
 
       {dm && <SecretsSection where={SECRETS} id={n.id} stats onStatus={setSecretsStatus} />}
