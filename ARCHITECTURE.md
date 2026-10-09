@@ -1281,6 +1281,8 @@ Only the DM can read or write sessions and attendance. Add these cases to the pe
 
 **Character size (2026-10-09, section 1.8).** One migration: `characters.size` (`tiny` / `small` / `medium` / `large` / `huge` / `gargantuan`, default `medium`). Written like the rest of the character. **Permission test:** a new character is Medium; the owner and the DM change it, another player cannot; an unknown size is refused.
 
+**Links without names (2026-10-09, section 1.13).** One migration, `20261009140000_links_without_names.sql`: removes the names from saved links (`[Ilona](npc:…)` becomes `[](npc:…)`) in every notes column, after checking its pattern on sample texts with `assert`s. Web links stay. Changed rows get a new version, so `db push` runs when nobody is editing.
+
 **Text length limits (all tables, 2026-09-27):** names 100 characters, one-line fields 500, notes and descriptions 100,000. Every new text column gets a limit in the migration that creates it.
 
 **Allowed now for future use:** a nullable `image_path` column on characters and gods, for future image uploads. Nothing else speculative.
