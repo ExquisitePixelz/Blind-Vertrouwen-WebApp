@@ -2250,6 +2250,121 @@ describe('character size (2026-10-09)', () => {
   })
 })
 
+describe('spoilers (2026-10-09)', () => {
+  let heroA: { id: string; version: number }
+  let heroB: { id: string; version: number }
+  const readText = async (user: { db: SupabaseClient }, id: string) =>
+    (ok(await user.db.from('spoilers').select('text').eq('id', id)) as { text: string }[])[0]?.text ?? null
+
+  before(async () => {
+    heroA = ok(await playerA.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Secretive' }))
+    heroB = ok(await playerB.db.rpc('create_character', { p_campaign_id: campaignId, p_name: 'Curious' }))
+  })
+
+  test('A spoiler in a backstory: the author and the DM read it, others do not, until it is revealed to them', async () => {
+    const id = ok(
+      await playerA.db.rpc('create_spoiler', { p_parent_kind: 'character', p_parent_id: heroA.id, p_text: 'I am royalty.' }),
+    ) as string
+    assert.equal(await readText(playerA, id), 'I am royalty.')
+    assert.equal(await readText(dm, id), 'I am royalty.')
+    assert.equal(await readText(playerB, id), null, 'B reads it')
+    assert.equal(await readText(outsider, id), null, 'an outsider reads it')
+
+    // Revealed to B's character: B reads it, and sees who knows.
+    ok(await playerA.db.from('spoiler_knowers').insert({ spoiler_id: id, character_id: heroB.id }))
+    assert.equal(await readText(playerB, id), 'I am royalty.')
+    assert.equal(ok(await playerB.db.from('spoiler_knowers').select('character_id').eq('spoiler_id', id)).length, 1)
+    ok(await playerA.db.from('spoiler_knowers').delete().eq('spoiler_id', id).eq('character_id', heroB.id))
+    assert.equal(await readText(playerB, id), null, 'no longer known')
+    assert.equal(ok(await playerB.db.from('spoiler_knowers').select('character_id').eq('spoiler_id', id)).length, 0, 'who knows stays hidden')
+
+    // Revealed to everyone who reads the backstory.
+    const row = ok(await playerA.db.from('spoilers').select('version').eq('id', id).single())
+    ok(await playerA.db.from('spoilers').update({ to_everyone: true, version: row.version }).eq('id', id).select().single())
+    assert.equal(await readText(playerB, id), 'I am royalty.')
+    assert.equal(await readText(outsider, id), null, 'not outside the campaign')
+  })
+
+  test('Only the author and the DM edit, reveal or delete a spoiler; a knower cannot pass it on', async () => {
+    const id = ok(
+      await playerA.db.rpc('create_spoiler', { p_parent_kind: 'character', p_parent_id: heroA.id, p_text: 'Twin sister.' }),
+    ) as string
+    ok(await playerA.db.from('spoiler_knowers').insert({ spoiler_id: id, character_id: heroB.id }))
+    const row = ok(await playerB.db.from('spoilers').select('version').eq('id', id).single())
+    noEffect(await playerB.db.from('spoilers').update({ text: 'Changed', version: row.version }).eq('id', id).select(), 'B edits')
+    noEffect(await playerB.db.from('spoilers').update({ to_everyone: true, version: row.version }).eq('id', id).select(), 'B reveals')
+    refused(await playerB.db.from('spoiler_knowers').insert({ spoiler_id: id, character_id: heroA.id }), 'B passes it on')
+    noEffect(await playerB.db.from('spoiler_knowers').delete().eq('spoiler_id', id).select(), 'B removes a knower')
+    noEffect(await playerB.db.from('spoilers').delete().eq('id', id).select(), 'B deletes')
+    refused(
+      await playerA.db.from('spoilers').update({ parent_id: heroB.id, version: row.version }).eq('id', id).select(),
+      'A moves it',
+    )
+    refused(
+      await playerA.db.from('spoilers').insert({ parent_kind: 'character', parent_id: heroA.id, text: 'x' }),
+      'a direct insert',
+    )
+    const edited = ok(await dm.db.from('spoilers').update({ text: 'Edited', version: row.version }).eq('id', id).select().single())
+    assert.equal(edited.text, 'Edited')
+    ok(await dm.db.from('spoiler_knowers').insert({ spoiler_id: id, character_id: heroA.id }))
+    ok(await playerA.db.from('spoilers').delete().eq('id', id))
+    assert.equal(await readText(dm, id), null, 'deleted, with its knowers')
+  })
+
+  test('Where a spoiler can be made', async () => {
+    refused(
+      await playerB.db.rpc('create_spoiler', { p_parent_kind: 'character', p_parent_id: heroA.id, p_text: 'x' }),
+      "in someone else's backstory",
+    )
+    const shared = ok(await playerB.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Spoiled NPC' }))
+    ok(await playerA.db.rpc('create_spoiler', { p_parent_kind: 'npc', p_parent_id: shared.id, p_text: 'x' }))
+    const hidden = ok(await dm.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Hidden NPC' }))
+    refused(await playerA.db.rpc('create_spoiler', { p_parent_kind: 'npc', p_parent_id: hidden.id, p_text: 'x' }), 'a hidden NPC')
+    ok(await dm.db.rpc('create_spoiler', { p_parent_kind: 'npc', p_parent_id: hidden.id, p_text: 'x' }))
+    refused(await playerA.db.rpc('create_spoiler', { p_parent_kind: 'quest', p_parent_id: heroA.id, p_text: 'x' }), 'another kind')
+    refused(await outsider.db.rpc('create_spoiler', { p_parent_kind: 'npc', p_parent_id: shared.id, p_text: 'x' }), 'an outsider')
+    refused(await anon.rpc('create_spoiler', { p_parent_kind: 'npc', p_parent_id: shared.id, p_text: 'x' }), 'not logged in')
+    const tooLong = ok(await playerA.db.rpc('create_spoiler', { p_parent_kind: 'character', p_parent_id: heroA.id, p_text: '' })) as string
+    const row = ok(await playerA.db.from('spoilers').select('version').eq('id', tooLong).single())
+    refused(
+      await playerA.db.from('spoilers').update({ text: 'x'.repeat(100_001), version: row.version }).eq('id', tooLong).select(),
+      'over 100,000 characters',
+    )
+  })
+
+  test("A player editing a shared text cannot remove someone else's spoiler", async () => {
+    const npc = ok(await playerB.db.rpc('create_npc', { p_campaign_id: campaignId, p_name: 'Ilona the spoiled' }))
+    const id = ok(
+      await playerB.db.rpc('create_spoiler', { p_parent_kind: 'npc', p_parent_id: npc.id, p_text: 'Kraan’s sister.' }),
+    ) as string
+    const marked = `She runs the inn. [](spoiler:${id}) Ask about her past.`
+    let row = ok(await playerB.db.from('npcs').update({ description: marked, version: npc.version }).eq('id', npc.id).select().single())
+
+    refused(
+      await playerA.db.from('npcs').update({ description: 'She runs the inn.', version: row.version }).eq('id', npc.id).select(),
+      'A removes B’s spoiler',
+    )
+    row = ok(
+      await playerA.db
+        .from('npcs')
+        .update({ description: `${marked} She sings.`, version: row.version })
+        .eq('id', npc.id)
+        .select()
+        .single(),
+    )
+    assert.ok(row.description.includes(`spoiler:${id}`), 'editing around it is fine')
+    row = ok(await playerB.db.from('npcs').update({ description: 'Plain.', version: row.version }).eq('id', npc.id).select().single())
+    assert.equal(row.description, 'Plain.', 'the author removes it')
+    row = ok(await playerB.db.from('npcs').update({ description: marked, version: row.version }).eq('id', npc.id).select().single())
+    row = ok(await dm.db.from('npcs').update({ description: 'DM cleaned up.', version: row.version }).eq('id', npc.id).select().single())
+    assert.equal(row.description, 'DM cleaned up.', 'the DM removes it')
+    // A marker without a spoiler row is not guarded.
+    const ghost = `[](spoiler:${randomUUID()})`
+    row = ok(await dm.db.from('npcs').update({ description: ghost, version: row.version }).eq('id', npc.id).select().single())
+    ok(await playerA.db.from('npcs').update({ description: 'Gone.', version: row.version }).eq('id', npc.id).select().single())
+  })
+})
+
 describe('text length limits (Phase 4)', () => {
   const long = (n: number) => 'x'.repeat(n)
 
