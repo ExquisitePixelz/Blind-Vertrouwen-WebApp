@@ -2,15 +2,26 @@
 
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { findTarget, hasLinks, insertMention, linkMarkdown, mentionAt, mentionMatches, parseLinkHref, type LinkTarget } from '../src/lib/links.ts'
+import {
+  findTarget,
+  fromEditable,
+  hasLinks,
+  insertMention,
+  linkMarkdown,
+  mentionAt,
+  mentionMatches,
+  parseLinkHref,
+  toEditable,
+  type LinkLabels,
+  type LinkTarget,
+} from '../src/lib/links.ts'
 import { CR_VALUES, filterNpcs, groupNpcs, maskHiddenPicks, npcPlace } from '../src/lib/npcs.ts'
 
 const ID = '3f2a8c4e-1b2d-4e5f-8a9b-0c1d2e3f4a5b'
 const target = (kind: LinkTarget['kind'], name: string, id = ID): LinkTarget => ({ kind, id, name, path: `/${kind}/${id}` })
 
 test('A link is written as markdown with the ID, and read back', () => {
-  assert.equal(linkMarkdown(target('npc', 'Ilona')), `[Ilona](npc:${ID})`)
-  assert.equal(linkMarkdown(target('god', 'The [Masked] One')), `[The \\[Masked\\] One](god:${ID})`)
+  assert.equal(linkMarkdown(target('god', 'The [Masked] One')), `[](god:${ID})`, 'no name since 2026-10-09')
   assert.deepEqual(parseLinkHref(`npc:${ID}`), { kind: 'npc', id: ID })
   assert.deepEqual(parseLinkHref(`Character:${ID.toUpperCase()}`), { kind: 'character', id: ID })
   assert.equal(parseLinkHref('https://example.com'), null)
@@ -57,12 +68,49 @@ test('The @ list: starts-with first, then a word that starts with it, then conta
   assert.equal(mentionMatches(many, 'guard').length, 8)
 })
 
-test('Picking replaces the @… with the link and a space, and puts the caret after it', () => {
+test('Picking replaces the @… with @[Name] and a space, puts the caret after it, and remembers the link', () => {
   const text = 'We met @Ilo at the docks'
-  const result = insertMention(text, 7, 11, target('npc', 'Ilona'))
-  const link = `[Ilona](npc:${ID}) `
-  assert.equal(result.text, `We met ${link} at the docks`)
-  assert.equal(result.caret, 7 + link.length)
+  const labels: LinkLabels = new Map()
+  const result = insertMention(text, 7, 11, target('npc', 'Ilona'), labels)
+  assert.equal(result.text, 'We met @[Ilona]  at the docks')
+  assert.equal(result.caret, 7 + '@[Ilona] '.length)
+  assert.equal(fromEditable(result.text, labels), `We met [](npc:${ID})  at the docks`, 'saved without the name')
+})
+
+const OTHER = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+const SECRET = '11111111-2222-4333-8444-555555555555'
+
+test('The Edit box shows names, or @[hidden n]; what is saved never holds a name (2026-10-09)', () => {
+  const targets = [target('npc', 'Ilona'), target('god', 'Phenax', OTHER)]
+  // An older link with a name, a newer one without, and one the player cannot see.
+  const saved = `[Ilona](npc:${ID}) prays to [](god:${OTHER}) and fears [The Masked Villain](npc:${SECRET}), [](npc:${SECRET}).`
+  const player = toEditable(saved, targets, false)
+  assert.equal(player.text, '@[Ilona] prays to @[Phenax] and fears @[hidden 1], @[hidden 1].')
+  assert.ok(!player.text.includes('Villain'), 'the hidden name never reaches the Edit box')
+  assert.equal(
+    fromEditable(player.text, player.labels),
+    `[](npc:${ID}) prays to [](god:${OTHER}) and fears [](npc:${SECRET}), [](npc:${SECRET}).`,
+    'saved back with every link kept and no names',
+  )
+  // Editing around a hidden link keeps it; deleting one link keeps the others.
+  const edited = player.text.replace('@[Ilona] prays to ', 'Kraan prays to ').replace(', @[hidden 1].', '!')
+  assert.equal(fromEditable(edited, player.labels), `Kraan prays to [](god:${OTHER}) and fears [](npc:${SECRET})!`)
+  // Something typed that is not a known link stays as typed.
+  assert.equal(fromEditable('Meet @[Nobody] and @[hidden 9]', player.labels), 'Meet @[Nobody] and @[hidden 9]')
+  // For the DM, whose list has everything, an unknown target was deleted.
+  assert.equal(toEditable(`[Old](npc:${SECRET})`, targets, true).text, '@[deleted 1]')
+  assert.equal(linkMarkdown(target('npc', 'Ilona')), `[](npc:${ID})`)
+})
+
+test('Two different things with the same name get different labels', () => {
+  const targets = [target('npc', 'Guard'), target('npc', 'Guard', OTHER)]
+  const edit = toEditable(`[](npc:${ID}) and [](npc:${OTHER}) and [](npc:${ID})`, targets, false)
+  assert.equal(edit.text, '@[Guard] and @[Guard (2)] and @[Guard]')
+  assert.equal(fromEditable(edit.text, edit.labels), `[](npc:${ID}) and [](npc:${OTHER}) and [](npc:${ID})`)
+  const labels = new Map(edit.labels)
+  const picked = insertMention('@Gu', 0, 3, target('npc', 'Guard', SECRET), labels)
+  assert.equal(picked.text, '@[Guard (3)] ')
+  assert.equal(toEditable(`[](npc:${ID})`, [target('npc', 'Ilo]na\n')], false).text, '@[Ilona]', 'no brackets or new lines in a label')
 })
 
 test('The NPC list: sorted by name, filtered on name, role, location and faction, with a Hidden group for the DM', () => {

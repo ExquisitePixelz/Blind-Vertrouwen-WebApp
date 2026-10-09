@@ -68,7 +68,7 @@ test('The filter: words in the name or summary, and the type chip', () => {
 test('Links work for the new kinds', () => {
   for (const kind of ['place', 'faction', 'lore', 'creature', 'item'] as const) {
     const md = linkMarkdown({ kind, id: ID, name: 'X' })
-    assert.equal(md, `[X](${kind}:${ID})`)
+    assert.equal(md, `[](${kind}:${ID})`)
     assert.deepEqual(parseLinkHref(`${kind}:${ID}`), { kind, id: ID })
     assert.equal(hasLinks(`See ${md}.`), true)
   }

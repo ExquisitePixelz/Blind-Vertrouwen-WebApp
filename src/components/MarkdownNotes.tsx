@@ -3,7 +3,18 @@ import Markdown, { defaultUrlTransform } from 'react-markdown'
 import { Link } from 'react-router'
 import { NOTES_MAX } from '../lib/limits'
 import { useLinkTargets } from '../lib/linkTargets'
-import { KIND_LABELS, findTarget, hasLinks, insertMention, mentionAt, mentionMatches, parseLinkHref } from '../lib/links'
+import {
+  KIND_LABELS,
+  findTarget,
+  fromEditable,
+  hasLinks,
+  insertMention,
+  mentionAt,
+  mentionMatches,
+  parseLinkHref,
+  toEditable,
+  type LinkLabels,
+} from '../lib/links'
 import { useMe } from '../lib/me'
 
 type NotesMode = 'edit' | 'preview'
@@ -48,6 +59,7 @@ export function MarkdownNotes({
   tall?: boolean
   autoFocus?: boolean
 }) {
+  const me = useMe()
   const [mode, setMode] = useState<NotesMode>(() => (notes.trim() ? 'preview' : 'edit'))
   const shown = readOnly ? 'preview' : mode
   const area = useRef<HTMLTextAreaElement>(null)
@@ -55,21 +67,40 @@ export function MarkdownNotes({
   // The @ the user closed with Escape stays closed until another one is typed.
   const [dismissed, setDismissed] = useState<number | null>(null)
   const [active, setActive] = useState(0)
+  // What the Edit box shows (links as @[Name], 2026-10-09), and the saved
+  // notes it was made from or saved as. Made again when the notes change
+  // from elsewhere (a reload, someone else's version).
+  const [edit, setEdit] = useState<{ text: string; labels: LinkLabels; source: string } | null>(null)
 
-  const mention = shown === 'edit' && caret !== null ? mentionAt(notes, caret) : null
+  const linked = hasLinks(notes)
+  const editText = edit?.source === notes ? edit.text : null
+  const mention = shown === 'edit' && caret !== null && editText !== null ? mentionAt(editText, caret) : null
   const open = mention && mention.start !== dismissed ? mention : null
-  const targets = useLinkTargets((shown === 'preview' && hasLinks(notes)) || !!open)
+  const targets = useLinkTargets(linked || !!open)
   const matches = open && targets ? mentionMatches(targets, open.query) : []
   const listShown = open && matches.length > 0
+
+  // Names need the link targets; text without links can be shown at once.
+  if (shown === 'edit' && editText === null && (targets || !linked)) {
+    setEdit({ ...toEditable(notes, targets ?? [], me.isDm), source: notes })
+  }
+
+  /** The Edit box changed: save it with the links as [](kind:id). */
+  function change(text: string, labels: LinkLabels) {
+    const saved = fromEditable(text, labels)
+    setEdit({ text, labels, source: saved })
+    onChange(saved)
+  }
 
   const track = () => setCaret(area.current?.selectionStart ?? null)
 
   function pick(index: number) {
-    if (!open || caret === null) return
+    if (!open || caret === null || editText === null || !edit) return
     const target = matches[index]
     if (!target) return
-    const result = insertMention(notes, open.start, caret, target)
-    onChange(result.text)
+    const labels = new Map(edit.labels)
+    const result = insertMention(editText, open.start, caret, target, labels)
+    change(result.text, labels)
     setCaret(result.caret)
     requestAnimationFrame(() => {
       area.current?.focus()
@@ -114,16 +145,18 @@ export function MarkdownNotes({
         )}
       </div>
       {hint && <p className="muted small notes-hint">{hint}</p>}
-      {shown === 'edit' ? (
+      {shown === 'edit' && editText === null ? (
+        <p className="muted">Loading…</p>
+      ) : shown === 'edit' ? (
         <>
           <textarea
             ref={area}
             className={`text-input notes${tall ? ' session-notes' : ''}`}
-            value={notes}
+            value={editText ?? ''}
             maxLength={NOTES_MAX}
             placeholder={placeholder}
             onChange={(e) => {
-              onChange(e.target.value)
+              change(e.target.value, edit?.labels ?? new Map())
               setCaret(e.target.selectionStart)
               setActive(0)
             }}
@@ -214,7 +247,8 @@ function MarkdownText({ text, targets }: { text: string; targets: ReturnType<typ
                 </Link>
               )
             }
-            if (me.isDm) return <span>{children}</span>
+            // A deleted target: older links still carry their name; newer ones have none.
+            if (me.isDm) return children ? <span>{children}</span> : <span className="muted">[deleted]</span>
             // A player never sees the name written in the link, not even while loading.
             return <span className="muted">{targets ? '[hidden]' : '…'}</span>
           }
