@@ -996,6 +996,16 @@ The World button (1.13) gets five more libraries next to NPCs: **Places, Faction
 
 The initiative tracker that players see live on their phones (6, Initiative tracker and Live combat). It is the hardest phase so far: it adds Supabase Realtime (changes 3.6), needs privacy for monster HP, and must stay light on the battery (1.11). It reuses the conditions and the party overview from Phase 10, and the stats of NPCs (Phase 11) and creatures (Phase 12). Moved after the rest of World (owner, 2026-10-07). The owner answers the questions before it is written out, like the earlier phases.
 
+### 1.16 Loading chest *(put in scope by the owner, 2026-10-22; a small extra before Phase 13, version `0.12.12-alpha`)*
+
+The first Lottie animation from the roadmap (6): a gold chest that plays while the app is loading. The owner made it in LottieFiles Creator (`GoldChest_60fps_withouttext.lottie`: 4 seconds, 60 fps, 512 × 512, shapes only, no text or font). The animated dashboard icons stay on the roadmap.
+
+- **When the app starts** (a cold start: opening the app or a reload): while it checks the login and loads the account. A screen-wide chest with "Loading…" under it, over the plain start text. It fades out as soon as the first screen is ready, and a tap hides it.
+- **Screens that stay empty while their data loads:** the character sheet, the Party overview, and a session, quest, NPC, World entry and the Players screen. There the chest sits under the top bar with "Loading…", and the screen replaces it when the data is in.
+- **Only when loading is slow:** the chest appears after **0.4 s** of loading, so a fast load shows nothing and nothing flashes. It **never delays the app**: it never stays once the screen is ready.
+- **Animations on/off** in Settings, per device. It starts off when the phone asks for less motion (`prefers-reduced-motion`), on otherwise. Off: plain "Loading…" text on slow screens, the plain start text at start.
+- **Light:** the light SVG build of `lottie-web` (46 KB compressed, no `eval`, so the Content Security Policy needs no change) and the animation as Lottie JSON (`src/assets/chest.json`, 11 KB compressed). That player reads JSON, not `.lottie` files, so the JSON is unpacked from the owner's file. Both are their own files, downloaded only when the chest is needed (then kept by the service worker), so the login page stays the same size (1.11 D9). The animation stops and is removed when the chest goes.
+
 ---
 
 ## 2. Priorities
@@ -1123,7 +1133,7 @@ Realtime is added later together with the features that need it, such as live co
 - **Public repository:** free GitHub Pages needs one, so anyone can read the code. That is fine because there are no secrets in it. Check before every commit that no keys, database passwords or data exports are included.
 
 ### 3.9 Version number. *Decided (owner, 2026-09-25; changed 2026-10-07)*
-The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.12.3-alpha` (2026-10-08: [hidden] for players and a grey-blue link with an eye for the DM, for links to hidden things).*
+The version lives only in `package.json` and is shown in the footer (e.g. "v0.5.0 Alpha"). *Current: `0.12.12-alpha` (2026-10-22: the loading chest, 1.16).*
 - **Alpha:** `0.<minor>.<fix>-alpha`. The minor number is the latest finished phase or roadmap feature: Phase 5 done = `0.5.0-alpha`. Each new phase or feature adds 1 to the minor number (`0.6.0-alpha`, `0.7.0-alpha`, …). **Every other push that changes the website adds 1 to the last number** (`0.9.1-alpha`, `0.9.2-alpha`, …), also a small fix and also a step of a phase that is still being built. *Changed 2026-10-07 (owner):* phones show "New version" whenever the website's files change, so the number in the footer must change with it. Before this, only a finished phase or fix raised it, and during Phase 9 phones showed "New version" several times on the same `0.8.1-alpha`.
 - **Beta:** `0.<minor>.<fix>-beta`, from the moment the Character Builder (6.1), the Quest Journal (6.2) and Live Combat are all in. The minor number keeps counting.
 - **Release:** `1.0.0`, when the owner says everything works.
@@ -1349,6 +1359,7 @@ Work in small steps. Commit to Git after each working step so anything can be ro
 | Phase 10: at the table (1.12): conditions, hit dice with Short and Long rest, party overview for the DM | **Built** (2026-10-07), version `0.10.0-alpha`. Checked as DM in the browser in the Stress test campaign; the player side is covered by the permission test. Tested by the group in Phase 4. |
 | Phase 11: NPCs and links (1.13): a World button with a shared NPC library (DM secrets and stats hidden), then `@` links to characters, gods and NPCs in notes | **Built** (2026-10-07), version `0.11.0-alpha`. Checked as DM in the browser in the Stress test campaign; the player side is covered by the permission test (141 cases). |
 | Phase 12: the rest of World (1.14): Places (types, part of), Factions, Lore, Creatures (with stats), Items, all like NPCs; picks for an NPC's Location and Faction; `@` links to all of them | **Built** (2026-10-07), version `0.12.0-alpha`. Checked as DM in the browser in the Stress test campaign; the player side is covered by the permission test (160 cases). |
+| Extra: loading chest (1.16): the owner's Lottie chest while the app or a screen loads, with an Animations setting | **Built** (2026-10-22), version `0.12.12-alpha` |
 | Phase 13: live combat (1.15): initiative tracker with Realtime | After Phase 12; written out when started |
 | Character builder and rules engine (6.1), the parts after Phase 8 | Owner decides when |
 | Other roadmap candidates (Lottie animations, session quiz, pictures, …) | Unordered |
@@ -1681,7 +1692,7 @@ These are candidates, not commitments. Each one lists what version 1 already pro
 | **Lore database** with linked entries, written together | The world level, and Postgres suits linked data. Writing in the same document **at the same time** would need an extra technology (for example Yjs) and is a larger project. Taking turns editing works with the v1 conflict guard. |
 | **Live combat** with shared turn order *(Phase 13, 1.15)* | Add Supabase Realtime together with this feature |
 | **Image uploads** | `image_path` columns. Compress on the phone before upload. |
-| **Lottie animations** *(owner plan, 2026-09-24; the owner makes the files later, e.g. After Effects + Bodymovin)*: a splash screen and animated dashboard icons/buttons | The Phase 4.5 dashboard (1.5). Agreed behaviour: the splash shows on a cold start only, covers loading, fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**. Use the light SVG build of `lottie-web`, loaded lazily; pause off screen. Add an **Animations on/off** setting (per device, off by default when the phone asks for reduced motion) together with it. |
+| **Lottie animations** *(owner plan, 2026-09-24; the owner makes the files later, e.g. After Effects + Bodymovin)*: a splash screen and animated dashboard icons/buttons. *The loading chest (splash) is built: section 1.16 (2026-10-22). The dashboard icons stay here.* | The Phase 4.5 dashboard (1.5). Agreed behaviour: the splash shows on a cold start only, covers loading, fades out as soon as the app is ready (at most about 1.5 s), can be tapped to skip, and **never delays the app**. Use the light SVG build of `lottie-web`, loaded lazily; pause off screen. Add an **Animations on/off** setting (per device, off by default when the phone asks for reduced motion) together with it. |
 | **Native phone app** with a local copy that checks the server for updates when online | The version numbers and database timestamps make "what changed since my copy" possible. Note the hidden-content problem from 3.4: the app must remove local copies of anything the server no longer returns. |
 | **More piety features**: history of changes, reusable custom sources, automatic calculation, the boons themselves at each milestone (v1 only shows which milestones are reached) | `piety_tracks` already separates god and custom sources |
 | **Other Unity app features** | From the specification (section 1.3) |
@@ -1747,6 +1758,7 @@ Expected cost is 0 EUR beyond the domain already owned, as long as the free-plan
 
 
 **Resolved:**
+- **Loading chest** (owner, 2026-10-22): the first Lottie animation, built before Phase 13; at start-up and on screens that sit empty while loading, only after 0.4 s, with an Animations on/off setting per device. See 1.16.
 - **Links to hidden things** (owner, 2026-10-08): players see [hidden] (also for deleted targets, and for an NPC's hidden Location or Faction); the DM sees grey-blue with a dashed underline and a crossed-out eye. See 1.13 and 1.14.
 - **Hide again** (owner, 2026-10-08): the DM can hide a revealed quest, NPC or World entry again, from the … menu with a confirm dialog. What players read in between is not undone; that is fine. See 1.9, 1.13 and 1.14.
 - **Phase 11: NPCs and links** (owner decisions, 2026-10-07; see section 1.13): Phase 11 builds only NPCs, behind a new World button on the dashboard (places, towns, buildings and factions come there later); Gods stay on the dashboard; NPCs are one shared world library, revealed per campaign and never hidden again (changed 2026-10-08: the DM can hide again); a shared wiki where players create NPCs (revealed to their campaign at once) and edit every NPC they can see, with one shared text across campaigns; an NPC has a name, role, status, location, faction and description; DM secrets and optional stats (AC, HP, speed, the six abilities, CR, actions) are DM only, always; links are written by typing `@` and picking. Default chosen by the agent: only the DM deletes NPCs.
