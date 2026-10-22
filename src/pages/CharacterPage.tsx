@@ -7,6 +7,7 @@ import { LongRestDialog, ShortRestDialog } from '../components/Rest'
 import { ConfirmDialog, NumberDialog, PickDialog, PromptDialog } from '../components/Dialog'
 import { ChangeFaithDialog } from '../components/Faith'
 import { TopBar } from '../components/TopBar'
+import { LoadingChest } from '../components/LoadingChest'
 import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { Press } from '../components/Press'
@@ -211,6 +212,7 @@ export function CharacterPage() {
   if (character.loading && !character.data) return (
       <main className="page loading">
         <TopBar back={`/c/${campaignId}/characters`} />
+        <LoadingChest />
       </main>
     )
   if (!c) {

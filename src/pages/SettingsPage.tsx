@@ -3,6 +3,7 @@ import { Dialog, PromptDialog } from '../components/Dialog'
 import { FactRow } from '../components/FactRow'
 import { TopBar } from '../components/TopBar'
 import { signOutWith } from '../lib/access'
+import { animationsOn, setAnimationsOn } from '../lib/animations'
 import { DEFAULT_SUBTITLE, type Campaign } from '../lib/campaigns'
 import { useMe, useUpdateMe } from '../lib/me'
 import { must, supabase } from '../lib/supabase'
@@ -14,13 +15,15 @@ type Editing = 'display_name' | 'name' | 'subtitle' | 'delete'
 /**
  * Settings (ARCHITECTURE.md 1.5, 1.6): your display name, for the DM the
  * current campaign's name and subtitle, and for players Delete my account.
- * Each saves when OK is tapped.
+ * Each saves when OK is tapped. Animations (1.16) is per device and switches
+ * with a tap.
  */
 export function SettingsPage() {
   const me = useMe()
   const updateMe = useUpdateMe()
   const [editing, setEditing] = useState<Editing | null>(null)
   const close = () => setEditing(null)
+  const [animations, setAnimations] = useState(animationsOn)
 
   const campaign = useLoad(async () => {
     if (!me.isDm || !me.lastCampaignId) return null
@@ -68,6 +71,19 @@ export function SettingsPage() {
         </>
       )}
       {campaign.error && <p className="error">{campaign.error}</p>}
+
+      <h2>This device</h2>
+      <div className="card">
+        <FactRow
+          label="Animations"
+          value={animations ? 'On' : 'Off'}
+          onClick={() => {
+            setAnimationsOn(!animations)
+            setAnimations(!animations)
+          }}
+        />
+      </div>
+      <p className="muted small">The chest while the app is loading. Off: just the text "Loading…".</p>
 
       {!me.isDm && (
         <>

@@ -5,6 +5,7 @@ import { ConditionChips } from '../components/Conditions'
 import { NumberDialog } from '../components/Dialog'
 import { LongRestDialog } from '../components/Rest'
 import { TopBar } from '../components/TopBar'
+import { LoadingChest } from '../components/LoadingChest'
 import { damage, heal, isDead, setCurrentHp, withDeathSaves, type Character } from '../lib/character'
 import { byName } from '../lib/gods'
 import { useMe } from '../lib/me'
@@ -102,6 +103,7 @@ function Party() {
   return (
     <main className={`page${party.loading && !party.data ? ' loading' : ''}`}>
       <TopBar title="Party" back="/" />
+      {party.loading && !party.data && <LoadingChest />}
       {party.error && <p className="error">{party.error}</p>}
       {notice && <p className="error">{notice}</p>}
       {party.data?.length === 0 && <p className="muted">No characters yet.</p>}

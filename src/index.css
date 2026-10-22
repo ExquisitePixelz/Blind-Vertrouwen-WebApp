@@ -1186,6 +1186,52 @@ button.dash-button {
   display: none;
 }
 
+/* ---------- Loading chest (1.16) ---------- */
+
+/* The chest fills only the middle of the animation's square; the rest is room
+   for the loot flying out. The text moves up into the empty bottom part. */
+.chest {
+  width: 14rem;
+  height: 14rem;
+  margin: 0 auto;
+}
+
+.chest + p {
+  margin: -4rem 0 0;
+}
+
+.loading-chest {
+  text-align: center;
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Over the plain start text, screen-wide, until the first screen is ready. */
+.start-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  animation: fade-in 0.3s ease-out;
+  cursor: pointer;
+}
+
+/* FADE_MS in LoadingChest.tsx. */
+.start-splash.leaving {
+  opacity: 0;
+  transition: opacity 0.3s ease-in;
+  pointer-events: none;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .footer {
   display: flex;
   flex-wrap: wrap;

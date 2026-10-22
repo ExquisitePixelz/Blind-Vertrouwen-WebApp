@@ -5,6 +5,7 @@ import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
+import { LoadingChest } from '../components/LoadingChest'
 import { useMe } from '../lib/me'
 import { loadCharacterNames, type CharacterName } from '../lib/questData'
 import {
@@ -69,7 +70,7 @@ export function QuestPage() {
     return (
       <main className="page">
         <TopBar back={list} />
-        {!quest.loading && <p className="muted">This quest does not exist, or it was deleted.</p>}
+        {quest.loading ? <LoadingChest /> : <p className="muted">This quest does not exist, or it was deleted.</p>}
       </main>
     )
   }

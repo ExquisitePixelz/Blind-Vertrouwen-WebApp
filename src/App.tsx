@@ -1,12 +1,14 @@
 import { lazy, startTransition, Suspense, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useMatch } from 'react-router'
 import { Footer } from './components/Footer'
+import { StartSplash } from './components/LoadingChest'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { checkAccess, INVITE_ONLY, signOutWith } from './lib/access'
 import { consumeMailToken } from './lib/emailAuth'
 import { MeContext, type Me } from './lib/me'
 import { flushAllPending, setPendingOwner } from './lib/saver'
 import { must, supabase } from './lib/supabase'
+import { useStarting } from './lib/starting'
 import { useSession } from './lib/useSession'
 import { LoginPage } from './pages/LoginPage'
 import { useRememberCampaign } from './lib/campaigns'
@@ -49,6 +51,7 @@ export default function App() {
       </div>
       <Footer />
       <UpdatePrompt />
+      <StartSplash />
     </>
   )
 }
@@ -171,8 +174,12 @@ function Screens() {
   )
 }
 
-/** What shows while the app starts: the same as index.html, so nothing flashes (1.11 A2). */
+/**
+ * What shows while the app starts: the same as index.html, so nothing flashes
+ * (1.11 A2). When starting is slow, the chest covers it (1.16).
+ */
 function Starting() {
+  useStarting()
   return <main className="page center muted loading">DnD Companion App</main>
 }
 

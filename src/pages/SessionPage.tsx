@@ -5,6 +5,7 @@ import { FactRow } from '../components/FactRow'
 import { MarkdownNotes } from '../components/MarkdownNotes'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
+import { LoadingChest } from '../components/LoadingChest'
 import { byName } from '../lib/gods'
 import { useMe } from '../lib/me'
 import { useRowSaver } from '../lib/saver'
@@ -90,7 +91,7 @@ function NoteTaker() {
     return (
       <main className="page">
         <TopBar back={list} />
-        {!session.loading && <p className="muted">This session does not exist, or it was deleted.</p>}
+        {session.loading ? <LoadingChest /> : <p className="muted">This session does not exist, or it was deleted.</p>}
       </main>
     )
   }

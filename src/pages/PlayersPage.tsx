@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router'
 import { ConfirmDialog } from '../components/Dialog'
 import { InvitesSection } from '../components/InvitesSection'
 import { TopBar } from '../components/TopBar'
+import { LoadingChest } from '../components/LoadingChest'
 import { byName } from '../lib/gods'
 import { useMe } from '../lib/me'
 import { must, supabase } from '../lib/supabase'
@@ -54,7 +55,7 @@ function Players() {
     return (
       <main className="page">
         <TopBar title="Players" back="/" />
-        {!campaign.loading && <p className="muted">This campaign does not exist.</p>}
+        {campaign.loading ? <LoadingChest /> : <p className="muted">This campaign does not exist.</p>}
       </main>
     )
   }

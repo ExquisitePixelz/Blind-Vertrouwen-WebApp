@@ -9,6 +9,7 @@ import { SecretsSection } from '../components/Secrets'
 import { HideDialogs, RevealDialogs } from '../components/Reveal'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
+import { LoadingChest } from '../components/LoadingChest'
 import { forgetLinkTargets } from '../lib/linkTargets'
 import { useReveals, type RevealTable } from '../lib/reveals'
 import { useMe } from '../lib/me'
@@ -72,7 +73,7 @@ export function NpcPage() {
     return (
       <main className="page">
         <TopBar back={list} />
-        {!npc.loading && <p className="muted">NPC not found. It was deleted, or it is not shared with your campaign.</p>}
+        {npc.loading ? <LoadingChest /> : <p className="muted">NPC not found. It was deleted, or it is not shared with your campaign.</p>}
       </main>
     )
   }

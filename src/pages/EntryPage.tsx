@@ -9,6 +9,7 @@ import { HideDialogs, RevealDialogs } from '../components/Reveal'
 import { SecretsSection } from '../components/Secrets'
 import { ConflictBanner, SaveIndicator } from '../components/SaveState'
 import { TopBar } from '../components/TopBar'
+import { LoadingChest } from '../components/LoadingChest'
 import { forgetLinkTargets } from '../lib/linkTargets'
 import { useReveals, type RevealTable } from '../lib/reveals'
 import { useMe } from '../lib/me'
@@ -108,7 +109,9 @@ function Entry({ info, entryId }: { info: KindInfo; entryId: string }) {
     return (
       <main className="page">
         <TopBar back={list} />
-        {!entry.loading && (
+        {entry.loading ? (
+          <LoadingChest />
+        ) : (
           <p className="muted">
             {info.singular} not found. It was deleted, or it is not shared with your campaign.
           </p>
